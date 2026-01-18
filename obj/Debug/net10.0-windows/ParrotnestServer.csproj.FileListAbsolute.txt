@@ -1,0 +1,16 @@
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.csproj.AssemblyReference.cache
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.AssemblyInfoInputs.cache
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.AssemblyInfo.cs
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.csproj.CoreCompileInputs.cache
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\Parrotne.B2A7E60F.Up2Date
+C:\Users\user\Music\Komunikator JGS\Alfa\ParrotnestServer.exe
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.dll
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\refint\ParrotnestServer.dll
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.pdb
+C:\Users\user\Music\Komunikator JGS\Alfa\ParrotnestServer.deps.json
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ParrotnestServer.genruntimeconfig.cache
+C:\Users\user\Music\Komunikator JGS\Alfa\ParrotnestServer.runtimeconfig.json
+C:\Users\user\Music\Komunikator JGS\Alfa\ParrotnestServer.dll
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\obj\Debug\net10.0-windows\ref\ParrotnestServer.dll
+C:\Users\user\Music\Komunikator JGS\Alfa\ParrotnestServer.pdb

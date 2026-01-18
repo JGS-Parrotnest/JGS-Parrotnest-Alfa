@@ -1,0 +1,2 @@
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\bin\Release\net10.0-windows\win-x64\publish\ParrotnestServer.pdb
+C:\Users\user\Music\Komunikator JGS\Alfa\Server\bin\Release\net10.0-windows\win-x64\publish\ParrotnestServer.exe
