@@ -1,0 +1,3 @@
+C:\Users\user\Music\Komunikator JGS\Wzór 4 Parrotnest\appsettings.json
+C:\Users\user\Music\Komunikator JGS\Wzór 4 Parrotnest\ParrotnestServer.pdb
+C:\Users\user\Music\Komunikator JGS\Wzór 4 Parrotnest\ParrotnestServer.exe
