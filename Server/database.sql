@@ -1,4 +1,4 @@
-﻿CREATE DATABASE IF NOT EXISTS parrotnest CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+CREATE DATABASE IF NOT EXISTS parrotnest CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 USE parrotnest;
 CREATE TABLE IF NOT EXISTS Users (
     Id INT AUTO_INCREMENT PRIMARY KEY,
@@ -46,10 +46,10 @@ CREATE TABLE IF NOT EXISTS GroupMembers (
 CREATE TABLE IF NOT EXISTS Messages (
     Id INT AUTO_INCREMENT PRIMARY KEY,
     SenderId INT NOT NULL,
-    ReceiverId INT NULL COMMENT 'NULL dla wiadomoĹ›ci grupowych',
-    GroupId INT NULL COMMENT 'NULL dla wiadomoĹ›ci prywatnych',
+    ReceiverId INT NULL COMMENT 'NULL dla wiadomości grupowych',
+    GroupId INT NULL COMMENT 'NULL dla wiadomości prywatnych',
     Content TEXT NULL,
-    ImageUrl VARCHAR(500) NULL COMMENT 'URL do zaĹ‚Ä…czonego obrazu',
+    ImageUrl VARCHAR(500) NULL COMMENT 'URL do załączonego obrazu',
     Timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (SenderId) REFERENCES Users(Id) ON DELETE CASCADE,
     FOREIGN KEY (ReceiverId) REFERENCES Users(Id) ON DELETE CASCADE,
@@ -114,17 +114,17 @@ BEGIN
     FROM Users
     WHERE Username = p_username;
     IF p_addressee_id IS NULL THEN
-        SIGNAL SQLSTATE '60690' SET MESSAGE_TEXT = 'UĹĽytkownik nie istnieje';
+        SIGNAL SQLSTATE '60690' SET MESSAGE_TEXT = 'Użytkownik nie istnieje';
     END IF;
     IF p_requester_id = p_addressee_id THEN
-        SIGNAL SQLSTATE '60690' SET MESSAGE_TEXT = 'Nie moĹĽesz dodaÄ‡ samego siebie';
+        SIGNAL SQLSTATE '60690' SET MESSAGE_TEXT = 'Nie możesz dodać samego siebie';
     END IF;
     IF EXISTS (
         SELECT 1 FROM Friendships
         WHERE (RequesterId = p_requester_id AND AddresseeId = p_addressee_id)
            OR (RequesterId = p_addressee_id AND AddresseeId = p_requester_id)
     ) THEN
-        SIGNAL SQLSTATE '60690' SET MESSAGE_TEXT = 'Zaproszenie juĹĽ istnieje';
+        SIGNAL SQLSTATE '60690' SET MESSAGE_TEXT = 'Zaproszenie już istnieje';
     END IF;
     INSERT INTO Friendships (RequesterId, AddresseeId, Status)
     VALUES (p_requester_id, p_addressee_id, 'Pending');

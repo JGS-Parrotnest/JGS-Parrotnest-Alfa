@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using ParrotnestServer.Data;
@@ -47,11 +47,12 @@ namespace ParrotnestServer.Controllers
             var user = await _context.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
             if (user == null)
             {
-                return Unauthorized("UĹĽytkownik o takim adresie email nie istnieje. Zarejestruj siÄ™ najpierw.");
+                return Unauthorized("Użytkownik o takim adresie email nie istnieje. Zarejestruj się najpierw.");
             }
+
             if (!BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
             {
-                return Unauthorized("BĹ‚Ä™dne hasĹ‚o.");
+                return Unauthorized("Błędne hasło.");
             }
             var token = GenerateJwtToken(user);
             return Ok(new { token, user = new { user.Id, user.Username, user.Email, user.AvatarUrl } });

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParrotnestServer.Data;
@@ -43,7 +43,8 @@ namespace ParrotnestServer.Controllers
                     Id = f.RequesterId == userId ? f.AddresseeId : f.RequesterId,
                     Username = f.RequesterId == userId ? (f.Addressee != null ? f.Addressee.Username : null) : (f.Requester != null ? f.Requester.Username : null),
                     Email = f.RequesterId == userId ? (f.Addressee != null ? f.Addressee.Email : null) : (f.Requester != null ? f.Requester.Email : null),
-                    AvatarUrl = f.RequesterId == userId ? (f.Addressee != null ? f.Addressee.AvatarUrl : null) : (f.Requester != null ? f.Requester.AvatarUrl : null)
+                    AvatarUrl = f.RequesterId == userId ? (f.Addressee != null ? f.Addressee.AvatarUrl : null) : (f.Requester != null ? f.Requester.AvatarUrl : null),
+                    Status = f.RequesterId == userId ? (f.Addressee != null ? f.Addressee.Status : 1) : (f.Requester != null ? f.Requester.Status : 1)
                 })
                 .ToListAsync();
             var friendIds = friendships.Select(f => f.Id).ToList();
@@ -61,6 +62,15 @@ namespace ParrotnestServer.Controllers
                     ((m.SenderId == userId && m.ReceiverId == f.Id) || 
                     (m.ReceiverId == userId && m.SenderId == f.Id)));
                 var isOnline = await _userTracker.IsUserOnline(f.Id);
+                // Calculate final status
+                // If offline (not connected), status is 0
+                // If invisible (4), status is 0
+                // Else use DB status
+                int finalStatus = 0;
+                if (isOnline) {
+                    if (f.Status != 4) finalStatus = f.Status;
+                }
+                
                 resultList.Add(new {
                     f.Id,
                     f.Username,
@@ -68,7 +78,8 @@ namespace ParrotnestServer.Controllers
                     f.AvatarUrl,
                     LastMessage = lastMsg?.Content,
                     LastMessageTime = lastMsg?.Timestamp,
-                    IsOnline = isOnline
+                    IsOnline = isOnline, // Keep for backward compatibility if needed, or remove
+                    Status = finalStatus
                 });
             }
             return Ok(resultList);
@@ -130,18 +141,18 @@ namespace ParrotnestServer.Controllers
             if (!userId.HasValue) return Unauthorized();
             if (string.IsNullOrWhiteSpace(dto.UsernameOrEmail))
             {
-                return BadRequest("Podaj nazwÄ™ uĹĽytkownika lub email.");
+                return BadRequest("Podaj nazwę użytkownika lub email.");
             }
             var search = dto.UsernameOrEmail.Trim();
             var targetUser = await _context.Users
                 .FirstOrDefaultAsync(u => u.Username == search || u.Email == search);
             if (targetUser == null)
             {
-                return NotFound("UĹĽytkownik nie zostaĹ‚ znaleziony.");
+                return NotFound("Użytkownik nie został znaleziony.");
             }
             if (targetUser.Id == userId)
             {
-                return BadRequest("Nie moĹĽesz dodaÄ‡ samego siebie.");
+                return BadRequest("Nie możesz dodać samego siebie.");
             }
             var existingFriendship = await _context.Friendships
                 .FirstOrDefaultAsync(f => 
@@ -152,7 +163,7 @@ namespace ParrotnestServer.Controllers
                 if (existingFriendship.Status == FriendshipStatus.Accepted)
                 {
                     return Ok(new { 
-                        message = "JesteĹ›cie juĹĽ znajomymi.", 
+                        message = "Jesteście już znajomymi.", 
                         friendId = targetUser.Id,
                         username = targetUser.Username,
                         alreadyFriends = true
@@ -162,14 +173,14 @@ namespace ParrotnestServer.Controllers
                 {
                     if (existingFriendship.RequesterId == userId)
                     {
-                        return BadRequest("Zaproszenie juĹĽ zostaĹ‚o wysĹ‚ane.");
+                        return BadRequest("Zaproszenie już zostało wysłane.");
                     }
                     else
                     {
                         existingFriendship.Status = FriendshipStatus.Accepted;
                         await _context.SaveChangesAsync();
                         return Ok(new { 
-                            message = "Zaproszenie zostaĹ‚o zaakceptowane.",
+                            message = "Zaproszenie zostało zaakceptowane.",
                             friendId = targetUser.Id,
                             username = targetUser.Username,
                             alreadyFriends = true
@@ -186,7 +197,7 @@ namespace ParrotnestServer.Controllers
             _context.Friendships.Add(friendship);
             await _context.SaveChangesAsync();
             return Ok(new { 
-                message = "Zaproszenie do znajomych zostaĹ‚o wysĹ‚ane.",
+                message = "Zaproszenie do znajomych zostało wysłane.",
                 friendId = targetUser.Id,
                 username = targetUser.Username,
                 avatarUrl = targetUser.AvatarUrl,
@@ -202,7 +213,7 @@ namespace ParrotnestServer.Controllers
                 .FirstOrDefaultAsync(f => f.Id == friendshipId && f.AddresseeId == userId);
             if (friendship == null)
             {
-                return NotFound("Zaproszenie nie zostaĹ‚o znalezione.");
+                return NotFound("Zaproszenie nie zostało znalezione.");
             }
             if (friendship.Status != FriendshipStatus.Pending)
             {
@@ -210,7 +221,7 @@ namespace ParrotnestServer.Controllers
             }
             friendship.Status = FriendshipStatus.Accepted;
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Zaproszenie zostaĹ‚o zaakceptowane." });
+            return Ok(new { message = "Zaproszenie zostało zaakceptowane." });
         }
         [HttpDelete("{friendId}")]
         public async Task<IActionResult> RemoveFriend(int friendId)
@@ -226,12 +237,12 @@ namespace ParrotnestServer.Controllers
                 friendship = await _context.Friendships.FindAsync(friendId);
                 if (friendship == null || (friendship.RequesterId != userId && friendship.AddresseeId != userId))
                 {
-                    return NotFound("ZnajomoĹ›Ä‡ nie zostaĹ‚a znaleziona.");
+                    return NotFound("Znajomość nie została znaleziona.");
                 }
             }
             _context.Friendships.Remove(friendship);
             await _context.SaveChangesAsync();
-            return Ok(new { message = "UsuniÄ™to." });
+            return Ok(new { message = "Usunięto." });
         }
     }
     public class AddFriendDto

@@ -99,7 +99,7 @@ namespace ParrotnestServer
             }
             catch (Exception ex)
             {
-                Log($"BĹ‚Ä…d uruchamiania: {ex.Message}");
+                Log($"Błąd uruchamiania: {ex.Message}");
                 btnStart.Enabled = true;
                 btnCleanDB.Enabled = true;
             }
@@ -117,17 +117,17 @@ namespace ParrotnestServer
             }
             catch (Exception ex)
             {
-                Log($"BĹ‚Ä…d zatrzymywania: {ex.Message}");
+                Log($"Błąd zatrzymywania: {ex.Message}");
             }
         }
         private void BtnCleanDB_Click(object? sender, EventArgs e)
         {
             if (_isRunning)
             {
-                MessageBox.Show("Zatrzymaj serwer przed czyszczeniem bazy!", "OstrzeĹĽenie", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBox.Show("Zatrzymaj serwer przed czyszczeniem bazy!", "Ostrzeżenie", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
-            if (MessageBox.Show("Czy na pewno chcesz usunÄ…Ä‡ caĹ‚Ä… bazÄ™ danych? Ta operacja jest nieodwracalna.", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
+            if (MessageBox.Show("Czy na pewno chcesz usunąć całą bazę danych? Ta operacja jest nieodwracalna.", "Potwierdzenie", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 try
                 {
@@ -144,7 +144,7 @@ namespace ParrotnestServer
                     if (File.Exists(walPath)) File.Delete(walPath);
                     if (deleted)
                     {
-                        Log("Baza danych zostaĹ‚a usuniÄ™ta.");
+                        Log("Baza danych została usunięta.");
                     }
                     else
                     {
@@ -153,7 +153,7 @@ namespace ParrotnestServer
                 }
                 catch (Exception ex)
                 {
-                    Log($"BĹ‚Ä…d usuwania bazy: {ex.Message}");
+                    Log($"Błąd usuwania bazy: {ex.Message}");
                 }
             }
         }

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.SignalR;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.Authorization;
 using ParrotnestServer.Data;
 using ParrotnestServer.Models;
@@ -36,7 +36,14 @@ namespace ParrotnestServer.Hubs
             if (userId.HasValue)
             {
                 await _userTracker.UserConnected(Context.ConnectionId, userId.Value);
-                await Clients.All.SendAsync("UserStatusChanged", userId.Value, true);
+                var user = await _context.Users.FindAsync(userId.Value);
+                int status = (user != null && user.Status != 4) ? user.Status : 0;
+                // If user is invisible (4), status broadcast is 0 (Offline)
+                // However, we might want to differentiate "Invisible" vs "Offline" for the user themselves?
+                // The broadcast goes to "All", so we must send 0 if invisible.
+                if (user != null && user.Status == 4) status = 0;
+                
+                await Clients.All.SendAsync("UserStatusChanged", userId.Value, status);
             }
             await base.OnConnectedAsync();
         }
@@ -49,10 +56,25 @@ namespace ParrotnestServer.Hubs
                  bool isOnline = await _userTracker.IsUserOnline(userId.Value);
                  if (!isOnline)
                  {
-                     await Clients.All.SendAsync("UserStatusChanged", userId.Value, false);
+                     await Clients.All.SendAsync("UserStatusChanged", userId.Value, 0);
                  }
             }
             await base.OnDisconnectedAsync(exception);
+        }
+        public async Task UpdateStatus(int status)
+        {
+            var userId = GetUserId();
+            if (userId.HasValue)
+            {
+                var user = await _context.Users.FindAsync(userId.Value);
+                if (user != null)
+                {
+                    user.Status = status;
+                    await _context.SaveChangesAsync();
+                    int broadcastStatus = (status == 4) ? 0 : status;
+                    await Clients.All.SendAsync("UserStatusChanged", userId.Value, broadcastStatus);
+                }
+            }
         }
         public async Task SendMessage(string user, string message, string? imageUrl = null, int? receiverId = null, int? groupId = null)
         {
@@ -141,14 +163,14 @@ namespace ParrotnestServer.Hubs
                 else
                 {
                     Console.WriteLine($"[ChatHub] Sender NOT found for username: {senderUsername}");
-                    await Clients.Caller.SendAsync("ReceiveMessage", 0, "System", "BĹ‚Ä…d: Nie znaleziono uĹĽytkownika. Zaloguj siÄ™ ponownie.", null, null, null);
+                    await Clients.Caller.SendAsync("ReceiveMessage", 0, "System", "Błąd: Nie znaleziono użytkownika. Zaloguj się ponownie.", null, null, null);
                 }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"Error sending message: {ex.Message}");
                 Console.WriteLine(ex.StackTrace);
-                await Clients.Caller.SendAsync("ReceiveMessage", 0, "System", $"BĹ‚Ä…d wysyĹ‚ania wiadomoĹ›ci: {ex.Message}", null, null, null);
+                await Clients.Caller.SendAsync("ReceiveMessage", 0, "System", $"Błąd wysyłania wiadomości: {ex.Message}", null, null, null);
             }
         }
         public async Task JoinGroup(string groupName)

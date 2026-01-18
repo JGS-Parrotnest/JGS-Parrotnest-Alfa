@@ -1,11 +1,25 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+    <script>
+        (function() {
+            try {
+                var t = localStorage.getItem('preferredTheme');
+                if (!t) {
+                    t = 'dark';
+                    localStorage.setItem('preferredTheme', t);
+                }
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parrotnest</title>
     <link rel="icon" href="logo.png" type="image/png">
-    <link rel="stylesheet" href="style.css?v=8">
+    <link rel="stylesheet" href="style.css?v=7">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
@@ -42,9 +56,6 @@
                                 url = url.replace(/\\/g, '/');
                                 if (!url.startsWith('/')) url = '/' + url;
                                 let base = window.location.origin;
-                                if (window.location.protocol === 'file:') {
-                                    base = 'http://localhost:6069';
-                                }
                                 url = `${base}${url}`;
                             } else {
                                 try {
@@ -91,16 +102,44 @@
                     <h2>Parrotnest</h2>
                 </div>
             </div>
-                <div class="chat-list">
-                <div class="chat-item active" id="globalChatItem">
-                    <div class="avatar"></div>
-                    <div class="chat-info">
-                        <h4>Ogólny</h4>
+            <div class="chat-list">
+                <div class="channel-folder" id="globalFolder">
+                    <button class="channel-folder-header" id="globalFolderHeader">
+                        <span>Kanały</span>
+                        <span class="channel-folder-arrow">▼</span>
+                    </button>
+                    <div class="channel-folder-body" id="globalFolderBody">
+                        <div class="chat-item active" id="globalChatItem">
+                            <div class="avatar"></div>
+                            <div class="chat-info">
+                                <h4>Ogólny</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="channel-folder" id="friendsFolder">
+                    <button class="channel-folder-header" id="friendsFolderHeader">
+                        <span>Znajomi</span>
+                        <span class="channel-folder-arrow">▼</span>
+                    </button>
+                    <div class="channel-folder-body" id="friendsFolderBody">
+                        <!-- Lista znajomych będzie renderowana dynamicznie -->
+                    </div>
+                </div>
+                <div class="channel-folder" id="groupsFolder">
+                    <button class="channel-folder-header" id="groupsFolderHeader">
+                        <span>Grupy</span>
+                        <span class="channel-folder-arrow">▼</span>
+                    </button>
+                    <div class="channel-folder-body" id="groupsFolderBody">
+                        <!-- Lista grup będzie renderowana dynamicznie -->
                     </div>
                 </div>
             </div>
-            <div class="sidebar-footer">
+            <div style="padding: 0 10px;">
                 <button class="btn-add-sidebar" id="addFriendGroupButton" title="Dodaj znajomego lub grupę">+</button>
+            </div>
+            <div class="sidebar-footer">
                 <div class="user-profile">
                     <div class="user-info">
                         <div class="avatar" id="userAvatar"></div>
@@ -110,9 +149,7 @@
                         </div>
                     </div>
                     <div class="user-actions">
-                        <button class="btn-icon" id="notificationButton" title="Włącz/Wyłącz powiadomienia">🔔</button>
                         <button class="btn-icon" id="settingsButton" title="Ustawienia">⚙️</button>
-                        <button class="btn-icon btn-logout" id="logoutButton" title="Wyloguj się">🚪</button>
                     </div>
                 </div>
             </div>
@@ -124,7 +161,6 @@
                     <h3>Ogólny</h3>
                 </div>
                 <div class="chat-actions">
-                    <button class="btn-icon" id="conversationInfoButton" title="Informacje o rozmowie">ℹ️</button>
                     <button class="btn-icon" id="addGroupMemberBtn" style="display: none;" title="Dodaj członków">➕</button>
                     <button class="btn-icon" id="removeGroupMemberBtn" style="display: none;" title="Usuń użytkownika">➖</button>
                     <button class="btn-icon" id="leaveGroupBtn" style="display: none;" title="Opuść grupę">🚪</button>
@@ -249,26 +285,124 @@
                 <button class="modal-close" id="closeSettingsModal">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="settings-avatar-section">
-                    <div class="avatar-large" id="settingsAvatarPreview"></div>
-                    <button class="btn-secondary" id="changeAvatarBtn">Zmień zdjęcie</button>
-                    <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                <div class="modal-tabs">
+                    <button class="tab-button active" data-tab="settings-account">Konto</button>
+                    <button class="tab-button" data-tab="settings-notifications">Powiadomienia</button>
+                    <button class="tab-button" data-tab="settings-themes">Motywy</button>
+                        <button class="tab-button" data-tab="settings-status">Status</button>
                 </div>
-                <form id="settingsForm">
+                <div class="tab-content active" id="settings-accountTab">
+                    <div class="settings-avatar-section">
+                        <div class="avatar-large" id="settingsAvatarPreview"></div>
+                        <button class="btn-secondary" id="changeAvatarBtn">Zmień zdjęcie</button>
+                        <input type="file" id="avatarInput" accept="image/*" style="display: none;">
+                    </div>
+                    <form id="settingsForm">
+                        <div class="input-group">
+                            <label for="settingsUsername">Nazwa użytkownika</label>
+                            <input type="text" id="settingsUsername" name="username" placeholder="Twoja nazwa">
+                        </div>
+                        <div class="input-group">
+                            <label for="settingsEmail">Adres e-mail</label>
+                            <input type="email" id="settingsEmail" name="email" placeholder="Twój e-mail" disabled style="opacity: 0.7;">
+                        </div>
+                        <div class="input-group">
+                            <label for="settingsPassword">Nowe hasło (opcjonalnie)</label>
+                            <input type="password" id="settingsPassword" name="password" placeholder="Zostaw puste aby nie zmieniać">
+                        </div>
+                        <button type="submit" class="btn-primary" id="saveSettingsBtn">Zapisz zmiany</button>
+                    </form>
+                    <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--border-color); text-align: center;">
+                        <button type="button" id="accountLogoutBtn" style="background: transparent; border: 1px solid var(--error-color); color: var(--error-color); padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; width: 100%;">Wyloguj się</button>
+                    </div>
+                </div>
+                <div class="tab-content" id="settings-notificationsTab">
                     <div class="input-group">
-                        <label for="settingsUsername">Nazwa użytkownika</label>
-                        <input type="text" id="settingsUsername" name="username" placeholder="Twoja nazwa">
+                        <label for="settingsNotificationsToggle">Powiadomienia</label>
+                        <button type="button" class="btn-secondary" id="settingsNotificationsToggle">Przełącz powiadomienia</button>
                     </div>
                     <div class="input-group">
-                        <label for="settingsEmail">Adres e-mail</label>
-                        <input type="email" id="settingsEmail" name="email" placeholder="Twój e-mail" disabled style="opacity: 0.7;">
+                        <label for="notificationSoundSelect">Dźwięk powiadomień</label>
+                        <select id="notificationSoundSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main);">
+                            <option value="original">Oryginalny</option>
+                            <option value="sound1">1.mp3</option>
+                            <option value="sound2">2.mp3</option>
+                            <option value="sound3">3.mp3</option>
+                        </select>
                     </div>
+                </div>
+                <div class="tab-content" id="settings-themesTab">
                     <div class="input-group">
-                        <label for="settingsPassword">Nowe hasło (opcjonalnie)</label>
-                        <input type="password" id="settingsPassword" name="password" placeholder="Zostaw puste aby nie zmieniać">
+                        <label>Motyw interfejsu</label>
+                        <div class="themes-list">
+                            <label class="theme-option">
+                                <span class="theme-name">Vibrant</span>
+                                <input type="radio" class="theme-radio" name="theme" value="vibrant" id="themeVibrant">
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Dark</span>
+                                <input type="radio" class="theme-radio" name="theme" value="dark" id="themeDark">
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Klasyczny</span>
+                                <input type="radio" class="theme-radio" name="theme" value="classic" id="themeClassic">
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Oryginalny</span>
+                                <input type="radio" class="theme-radio" name="theme" value="original" id="themeOriginal" checked>
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Neonowy</span>
+                                <input type="radio" class="theme-radio" name="theme" value="neon" id="themeNeon">
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Leśny</span>
+                                <input type="radio" class="theme-radio" name="theme" value="forest" id="themeForest">
+                            </label>
+                        </div>
+                        <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                            <button type="button" class="btn-primary" id="saveThemeBtn" style="width: auto; padding: 10px 16px;">Zapisz motyw</button>
+                        </div>
                     </div>
-                    <button type="submit" class="btn-primary" id="saveSettingsBtn">Zapisz zmiany</button>
-                </form>
+                </div>
+                <div class="tab-content" id="settings-statusTab">
+                    <div class="input-group">
+                        <label>Twój status</label>
+                        <div class="themes-list">
+                            <label class="theme-option">
+                                <div style="display:flex;align-items:center;">
+                                    <span style="width:12px;height:12px;border-radius:50%;background-color:#2ecc71;margin-right:10px;"></span>
+                                    <span class="theme-name">Aktywny</span>
+                                </div>
+                                <input type="radio" class="theme-radio" name="status" value="1" id="statusActive" checked>
+                            </label>
+                            <label class="theme-option">
+                                <div style="display:flex;align-items:center;">
+                                    <span style="width:12px;height:12px;border-radius:50%;background-color:#f1c40f;margin-right:10px;"></span>
+                                    <span class="theme-name">Zaraz wracam</span>
+                                </div>
+                                <input type="radio" class="theme-radio" name="status" value="2" id="statusAway">
+                            </label>
+                            <label class="theme-option">
+                                <div style="display:flex;align-items:center;">
+                                    <span style="width:12px;height:12px;border-radius:50%;background-color:#e74c3c;margin-right:10px;"></span>
+                                    <span class="theme-name">Nie przeszkadzać</span>
+                                </div>
+                                <input type="radio" class="theme-radio" name="status" value="3" id="statusDND">
+                            </label>
+                            <label class="theme-option">
+                                <div style="display:flex;align-items:center;">
+                                    <span style="width:12px;height:12px;border-radius:50%;background-color:#95a5a6;margin-right:10px;"></span>
+                                    <span class="theme-name">Niewidoczny</span>
+                                </div>
+                                <input type="radio" class="theme-radio" name="status" value="4" id="statusInvisible">
+                            </label>
+                        </div>
+                        <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
+                            <button type="button" class="btn-primary" id="saveStatusBtn" style="width: auto; padding: 10px 16px;">Zapisz status</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParrotnestServer.Data;
@@ -51,7 +51,7 @@ namespace ParrotnestServer.Controllers
             var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp" };
             var fileExtension = Path.GetExtension(file.FileName).ToLower();
             if (!allowedExtensions.Contains(fileExtension))
-                return BadRequest("Dozwolone sÄ… tylko pliki obrazĂłw (PNG, JPG, JPEG, GIF, WEBP, BMP).");
+                return BadRequest("Dozwolone są tylko pliki obrazów (PNG, JPG, JPEG, GIF, WEBP, BMP).");
             var clientPath = _configuration["ClientPath"] ?? Path.Combine(_environment.ContentRootPath, "..", "Client");
             var uploadsFolder = Path.Combine(clientPath, "uploads", "avatars");
             if (!Directory.Exists(uploadsFolder))
@@ -65,13 +65,13 @@ namespace ParrotnestServer.Controllers
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim))
             {
-                return Unauthorized("Nie moĹĽna zidentyfikowaÄ‡ uĹĽytkownika.");
+                return Unauthorized("Nie można zidentyfikować użytkownika.");
             }
             var userId = int.Parse(userIdClaim);
             var user = await _context.Users.FindAsync(userId);
             if (user == null)
             {
-                return NotFound("UĹĽytkownik nie zostaĹ‚ znaleziony.");
+                return NotFound("Użytkownik nie został znaleziony.");
             }
             if (!string.IsNullOrEmpty(user.AvatarUrl) && user.AvatarUrl.StartsWith("/uploads/avatars/"))
             {
@@ -104,7 +104,7 @@ namespace ParrotnestServer.Controllers
                     }
                 }
                 catch { }
-                return StatusCode(500, $"BĹ‚Ä…d podczas zapisywania awatara: {ex.Message}");
+                return StatusCode(500, $"Błąd podczas zapisywania awatara: {ex.Message}");
             }
             return Ok(new { url = avatarUrl });
         }
@@ -123,7 +123,7 @@ namespace ParrotnestServer.Controllers
             if (!string.IsNullOrWhiteSpace(dto.Username) && dto.Username != user.Username)
             {
                 if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
-                    return BadRequest("Nazwa uĹĽytkownika jest juĹĽ zajÄ™ta.");
+                    return BadRequest("Nazwa użytkownika jest już zajęta.");
                 user.Username = dto.Username;
             }
             if (!string.IsNullOrWhiteSpace(dto.Password))
@@ -138,5 +138,9 @@ namespace ParrotnestServer.Controllers
     {
         public string? Username { get; set; }
         public string? Password { get; set; }
+    }
+    public class UpdateStatusDto
+    {
+        public int Status { get; set; }
     }
 }

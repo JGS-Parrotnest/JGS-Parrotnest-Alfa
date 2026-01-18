@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.SignalR;
@@ -119,7 +119,8 @@ namespace ParrotnestServer.Controllers
                 await _hubContext.Clients.User(uid.ToString())
                     .SendAsync("GroupMembershipChanged", "added", groupPayload);
             }
-            return Ok(new { message = "Grupa zostaĹ‚a utworzona.", groupId = group.Id });
+
+            return Ok(new { message = "Grupa została utworzona.", groupId = group.Id });
         }
         [HttpGet]
         public async Task<IActionResult> GetGroups()
@@ -155,11 +156,12 @@ namespace ParrotnestServer.Controllers
             var group = await _context.Groups.FindAsync(id);
             if (group == null)
             {
-                return NotFound("Grupa nie zostaĹ‚a znaleziona.");
+                return NotFound("Grupa nie została znaleziona.");
             }
+
             if (group.OwnerId != userId)
             {
-                return Forbid("Tylko wĹ‚aĹ›ciciel moĹĽe edytowaÄ‡ grupÄ™.");
+                return Forbid("Tylko właściciel może edytować grupę.");
             }
             if (!string.IsNullOrWhiteSpace(dto.Name))
             {
@@ -184,7 +186,8 @@ namespace ParrotnestServer.Controllers
                 await _hubContext.Clients.User(uid.ToString())
                     .SendAsync("GroupMembershipChanged", "updated", groupPayload);
             }
-            return Ok(new { message = "Grupa zostaĹ‚a zaktualizowana.", group });
+
+            return Ok(new { message = "Grupa została zaktualizowana.", group });
         }
         [HttpPost("{id}/avatar")]
         public async Task<IActionResult> UploadAvatar(int id, IFormFile avatar)
@@ -197,15 +200,17 @@ namespace ParrotnestServer.Controllers
             var group = await _context.Groups.FindAsync(id);
             if (group == null)
             {
-                return NotFound("Grupa nie zostaĹ‚a znaleziona.");
+                return NotFound("Grupa nie została znaleziona.");
             }
+
             if (group.OwnerId != userId)
             {
-                return Forbid("Tylko wĹ‚aĹ›ciciel moĹĽe zmieniÄ‡ ikonÄ™ grupy.");
+                return Forbid("Tylko właściciel może zmienić ikonę grupy.");
             }
+
             if (avatar == null || avatar.Length == 0)
             {
-                return BadRequest("Nie przesĹ‚ano pliku.");
+                return BadRequest("Nie przesłano pliku.");
             }
             var clientPath = _configuration["ClientPath"] ?? Path.Combine(_environment.ContentRootPath, "..", "Client");
             var uploadsFolder = Path.Combine(clientPath, "uploads", "avatars");
@@ -252,11 +257,12 @@ namespace ParrotnestServer.Controllers
             var group = await _context.Groups.FindAsync(id);
             if (group == null)
             {
-                return NotFound("Grupa nie zostaĹ‚a znaleziona.");
+                return NotFound("Grupa nie została znaleziona.");
             }
+
             if (group.OwnerId != userId)
             {
-                return Forbid("Tylko wĹ‚aĹ›ciciel moĹĽe usunÄ…Ä‡ grupÄ™.");
+                return Forbid("Tylko właściciel może usunąć grupę.");
             }
             var memberUserIds = await _context.GroupMembers
                 .Where(gm => gm.GroupId == id)
@@ -277,7 +283,8 @@ namespace ParrotnestServer.Controllers
                 await _hubContext.Clients.User(uid.ToString())
                     .SendAsync("GroupMembershipChanged", "removed", groupPayload);
             }
-            return Ok(new { message = "Grupa zostaĹ‚a usuniÄ™ta." });
+
+            return Ok(new { message = "Grupa została usunięta." });
         }
         [HttpPost("{id}/members")]
         public async Task<IActionResult> AddGroupMembers(int id, [FromBody] List<string> usernames)
@@ -290,22 +297,26 @@ namespace ParrotnestServer.Controllers
             var group = await _context.Groups.FindAsync(id);
             if (group == null)
             {
-                return NotFound("Grupa nie zostaĹ‚a znaleziona.");
+                return NotFound("Grupa nie została znaleziona.");
             }
+
             if (group.OwnerId != userId)
             {
-                 return Forbid("Tylko wĹ‚aĹ›ciciel moĹĽe dodawaÄ‡ czĹ‚onkĂłw.");
+                 return Forbid("Tylko właściciel może dodawać członków.");
             }
+
             if (usernames == null || !usernames.Any())
             {
-                return BadRequest("Lista uĹĽytkownikĂłw jest pusta.");
+                return BadRequest("Lista użytkowników jest pusta.");
             }
+
             var usersToAdd = await _context.Users
                 .Where(u => usernames.Contains(u.Username))
                 .ToListAsync();
+
             if (!usersToAdd.Any())
             {
-                return Ok(new { message = "Nie znaleziono podanych uĹĽytkownikĂłw." });
+                return Ok(new { message = "Nie znaleziono podanych użytkowników." });
             }
             int addedCount = 0;
             foreach (var userToAdd in usersToAdd)
@@ -332,11 +343,12 @@ namespace ParrotnestServer.Controllers
                     var groupPayload = new
                     {
                         Id = groupEntity.Id,
-                        groupEntity.Name,
-                        groupEntity.AvatarUrl,
-                        groupEntity.CreatedAt,
-                        groupEntity.OwnerId
+                        Name = groupEntity.Name,
+                        AvatarUrl = groupEntity.AvatarUrl,
+                        CreatedAt = groupEntity.CreatedAt,
+                        OwnerId = groupEntity.OwnerId
                     };
+
                     foreach (var userToAdd in usersToAdd)
                     {
                         var existsNow = await _context.GroupMembers.AnyAsync(gm => gm.GroupId == id && gm.UserId == userToAdd.Id);
@@ -348,7 +360,8 @@ namespace ParrotnestServer.Controllers
                     }
                 }
             }
-            return Ok(new { message = $"Dodano {addedCount} uĹĽytkownikĂłw do grupy." });
+
+            return Ok(new { message = $"Dodano {addedCount} użytkowników do grupy." });
         }
         [HttpGet("{id}/members")]
         public async Task<IActionResult> GetGroupMembers(int id)
@@ -361,7 +374,7 @@ namespace ParrotnestServer.Controllers
             var isMember = await _context.GroupMembers.AnyAsync(gm => gm.GroupId == id && gm.UserId == userId);
             if (!isMember)
             {
-                return Forbid("Nie jesteĹ› czĹ‚onkiem tej grupy.");
+                return Forbid("Nie jesteś członkiem tej grupy.");
             }
             var members = await _context.GroupMembers
                 .Where(gm => gm.GroupId == id)
@@ -387,16 +400,18 @@ namespace ParrotnestServer.Controllers
             var group = await _context.Groups.FindAsync(id);
             if (group == null)
             {
-                return NotFound("Grupa nie zostaĹ‚a znaleziona.");
+                return NotFound("Grupa nie została znaleziona.");
             }
+
             if (group.OwnerId == userId)
             {
-                return Forbid("WĹ‚aĹ›ciciel nie moĹĽe opuĹ›ciÄ‡ grupy. UsuĹ„ grupÄ™ lub przekaĹĽ wĹ‚asnoĹ›Ä‡.");
+                return Forbid("Właściciel nie może opuścić grupy. Usuń grupę lub przekaż własność.");
             }
+
             var membership = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == userId);
             if (membership == null)
             {
-                return NotFound("Nie jesteĹ› czĹ‚onkiem tej grupy.");
+                return NotFound("Nie jesteś członkiem tej grupy.");
             }
             _context.GroupMembers.Remove(membership);
             await _context.SaveChangesAsync();
@@ -409,7 +424,7 @@ namespace ParrotnestServer.Controllers
                     group.CreatedAt,
                     group.OwnerId
                 });
-            return Ok(new { message = "OpuĹ›ciĹ‚eĹ› grupÄ™." });
+            return Ok(new { message = "Opuściłeś grupę." });
         }
         [HttpDelete("{id}/members/{userId}")]
         public async Task<IActionResult> RemoveMember(int id, int userId)
@@ -422,20 +437,23 @@ namespace ParrotnestServer.Controllers
             var group = await _context.Groups.FindAsync(id);
             if (group == null)
             {
-                return NotFound("Grupa nie zostaĹ‚a znaleziona.");
+                return NotFound("Grupa nie została znaleziona.");
             }
+
             if (group.OwnerId != requesterId)
             {
-                return Forbid("Tylko wĹ‚aĹ›ciciel moĹĽe usuwaÄ‡ uĹĽytkownikĂłw z grupy.");
+                return Forbid("Tylko właściciel może usuwać użytkowników z grupy.");
             }
+
             if (userId == requesterId)
             {
-                return BadRequest("WĹ‚aĹ›ciciel nie moĹĽe usuwaÄ‡ samego siebie. UĹĽyj usuniÄ™cia grupy.");
+                return BadRequest("Właściciel nie może usuwać samego siebie. Użyj usunięcia grupy.");
             }
+
             var membership = await _context.GroupMembers.FirstOrDefaultAsync(gm => gm.GroupId == id && gm.UserId == userId);
             if (membership == null)
             {
-                return NotFound("UĹĽytkownik nie jest czĹ‚onkiem tej grupy.");
+                return NotFound("Użytkownik nie jest członkiem tej grupy.");
             }
             _context.GroupMembers.Remove(membership);
             await _context.SaveChangesAsync();
@@ -448,7 +466,7 @@ namespace ParrotnestServer.Controllers
                     group.CreatedAt,
                     group.OwnerId
                 });
-            return Ok(new { message = "UĹĽytkownik zostaĹ‚ usuniÄ™ty z grupy." });
+            return Ok(new { message = "Użytkownik został usunięty z grupy." });
         }
     }
     public class CreateGroupDto

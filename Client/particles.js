@@ -1,4 +1,4 @@
-document.addEventListener('DOMContentLoaded', () => {
+﻿document.addEventListener('DOMContentLoaded', () => {
     const canvas = document.createElement('canvas');
     canvas.id = 'particles-canvas';
     document.body.prepend(canvas);
@@ -23,7 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
             this.vx = (Math.random() - 0.5) * 1;
             this.vy = (Math.random() - 0.5) * 1;
             this.size = Math.random() * 3 + 1;
-            this.color = `rgba(160, 160, 160, ${Math.random() * 0.5 + 0.1})`; 
+            this.color = `rgba(76, 175, 80, ${Math.random() * 0.5 + 0.1})`; 
         }
         update() {
             this.x += this.vx;
@@ -58,7 +58,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const distance = Math.sqrt(dx * dx + dy * dy);
                 if (distance < 100) {
                     ctx.beginPath();
-                    ctx.strokeStyle = `rgba(160, 160, 160, ${0.1 - distance/1000})`;
+                    ctx.strokeStyle = `rgba(76, 175, 80, ${0.1 - distance/1000})`;
                     ctx.lineWidth = 1;
                     ctx.moveTo(particles[i].x, particles[i].y);
                     ctx.lineTo(particles[j].x, particles[j].y);

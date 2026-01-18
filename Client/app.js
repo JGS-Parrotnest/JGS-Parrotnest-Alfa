@@ -1,4 +1,3 @@
-
 const HUB_URL = (typeof SERVER_BASE !== 'undefined'
     ? `${SERVER_BASE}/chatHub`
     : `${(window.__SERVER_BASE_DEFAULT__ || window.location.origin)}/chatHub`);
@@ -11,9 +10,17 @@ if (typeof window.resolveUrl === 'undefined') {
                 const target = new URL(url);
                 const current = new URL(window.location.origin);
                 if (target.hostname === 'localhost' || target.hostname === '0.0.0.0') {
-                    target.hostname = current.hostname;
-                    target.port = current.port || target.port;
-                    target.protocol = current.protocol;
+                    // Always match current hostname to avoid cross-origin issues
+                    // unless current is file:// then use localhost
+                    if (window.location.protocol !== 'file:') {
+                        target.hostname = current.hostname;
+                        target.port = current.port || target.port;
+                        target.protocol = current.protocol;
+                    } else {
+                        target.hostname = 'localhost';
+                        target.port = '6069';
+                        target.protocol = 'http:';
+                    }
                     return target.toString();
                 }
                 return url;
@@ -69,10 +76,60 @@ if (typeof window.handleApiError === 'undefined') {
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("App initializing...");
+    
+    // Ensure critical UI elements work immediately
+    const settingsButton = document.getElementById('settingsButton');
+    const settingsModal = document.getElementById('settingsModal');
+    const accountLogoutBtn = document.getElementById('accountLogoutBtn');
+    const closeSettingsModal = document.getElementById('closeSettingsModal');
+    
+    if (settingsButton && settingsModal) {
+        settingsButton.addEventListener('click', async () => {
+            settingsModal.classList.add('show');
+            try {
+                if (typeof loadUserData === 'function') await loadUserData();
+
+                const userStr = localStorage.getItem('user');
+                if (userStr) {
+                    const user = JSON.parse(userStr);
+                    const status = user.status || user.Status || 1;
+                    const radio = document.querySelector(`input[name="status"][value="${status}"]`);
+                    if (radio) radio.checked = true;
+                }
+            } catch (e) { console.error("Error loading user data", e); }
+
+            const settingsTabButtons = settingsModal.querySelectorAll('.tab-button');
+            const settingsTabContents = settingsModal.querySelectorAll('.tab-content');
+            settingsTabButtons.forEach(btn => btn.classList.remove('active'));
+            settingsTabContents.forEach(content => content.classList.remove('active'));
+            const accountTabBtn = settingsModal.querySelector('.tab-button[data-tab="settings-account"]');
+            const accountTabContent = document.getElementById('settings-accountTab');
+            if (accountTabBtn) accountTabBtn.classList.add('active');
+            if (accountTabContent) accountTabContent.classList.add('active');
+        });
+    }
+    
+    if (accountLogoutBtn) {
+        accountLogoutBtn.addEventListener('click', () => {
+            if (confirm('Czy na pewno chcesz się wylogować?')) {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                window.location.href = '/';
+            }
+        });
+    }
+
+    if (closeSettingsModal && settingsModal) {
+        closeSettingsModal.addEventListener('click', () => settingsModal.classList.remove('show'));
+    }
+
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
         // Główna logika czatu
         (async function() {
+        // Use window.API_URL if defined
+        const API_URL = window.API_URL || ((window.SERVER_BASE || window.location.origin) + '/api');
+        
         let signalRAvailable = typeof signalR !== 'undefined';
         if (!signalRAvailable) {
             console.warn('SignalR library not loaded – funkcje czatu ograniczone, ale UI działa.');
@@ -152,9 +209,51 @@ document.addEventListener('DOMContentLoaded', async () => {
         let peerConnection = null;
         let localStream = null;
         let remoteStream = null;
-        const notificationSound = new Audio('parrot.mp3');
+        const notificationSoundConfig = {
+            original: { src: 'parrot.mp3', rate: 1.0 },
+            sound1: { src: '1.mp3', rate: 1.0 },
+            sound2: { src: '2.mp3', rate: 1.0 },
+            sound3: { src: '3.mp3', rate: 1.0 }
+        };
+        const storedSoundKey = localStorage.getItem('notificationSound') || 'original';
+        const activeSoundKey = notificationSoundConfig[storedSoundKey] ? storedSoundKey : 'original';
+        const notificationSound = new Audio(notificationSoundConfig[activeSoundKey].src);
         let originalTitle = document.title;
         let titleInterval = null;
+        const globalChatItem = document.getElementById('globalChatItem') || document.querySelector('.chat-item:first-child');
+        if (globalChatItem) {
+            globalChatItem.addEventListener('click', () => {
+                selectChat(null, 'Ogólny', null, 'global');
+            });
+        }
+        const globalFolderHeader = document.getElementById('globalFolderHeader');
+        const globalFolderBody = document.getElementById('globalFolderBody');
+        if (globalFolderHeader && globalFolderBody) {
+            globalFolderHeader.addEventListener('click', () => {
+                const collapsed = globalFolderBody.classList.toggle('collapsed');
+                if (collapsed) globalFolderHeader.classList.add('collapsed');
+                else globalFolderHeader.classList.remove('collapsed');
+            });
+        }
+        const friendsFolderHeader = document.getElementById('friendsFolderHeader');
+        const friendsFolderBody = document.getElementById('friendsFolderBody');
+        if (friendsFolderHeader && friendsFolderBody) {
+            friendsFolderHeader.addEventListener('click', () => {
+                const collapsed = friendsFolderBody.classList.toggle('collapsed');
+                if (collapsed) friendsFolderHeader.classList.add('collapsed');
+                else friendsFolderHeader.classList.remove('collapsed');
+            });
+        }
+        const groupsFolderHeader = document.getElementById('groupsFolderHeader');
+        const groupsFolderBody = document.getElementById('groupsFolderBody');
+        if (groupsFolderHeader && groupsFolderBody) {
+            groupsFolderHeader.addEventListener('click', () => {
+                const collapsed = groupsFolderBody.classList.toggle('collapsed');
+                if (collapsed) groupsFolderHeader.classList.add('collapsed');
+                else groupsFolderHeader.classList.remove('collapsed');
+            });
+        }
+
         document.addEventListener('visibilitychange', () => {
             if (!document.hidden) {
                 document.title = originalTitle;
@@ -176,12 +275,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('SignalR build error:', e);
                 showNotification('Błąd inicjalizacji połączenia.', 'error');
             }
-            loadFriends();
-            loadGroups();
-            loadPendingRequests();
         } else {
             console.log("SignalR connection already initialized");
         }
+        loadFriends();
+        loadGroups();
+        loadPendingRequests();
+
         const connection = window.connection;
         const messageForm = document.getElementById('messageForm');
         const imageInput = document.getElementById('imageInput');
@@ -194,14 +294,29 @@ document.addEventListener('DOMContentLoaded', async () => {
         const closeConversationSidebarButton = document.getElementById('closeConversationSidebarButton');
         const dashboardContainer = document.querySelector('.dashboard-container');
         const userStatusEl = document.getElementById('userStatus');
-        const notificationBell = document.getElementById('notificationButton');
+        const settingsNotificationsToggle = document.getElementById('settingsNotificationsToggle');
+        const notificationSoundSelect = document.getElementById('notificationSoundSelect');
         let notificationsMuted = localStorage.getItem('notificationsMuted') === 'true';
-        if (notificationBell) {
-            notificationBell.textContent = notificationsMuted ? '🔕' : '🔔';
-            notificationBell.addEventListener('click', () => {
+        if (notificationSoundSelect) {
+            notificationSoundSelect.value = activeSoundKey;
+            notificationSoundSelect.addEventListener('change', () => {
+                const key = notificationSoundSelect.value;
+                if (notificationSoundConfig[key]) {
+                    localStorage.setItem('notificationSound', key);
+                }
+            });
+        }
+        function updateNotificationsUI() {
+            if (settingsNotificationsToggle) {
+                settingsNotificationsToggle.textContent = notificationsMuted ? 'Powiadomienia wyłączone' : 'Powiadomienia włączone';
+            }
+        }
+        updateNotificationsUI();
+        if (settingsNotificationsToggle) {
+            settingsNotificationsToggle.addEventListener('click', () => {
                 notificationsMuted = !notificationsMuted;
                 localStorage.setItem('notificationsMuted', notificationsMuted ? 'true' : 'false');
-                notificationBell.textContent = notificationsMuted ? '🔕' : '🔔';
+                updateNotificationsUI();
                 showNotification(notificationsMuted ? 'Powiadomienia wyłączone' : 'Powiadomienia włączone', 'info');
             });
         }
@@ -301,6 +416,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (window.logoAudioPlaying) return;
                 window.logoAudioPlaying = true;
                 window.logoAudio.currentTime = 0;
+                try {
+                    const min = 0.9, max = 1.1;
+                    window.logoAudio.playbackRate = min + Math.random() * (max - min);
+                } catch {}
                 window.logoAudio.play().catch(() => {
                     window.logoAudioPlaying = false;
                 });
@@ -313,7 +432,6 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (attachmentPreview) {
                         const url = URL.createObjectURL(selectedImageFile);
                         const sizeKb = Math.max(1, Math.round(selectedImageFile.size / 1024));
-                        // Show preview as a small cloud/bubble above/near input
                         attachmentPreview.className = 'attachment-preview visible';
                         attachmentPreview.innerHTML = `
                             <div class="attachment-preview-close" title="Usuń">×</div>
@@ -322,13 +440,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                                 ${selectedImageFile.name} (${sizeKb} KB)
                             </div>
                         `;
-                        // Ensure it's displayed (though css class handles it, direct style might override)
                         attachmentPreview.style.display = 'block';
 
                         const removeBtn = attachmentPreview.querySelector('.attachment-preview-close');
                         if (removeBtn) {
                             removeBtn.addEventListener('click', (ev) => {
-                                ev.stopPropagation(); // Prevent bubbling
+                                ev.stopPropagation(); 
                                 selectedImageFile = null;
                                 imageInput.value = '';
                                 attachmentPreview.className = 'attachment-preview';
@@ -413,15 +530,38 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
 
-        connection.on("UserStatusChanged", (userId, isOnline) => {
-            console.log(`User ${userId} status changed: ${isOnline}`);
+        connection.on("UserStatusChanged", (userId, status) => {
+            console.log(`User ${userId} status changed: ${status}`);
+            if (typeof status === 'boolean') {
+                status = status ? 1 : 0;
+            }
+            
+            // Update self status if matched
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+            if (currentUser && (currentUser.id == userId || currentUser.Id == userId)) {
+                const userStatusEl = document.getElementById('userStatus');
+                if (userStatusEl) {
+                    updateUserStatusUI(userStatusEl, status);
+                }
+            }
+
             const friendIndex = friends.findIndex(f => f.id == userId || f.Id == userId);
             if (friendIndex !== -1) {
-                friends[friendIndex].isOnline = isOnline;
-                friends[friendIndex].IsOnline = isOnline;
+                friends[friendIndex].status = status;
+                friends[friendIndex].Status = status;
+                friends[friendIndex].isOnline = (status > 0 && status !== 4); // For compatibility
                 updateChatList();
             }
         });
+
+        function updateUserStatusUI(el, status) {
+            el.className = '';
+            if (status == 1) { el.textContent = 'Online'; el.classList.add('status-online'); }
+            else if (status == 2) { el.textContent = 'Zaraz wracam'; el.classList.add('status-away'); }
+            else if (status == 3) { el.textContent = 'Nie przeszkadzać'; el.classList.add('status-dnd'); }
+            else if (status == 4) { el.textContent = 'Niewidoczny'; el.classList.add('status-invisible'); }
+            else { el.textContent = 'Offline'; el.classList.add('status-offline'); }
+        }
         connection.on("GroupMembershipChanged", async (action, group) => {
             try {
                 await loadGroups();
@@ -470,6 +610,14 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             if (!isOwnMessage) {
                 if (!notificationsMuted) {
+                    try {
+                        const key = localStorage.getItem('notificationSound') || 'original';
+                        const cfg = notificationSoundConfig[key] || notificationSoundConfig.original;
+                        notificationSound.src = cfg.src;
+                        const min = cfg.rate * 0.9;
+                        const max = cfg.rate * 1.1;
+                        notificationSound.playbackRate = min + Math.random() * (max - min);
+                    } catch {}
                     notificationSound.play().catch(e => console.log('Sound play error:', e));
                 }
                 if (document.hidden || !shouldShow) {
@@ -506,12 +654,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             const msgDiv = document.createElement("div");
             msgDiv.className = isOwnMessage ? "message sent" : "message received";
-            if (!isOwnMessage) {
-                const senderName = document.createElement("div");
-                senderName.className = "message-sender";
-                senderName.textContent = senderUsername;
-                messageWrapper.appendChild(senderName);
-            }
+            const senderName = document.createElement("div");
+            senderName.className = "message-sender";
+            senderName.textContent = senderUsername || 'Ty';
+            msgDiv.appendChild(senderName);
             if (imageUrl) {
                 const img = document.createElement("img");
                 img.src = imageUrl;
@@ -653,16 +799,40 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
         function updateChatList() {
+            // Ensure we have the latest elements
             const chatList = document.querySelector('.chat-list');
-            if (!chatList) return;
-            const items = Array.from(chatList.children);
-            items.forEach(item => {
-                const h4 = item.querySelector('h4');
-                if (item.classList.contains('chat-item') && h4 && h4.textContent === 'Ogólny') {
-                } else {
-                    item.remove();
-                }
-            });
+            if (!chatList) {
+                console.error("Chat list container not found!");
+                return;
+            }
+            
+            // Re-fetch elements by ID to ensure we have valid references if they were moved
+            const globalFolder = document.getElementById('globalFolder');
+            const globalFolderBody = document.getElementById('globalFolderBody');
+            const globalChatItem = document.getElementById('globalChatItem');
+            const friendsFolder = document.getElementById('friendsFolder');
+            const friendsFolderBody = document.getElementById('friendsFolderBody');
+            const groupsFolder = document.getElementById('groupsFolder');
+            const groupsFolderBody = document.getElementById('groupsFolderBody');
+
+            if (!globalFolder || !globalFolderBody || !globalChatItem) {
+                 console.error("Global folder elements missing!");
+                 return;
+            }
+
+            // Clear global folder body and re-add global chat item
+            globalFolderBody.innerHTML = '';
+            globalFolderBody.appendChild(globalChatItem);
+
+            // Re-build chat list
+            chatList.innerHTML = '';
+            chatList.appendChild(globalFolder);
+            if (friendsFolder) chatList.appendChild(friendsFolder);
+            if (groupsFolder) chatList.appendChild(groupsFolder);
+
+            // Note: Event listeners on folder headers (which are children of globalFolder etc.) 
+            // should be preserved because we are moving the same DOM elements.
+
             if (pendingRequests.length > 0) {
                 const pendingHeader = document.createElement('div');
                 pendingHeader.textContent = 'Oczekujące zaproszenia';
@@ -739,16 +909,8 @@ document.addEventListener('DOMContentLoaded', async () => {
                     chatList.appendChild(reqItem);
                 });
             }
-            if (groups.length > 0) {
-                const groupHeader = document.createElement('div');
-                groupHeader.textContent = 'Grupy';
-                groupHeader.style.padding = '10px 20px';
-                groupHeader.style.fontSize = '0.75rem';
-                groupHeader.style.fontWeight = 'bold';
-                groupHeader.style.color = 'var(--text-secondary)';
-                groupHeader.style.textTransform = 'uppercase';
-                groupHeader.style.letterSpacing = '1px';
-                chatList.appendChild(groupHeader);
+            if (groups.length > 0 && groupsFolderBody) {
+                groupsFolderBody.innerHTML = '';
                 groups.forEach(group => {
                     const chatItem = document.createElement('div');
                     chatItem.className = 'chat-item';
@@ -781,19 +943,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const gAv = group.avatarUrl || group.AvatarUrl;
                         selectChat(group.id, group.name, gAv, 'group');
                     });
-                    chatList.appendChild(chatItem);
+                    groupsFolderBody.appendChild(chatItem);
                 });
             }
-            if (friends.length > 0) {
-                const friendHeader = document.createElement('div');
-                friendHeader.textContent = 'Znajomi';
-                friendHeader.style.padding = '10px 20px';
-                friendHeader.style.fontSize = '0.75rem';
-                friendHeader.style.fontWeight = 'bold';
-                friendHeader.style.color = 'var(--text-secondary)';
-                friendHeader.style.textTransform = 'uppercase';
-                friendHeader.style.letterSpacing = '1px';
-                chatList.appendChild(friendHeader);
+            if (friends.length > 0 && friendsFolderBody) {
+                friendsFolderBody.innerHTML = '';
                 friends.forEach(friend => {
                     const chatItem = document.createElement('div');
                     chatItem.className = 'chat-item';
@@ -819,16 +973,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const h4 = document.createElement('h4');
                     h4.textContent = friend.username;
                     chatInfo.appendChild(h4);
-                    if (friend.isOnline || friend.IsOnline) {
+                    
+                    const status = friend.status || friend.Status || (friend.isOnline ? 1 : 0);
+                    // 1=Active, 2=Away, 3=DND, 4=Invisible(should look offline to others)
+                    if (status > 0 && status != 4) {
                         const statusDot = document.createElement('span');
-                        statusDot.className = 'status-dot-online';
+                        statusDot.className = 'status-dot';
                         statusDot.textContent = '●';
-                        statusDot.style.color = 'var(--accent-green)';
                         statusDot.style.marginLeft = '5px';
                         statusDot.style.fontSize = '12px';
-                        statusDot.title = 'Dostępny';
+                        
+                        if (status == 1) {
+                            statusDot.style.color = 'var(--accent-green)';
+                            statusDot.title = 'Dostępny';
+                        } else if (status == 2) {
+                            statusDot.style.color = '#f1c40f';
+                            statusDot.title = 'Zaraz wracam';
+                        } else if (status == 3) {
+                            statusDot.style.color = '#e74c3c';
+                            statusDot.title = 'Nie przeszkadzać';
+                        }
+                        
                         h4.appendChild(statusDot);
                     }
+                    
                     const removeBtn = document.createElement('button');
                     removeBtn.className = 'btn-icon';
                     removeBtn.title = 'Usuń znajomego';
@@ -861,9 +1029,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         const fAv = friend.avatarUrl || friend.AvatarUrl;
                         selectChat(friend.id, friend.username, fAv, 'private');
                     });
-                    chatList.appendChild(chatItem);
+                    friendsFolderBody.appendChild(chatItem);
                 });
             }
+
         }
         function renderPendingRequestsModal() {
             const list = document.getElementById('pendingRequestsList');
@@ -1112,17 +1281,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 voiceCallButton.style.display = (type === 'private' && chatId) ? 'block' : 'none';
             }
             loadPreviousMessages();
-            if (conversationSidebar && conversationSidebar.classList.contains('open')) {
-                updateConversationSidebar();
-            }
+        if (conversationSidebar && conversationSidebar.classList.contains('open')) {
+            updateConversationSidebar();
         }
-        const globalChatItem = document.getElementById('globalChatItem') || document.querySelector('.chat-item:first-child');
-        if (globalChatItem) {
-            globalChatItem.addEventListener('click', () => {
-                selectChat(null, 'Ogólny', null, 'global');
-            });
-        }
-        const lastChat = localStorage.getItem('lastChat');
+    }
+    
+    // Listeners for folders and chat items are already added at the beginning of the file.
+    // Removed duplicated listeners block.
+
+    const lastChat = localStorage.getItem('lastChat');
         let restored = false;
         if (lastChat) {
             try {
@@ -1231,12 +1398,10 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                         const msgDiv = document.createElement("div");
                         msgDiv.className = isOwnMessage ? "message sent" : "message received";
-                        if (!isOwnMessage && (currentChatType === 'global' || currentChatType === 'group')) {
-                            const senderName = document.createElement("div");
-                            senderName.className = "message-sender";
-                            senderName.textContent = senderUsername;
-                            messageWrapper.appendChild(senderName);
-                        }
+                        const senderName = document.createElement("div");
+                        senderName.className = "message-sender";
+                        senderName.textContent = senderUsername;
+                        msgDiv.appendChild(senderName);
                         const imgUrlRaw = msg.imageUrl || msg.ImageUrl;
                         if (imgUrlRaw) {
                             let imgUrl = resolveUrl(imgUrlRaw);
@@ -1303,6 +1468,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (addFriendGroupButton && addModal) {
             addFriendGroupButton.addEventListener('click', () => {
                 addModal.classList.add('show');
+                const friendTabBtn = document.querySelector('.tab-button[data-tab="friend"]');
+                if (friendTabBtn) friendTabBtn.click();
             });
         }
         if (closeModal) {
@@ -1423,8 +1590,15 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const groupName = groupNameInput ? groupNameInput.value.trim() : '';
                 if (!groupName) {
                     showNotification('Wpisz nazwę grupy', 'error');
+                    return;
                 }
                 const members = groupMembersInput ? groupMembersInput.value.trim().split(',').map(m => m.trim()).filter(m => m) : [];
+
+                if (members.length === 0) {
+                     showNotification('Grupa musi mieć przynajmniej jednego członka oprócz Ciebie.', 'warning');
+                     return;
+                }
+
                 try {
                     const response = await fetch(`${API_URL}/groups`, {
                         method: 'POST',
@@ -1463,6 +1637,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                             groupAvatarPreview.style.backgroundImage = '';
                             groupAvatarPreview.textContent = '';
                         }
+                        renderFriendSelection('friendsSelectionList', 'groupMembers');
                         addModal.classList.remove('show');
                         await loadGroups();
                     } else {
@@ -1544,24 +1719,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
         const settingsUsername = document.getElementById('settingsUsername');
         const settingsEmail = document.getElementById('settingsEmail');
-        if (settingsButton && settingsModal) {
-            settingsButton.addEventListener('click', async () => {
-                settingsModal.classList.add('show');
-                await loadUserData();
-            });
-        }
-        if (closeSettingsModal) {
-            closeSettingsModal.addEventListener('click', () => {
-                settingsModal.classList.remove('show');
-            });
-        }
-        if (settingsModal) {
-            settingsModal.addEventListener('click', (e) => {
-                if (e.target === settingsModal) {
-                    settingsModal.classList.remove('show');
-                }
-            });
-        }
+        const themeVibrantRadio = document.getElementById('themeVibrant');
+        const themeDarkRadio = document.getElementById('themeDark');
+        const themeClassicRadio = document.getElementById('themeClassic');
+        const themeOriginalRadio = document.getElementById('themeOriginal');
+        const themeNeonRadio = document.getElementById('themeNeon');
+        const themeForestRadio = document.getElementById('themeForest');
+        // Listeners for settings moved to top of DOMContentLoaded
+        
         async function loadUserData() {
             try {
                 const response = await fetch(`${API_URL}/users/me`, {
@@ -1573,6 +1738,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const user = await response.json();
                     if (settingsUsername) settingsUsername.value = user.username;
                     if (settingsEmail) settingsEmail.value = user.email;
+                    
+                    if (user.status || user.Status) {
+                        const s = user.status || user.Status;
+                        const radio = document.querySelector(`input[name="status"][value="${s}"]`);
+                        if (radio) radio.checked = true;
+                    }
+
                     {
                         const uAv = user.avatarUrl || user.AvatarUrl;
                         if (uAv) {
@@ -1643,9 +1815,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                 e.preventDefault();
                 const newUsername = settingsUsername.value.trim();
                 const newPassword = document.getElementById('settingsPassword').value;
+                const newEmail = settingsEmail ? settingsEmail.value.trim() : '';
                 const updateData = {};
                 if (newUsername) updateData.username = newUsername;
                 if (newPassword) updateData.password = newPassword;
+
+                const currentUserStr = localStorage.getItem('user');
+                let currentUser = currentUserStr ? JSON.parse(currentUserStr) : null;
+                const oldUsername = currentUser ? (currentUser.username || currentUser.userName || currentUser.Username) : null;
+                const oldEmail = currentUser ? (currentUser.email || currentUser.Email) : null;
+
                 try {
                     const response = await fetch(`${API_URL}/users/profile`, {
                         method: 'PUT',
@@ -1657,12 +1836,34 @@ document.addEventListener('DOMContentLoaded', async () => {
                     });
                     if (response.ok) {
                         const data = await response.json();
-                        const currentUser = JSON.parse(localStorage.getItem('user'));
-                        currentUser.username = data.user.username;
-                        localStorage.setItem('user', JSON.stringify(currentUser));
+                        if (currentUser && data.user) {
+                            currentUser.username = data.user.username;
+                            currentUser.userName = data.user.username;
+                            currentUser.Username = data.user.username;
+                            if (data.user.email) {
+                                currentUser.email = data.user.email;
+                                currentUser.Email = data.user.email;
+                            }
+                            localStorage.setItem('user', JSON.stringify(currentUser));
+                        }
                         const userNameEl = document.getElementById('userName');
-                        if (userNameEl) userNameEl.textContent = data.user.username;
+                        if (userNameEl && data.user) userNameEl.textContent = data.user.username;
                         showNotification('Profil został zaktualizowany.', 'success');
+
+                        const usernameChanged = data.user && oldUsername && oldUsername !== data.user.username;
+                        const emailChanged = data.user && oldEmail && data.user.email && oldEmail !== data.user.email;
+                        const passwordChanged = !!newPassword;
+
+                        if (usernameChanged || emailChanged || passwordChanged) {
+                            showNotification('Dane logowania zmienione. Wylogowywanie...', 'info');
+                            setTimeout(() => {
+                                localStorage.removeItem('token');
+                                localStorage.removeItem('user');
+                                window.location.href = '/';
+                            }, 1500);
+                            return;
+                        }
+
                         settingsModal.classList.remove('show');
                         document.getElementById('settingsPassword').value = '';
                     } else {
@@ -1674,31 +1875,158 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
-        const logoutButton = document.getElementById('logoutButton');
-        if (logoutButton) {
-            logoutButton.addEventListener('click', () => {
-                if (confirm('Czy na pewno chcesz się wylogować?')) {
-                    localStorage.removeItem('token');
-                    localStorage.removeItem('user');
-                    window.location.href = '/';
+        
+        function updateUserStatusUI(el, status) {
+            if (!el) return;
+            el.classList.remove('status-online', 'status-away', 'status-dnd', 'status-invisible', 'status-offline');
+            let text = 'Offline';
+            let cls = 'status-offline';
+            switch (status) {
+                case 1: text = 'Online'; cls = 'status-online'; break;
+                case 2: text = 'Zaraz wracam'; cls = 'status-away'; break;
+                case 3: text = 'Nie przeszkadzać'; cls = 'status-dnd'; break;
+                case 4: text = 'Niewidoczny'; cls = 'status-invisible'; break;
+                default: text = 'Offline'; cls = 'status-offline'; break;
+            }
+            el.textContent = text;
+            el.classList.add(cls);
+        }
+
+        const saveStatusBtn = document.getElementById('saveStatusBtn');
+        if (saveStatusBtn) {
+            saveStatusBtn.addEventListener('click', async () => {
+                const selected = document.querySelector('input[name="status"]:checked');
+                if (!selected) return;
+                const status = parseInt(selected.value);
+                try {
+                    if (connection && typeof signalR !== 'undefined' && connection.state === signalR.HubConnectionState.Connected) {
+                        await connection.invoke("UpdateStatus", status);
+                        const userStr = localStorage.getItem('user');
+                        if (userStr) {
+                            const userObj = JSON.parse(userStr);
+                            userObj.status = status;
+                            userObj.Status = status;
+                            localStorage.setItem('user', JSON.stringify(userObj));
+                        }
+                        if (userStatusEl) {
+                            updateUserStatusUI(userStatusEl, status);
+                        }
+                        showNotification('Status zaktualizowany', 'success');
+                    } else {
+                        showNotification('Brak połączenia z serwerem.', 'error');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    if (e.message && e.message.includes("Method does not exist")) {
+                        showNotification('Błąd: Serwer wymaga restartu, aby obsłużyć zmianę statusu.', 'error');
+                    } else {
+                        showNotification('Błąd aktualizacji statusu', 'error');
+                    }
                 }
             });
         }
-        if (addFriendGroupButton) {
-             addFriendGroupButton.onclick = () => {
-                if (addModal) addModal.classList.add('show');
-            };
-        }
+
+
         const tabContents = document.querySelectorAll('.tab-content');
         tabButtons.forEach(button => {
             button.addEventListener('click', () => {
-                tabButtons.forEach(btn => btn.classList.remove('active'));
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('active');
+                });
                 tabContents.forEach(content => content.classList.remove('active'));
                 button.classList.add('active');
                 const tabId = button.dataset.tab + 'Tab';
-                document.getElementById(tabId).classList.add('active');
+                const tabContent = document.getElementById(tabId);
+                if (tabContent) tabContent.classList.add('active');
             });
         });
+
+        function applyTheme(themeName) {
+            const root = document.documentElement;
+            if (!root) return;
+            const allowed = ['vibrant', 'dark', 'classic', 'original', 'neon', 'forest'];
+            const finalTheme = allowed.includes(themeName) ? themeName : 'original';
+            root.setAttribute('data-theme', finalTheme);
+        }
+
+        const preferredTheme = localStorage.getItem('preferredTheme') || 'original';
+        applyTheme(preferredTheme);
+        if (themeDarkRadio) {
+            themeDarkRadio.checked = (preferredTheme === 'dark');
+        }
+        if (themeVibrantRadio) {
+            themeVibrantRadio.checked = (preferredTheme === 'vibrant');
+        }
+        if (themeClassicRadio) {
+            themeClassicRadio.checked = (preferredTheme === 'classic');
+        }
+        if (themeOriginalRadio) {
+            themeOriginalRadio.checked = (preferredTheme === 'original');
+        }
+        if (themeNeonRadio) {
+            themeNeonRadio.checked = (preferredTheme === 'neon');
+        }
+        if (themeForestRadio) {
+            themeForestRadio.checked = (preferredTheme === 'forest');
+        }
+
+        if (themeVibrantRadio) {
+            themeVibrantRadio.addEventListener('change', () => {
+                if (themeVibrantRadio.checked) {
+                    applyTheme('vibrant');
+                }
+            });
+        }
+        if (themeDarkRadio) {
+            themeDarkRadio.addEventListener('change', () => {
+                if (themeDarkRadio.checked) {
+                    applyTheme('dark');
+                }
+            });
+        }
+        if (themeClassicRadio) {
+            themeClassicRadio.addEventListener('change', () => {
+                if (themeClassicRadio.checked) {
+                    applyTheme('classic');
+                }
+            });
+        }
+        if (themeOriginalRadio) {
+            themeOriginalRadio.addEventListener('change', () => {
+                if (themeOriginalRadio.checked) {
+                    applyTheme('original');
+                }
+            });
+        }
+        if (themeNeonRadio) {
+            themeNeonRadio.addEventListener('change', () => {
+                if (themeNeonRadio.checked) {
+                    applyTheme('neon');
+                }
+            });
+        }
+        if (themeForestRadio) {
+            themeForestRadio.addEventListener('change', () => {
+                if (themeForestRadio.checked) {
+                    applyTheme('forest');
+                }
+            });
+        }
+        const saveThemeBtn = document.getElementById('saveThemeBtn');
+        if (saveThemeBtn) {
+            saveThemeBtn.addEventListener('click', () => {
+                let selected = 'original';
+                if (themeDarkRadio && themeDarkRadio.checked) selected = 'dark';
+                else if (themeVibrantRadio && themeVibrantRadio.checked) selected = 'vibrant';
+                else if (themeClassicRadio && themeClassicRadio.checked) selected = 'classic';
+                else if (themeOriginalRadio && themeOriginalRadio.checked) selected = 'original';
+                else if (themeNeonRadio && themeNeonRadio.checked) selected = 'neon';
+                else if (themeForestRadio && themeForestRadio.checked) selected = 'forest';
+                localStorage.setItem('preferredTheme', selected);
+                applyTheme(selected);
+                showNotification('Motyw zapisany.', 'success');
+            });
+        }
         const userProfileModal = document.getElementById('userProfileModal');
         const closeUserProfileModal = document.getElementById('closeUserProfileModal');
         if (closeUserProfileModal && userProfileModal) {

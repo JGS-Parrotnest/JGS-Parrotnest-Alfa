@@ -4,6 +4,7 @@
     if (window.location.protocol === 'file:') {
         serverBase = 'http://localhost:6069';
     } else {
+        // Use current origin for everything (0.0.0.0, localhost, or IP)
         serverBase = window.location.origin;
     }
     apiUrl = `${serverBase}/api`;
@@ -28,7 +29,9 @@ if (!isLocal) {
     }
 }
 const SERVER_BASE = (storedBase || window.__SERVER_BASE_DEFAULT__).replace(/\/+$/,'');
+window.SERVER_BASE = SERVER_BASE;
 const API_URL = window.__API_URL_DEFAULT__ || `${SERVER_BASE}/api`;
+window.API_URL = API_URL;
 
 function showNotification(message, type = 'success') {
     let container = document.getElementById('notification-container');

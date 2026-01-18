@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 namespace ParrotnestServer.Models
 {
     public class User
@@ -14,6 +14,7 @@ namespace ParrotnestServer.Models
         [Required]
         public string PasswordHash { get; set; } = string.Empty;
         public string? AvatarUrl { get; set; }
+        public int Status { get; set; } = 1; // 1=Active, 2=Away, 3=DND, 4=Invisible
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }
