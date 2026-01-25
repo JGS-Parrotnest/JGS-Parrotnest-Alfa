@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj": {}
+    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj": {
+    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
         "projectName": "ParrotnestServer",
-        "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj",
+        "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\obj\\",
+        "outputPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config"

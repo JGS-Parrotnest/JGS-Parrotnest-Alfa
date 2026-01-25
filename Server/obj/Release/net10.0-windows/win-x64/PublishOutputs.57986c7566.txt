@@ -1,0 +1,4 @@
+E:\4k\Strony Internetowe\14 Parrotnest\Alfa v3\Server\Publish\ParrotnestServer.pdb
+E:\4k\Strony Internetowe\14 Parrotnest\Alfa v3\Server\Publish\aspnetcorev2_inprocess.dll
+E:\4k\Strony Internetowe\14 Parrotnest\Alfa v3\Server\Publish\e_sqlite3.dll
+E:\4k\Strony Internetowe\14 Parrotnest\Alfa v3\Server\Publish\ParrotnestServer.exe

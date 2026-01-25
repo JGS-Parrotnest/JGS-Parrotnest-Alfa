@@ -118,6 +118,7 @@ namespace ParrotnestServer
                     _app.UseDefaultFiles(defaultFilesOptions);
                     var provider = new FileExtensionContentTypeProvider();
                     provider.Mappings[".php"] = "text/html; charset=utf-8";
+                    provider.Mappings[".mp3"] = "audio/mpeg";
                     _app.UseStaticFiles(new StaticFileOptions
                     {
                         FileProvider = fileProvider,

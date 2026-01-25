@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="pl">
 <head>
+	<script>
+        (function() {
+            try {
+                var t = localStorage.getItem('preferredTheme') || 'dark';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {
+                document.documentElement.setAttribute('data-theme', 'dark');
+            }
+        })();
+    </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parrotnest - Reset hasła</title>

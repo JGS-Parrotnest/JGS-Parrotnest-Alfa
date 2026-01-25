@@ -2,37 +2,51 @@ const HUB_URL = (typeof SERVER_BASE !== 'undefined'
     ? `${SERVER_BASE}/chatHub`
     : `${(window.__SERVER_BASE_DEFAULT__ || window.location.origin)}/chatHub`);
 if (typeof window.resolveUrl === 'undefined') {
-    window.resolveUrl = function(url) {
-        if (!url) return null;
-        if (url.startsWith('blob:') || url.startsWith('data:')) return url;
-        try {
-            if (url.startsWith('http://') || url.startsWith('https://')) {
-                const target = new URL(url);
-                const current = new URL(window.location.origin);
-                if (target.hostname === 'localhost' || target.hostname === '0.0.0.0') {
-                    // Always match current hostname to avoid cross-origin issues
-                    // unless current is file:// then use localhost
-                    if (window.location.protocol !== 'file:') {
-                        target.hostname = current.hostname;
-                        target.port = current.port || target.port;
-                        target.protocol = current.protocol;
-                    } else {
-                        target.hostname = 'localhost';
-                        target.port = '6069';
-                        target.protocol = 'http:';
+        window.resolveUrl = function(url) {
+            if (!url) return null;
+            if (url.startsWith('blob:') || url.startsWith('data:')) return url;
+            try {
+                if (url.startsWith('http://') || url.startsWith('https://')) {
+                    const target = new URL(url);
+                    const current = new URL(window.location.origin);
+                    if (target.hostname === 'localhost' || target.hostname === '0.0.0.0') {
+                        if (window.location.protocol !== 'file:') {
+                            target.hostname = current.hostname;
+                            // Keep the port if it's different, otherwise might be defaulting
+                        } else {
+                            target.hostname = 'localhost';
+                        }
+                        return target.toString();
                     }
-                    return target.toString();
+                    return url;
                 }
-                return url;
+            } catch (e) {
             }
-        } catch (e) {
-        }
-        url = url.replace(/\\/g, '/');
-        if (!url.startsWith('/')) url = '/' + url;
-        const baseUrl = window.location.origin;
-        return `${baseUrl}${url}`;
-    };
-}
+            url = url.replace(/\\/g, '/');
+            if (!url.startsWith('/')) url = '/' + url;
+            
+            // Explicitly handle the base URL to ensure we point to the API server
+            let base = window.API_BASE_URL || window.SERVER_BASE;
+            
+            // If no global base is set, try to infer from window.location
+            if (!base) {
+                if (window.location.protocol === 'file:') {
+                    base = 'http://localhost:6069'; // Default for local file dev
+                } else {
+                    // If running on port 80/443 or another port, assume the API is on the same host:port
+                    // UNLESS we are explicitly told otherwise.
+                    // But usually for this setup, client is just static files served by the backend?
+                    // Or separate.
+                    base = window.location.origin; 
+                }
+            }
+            
+            // If base ends with slash, remove it to avoid double slash
+            if (base.endsWith('/')) base = base.slice(0, -1);
+            
+            return `${base}${url}`;
+        };
+    }
 
 if (typeof window.showNotification === 'undefined') {
     window.showNotification = function(message, type = 'success') {
@@ -77,6 +91,27 @@ if (typeof window.handleApiError === 'undefined') {
 document.addEventListener('DOMContentLoaded', async () => {
     console.log("App initializing...");
     
+    // Auto-scroll modals to top when opened
+    const allModals = document.querySelectorAll('.modal');
+    allModals.forEach(modal => {
+        const observer = new MutationObserver((mutations) => {
+            mutations.forEach((mutation) => {
+                if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    if (modal.classList.contains('show')) {
+                        const body = modal.querySelector('.modal-body');
+                        if (body) {
+                            // Small timeout ensures layout is calculated
+                            setTimeout(() => {
+                                body.scrollTop = 0;
+                            }, 10);
+                        }
+                    }
+                }
+            });
+        });
+        observer.observe(modal, { attributes: true });
+    });
+
     // Ensure critical UI elements work immediately
     const settingsButton = document.getElementById('settingsButton');
     const settingsModal = document.getElementById('settingsModal');
@@ -123,12 +158,39 @@ document.addEventListener('DOMContentLoaded', async () => {
         closeSettingsModal.addEventListener('click', () => settingsModal.classList.remove('show'));
     }
 
+    // Global keydown listener for quick reply (Type to Focus)
+    document.addEventListener('keydown', (e) => {
+        // Ignore if focus is already on an input, textarea or contenteditable element
+        const activeTag = document.activeElement.tagName.toLowerCase();
+        if (activeTag === 'input' || activeTag === 'textarea' || document.activeElement.isContentEditable) {
+            return;
+        }
+        // Ignore if modifier keys are pressed
+        if (e.ctrlKey || e.altKey || e.metaKey) {
+            return;
+        }
+        
+        // Check if the key is a printable character (length 1) or specific keys user asked for
+        // User asked for '/' or letters. We'll support all printable characters for better UX.
+        // Prevent activation on functional keys like F1-F12, Escape, etc. which have length > 1 usually.
+        if (e.key && e.key.length === 1) {
+             const messageInput = document.getElementById('messageInput');
+             if (messageInput) {
+                 messageInput.focus();
+                 // We don't preventDefault() so the character gets typed into the input
+             }
+        }
+    });
+
     const messageInput = document.getElementById('messageInput');
     if (messageInput) {
         // Główna logika czatu
-        (async function() {
+    (async function() {
+        // Determine base URL and export it for resolveUrl
+        const base = window.SERVER_BASE || window.location.origin;
+        window.API_BASE_URL = base;
         // Use window.API_URL if defined
-        const API_URL = window.API_URL || ((window.SERVER_BASE || window.location.origin) + '/api');
+        const API_URL = window.API_URL || (base + '/api');
         
         let signalRAvailable = typeof signalR !== 'undefined';
         if (!signalRAvailable) {
@@ -147,30 +209,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
         }
 
-        if (!token || !user) {
-            const tokenVal = localStorage.getItem('token');
-            const userVal = localStorage.getItem('user');
-            console.warn('Authorization failed. Debug info:', { token: tokenVal, user: userVal });
-            
-            document.body.innerHTML = `
-                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#000;color:#ff3333;font-family:monospace;padding:20px;text-align:center;">
-                    <h2 style="font-size:2em;margin-bottom:20px;">⛔ BŁĄD AUTORYZACJI</h2>
-                    <p style="color:white;margin-bottom:20px;">System nie wykrył poprawnego logowania.</p>
-                    
-                    <div style="background:#111;border:1px solid #333;padding:15px;border-radius:8px;text-align:left;width:100%;max-width:600px;margin-bottom:30px;">
-                        <p style="margin:5px 0;color:#888;">DIAGNOSTYKA:</p>
-                        <p style="margin:5px 0;">Token: <span style="color:${tokenVal ? '#0f0' : '#f00'}">${tokenVal ? (tokenVal.substring(0, 15) + '...') : 'BRAK (null/empty)'}</span></p>
-                        <p style="margin:5px 0;">User: <span style="color:${userVal ? '#0f0' : '#f00'}">${userVal ? 'OBECNY' : 'BRAK (null/empty)'}</span></p>
-                        <p style="margin:5px 0;">URL: <span style="color:#aaa">${window.location.href}</span></p>
-                    </div>
+        if (!token) {
+            window.location.href = '/login.php';
+            return;
+        }
 
-                    <div style="display:flex;gap:15px;">
-                        <button onclick="window.location.href='/login.php'" style="padding:12px 24px;background:#333;border:1px solid #555;color:white;cursor:pointer;font-weight:bold;border-radius:4px;">PRZEJDŹ DO LOGOWANIA</button>
-                        <button onclick="localStorage.clear();window.location.reload()" style="padding:12px 24px;background:#cc3300;border:none;color:white;cursor:pointer;font-weight:bold;border-radius:4px;">WYCZYŚĆ DANE I ODŚWIEŻ</button>
-                    </div>
+        if (!user) {
+            try {
+                const response = await fetch(`${API_URL}/users/me`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    user = await response.json();
+                    localStorage.setItem('user', JSON.stringify(user));
+                    console.log('User session recovered:', user);
+                } else {
+                    console.warn('Session expired or invalid');
+                    localStorage.removeItem('token');
+                    window.location.href = '/login.php';
+                    return;
+                }
+            } catch (e) {
+                console.error('Network error recovering session:', e);
+                // In offline mode, we might want to let them through if we had cached data,
+                // but here we have no user data. 
+                // We can show a retry screen or just redirect.
+                 document.body.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#000;color:#ff3333;font-family:monospace;padding:20px;text-align:center;">
+                    <h2 style="font-size:2em;margin-bottom:20px;">⛔ BŁĄD POŁĄCZENIA</h2>
+                    <p style="color:white;margin-bottom:20px;">Nie udało się odzyskać sesji użytkownika.</p>
+                    <button onclick="window.location.reload()" style="padding:12px 24px;background:#333;border:1px solid #555;color:white;cursor:pointer;font-weight:bold;border-radius:4px;">SPRÓBUJ PONOWNIE</button>
+                    <button onclick="window.location.href='/login.php'" style="padding:12px 24px;background:#cc3300;border:none;color:white;cursor:pointer;font-weight:bold;border-radius:4px;margin-left:10px;">ZALOGUJ PONOWNIE</button>
                 </div>
             `;
             return;
+            }
         }
         console.log('User logged in, updating UI:', user);
         const userNameEl = document.getElementById('userName');
@@ -210,14 +283,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         let localStream = null;
         let remoteStream = null;
         const notificationSoundConfig = {
-            original: { src: 'parrot.mp3', rate: 1.0 },
-            sound1: { src: '1.mp3', rate: 1.0 },
-            sound2: { src: '2.mp3', rate: 1.0 },
-            sound3: { src: '3.mp3', rate: 1.0 }
+            original: { src: resolveUrl('parrot.mp3'), rate: 1.0 },
+            '1.mp3': { src: resolveUrl('notificationsounds/1.mp3'), rate: 1.0 },
+            '2.mp3': { src: resolveUrl('notificationsounds/2.mp3'), rate: 1.0 },
+            '3.mp3': { src: resolveUrl('notificationsounds/3.mp3'), rate: 1.0 }
         };
+
         const storedSoundKey = localStorage.getItem('notificationSound') || 'original';
         const activeSoundKey = notificationSoundConfig[storedSoundKey] ? storedSoundKey : 'original';
         const notificationSound = new Audio(notificationSoundConfig[activeSoundKey].src);
+        notificationSound.addEventListener('error', (e) => {
+             console.warn('Notification sound failed to load:', e);
+        });
         let originalTitle = document.title;
         let titleInterval = null;
         const globalChatItem = document.getElementById('globalChatItem') || document.querySelector('.chat-item:first-child');
@@ -295,17 +372,30 @@ document.addEventListener('DOMContentLoaded', async () => {
         const dashboardContainer = document.querySelector('.dashboard-container');
         const userStatusEl = document.getElementById('userStatus');
         const settingsNotificationsToggle = document.getElementById('settingsNotificationsToggle');
-        const notificationSoundSelect = document.getElementById('notificationSoundSelect');
-        let notificationsMuted = localStorage.getItem('notificationsMuted') === 'true';
-        if (notificationSoundSelect) {
-            notificationSoundSelect.value = activeSoundKey;
-            notificationSoundSelect.addEventListener('change', () => {
-                const key = notificationSoundSelect.value;
-                if (notificationSoundConfig[key]) {
-                    localStorage.setItem('notificationSound', key);
+        
+        // Notification sound radio logic
+        const notificationSoundRadios = document.querySelectorAll('input[name="notificationSound"]');
+        notificationSoundRadios.forEach(radio => {
+            if (radio.value === activeSoundKey) {
+                radio.checked = true;
+            }
+            radio.addEventListener('change', () => {
+                if (radio.checked) {
+                    const key = radio.value;
+                    if (notificationSoundConfig[key]) {
+                        localStorage.setItem('notificationSound', key);
+                        // Play preview
+                        const cfg = notificationSoundConfig[key];
+                        notificationSound.src = cfg.src;
+                        notificationSound.playbackRate = cfg.rate;
+                        notificationSound.currentTime = 0;
+                        notificationSound.play().catch(e => console.log('Preview sound play error:', e));
+                    }
                 }
             });
-        }
+        });
+
+        let notificationsMuted = localStorage.getItem('notificationsMuted') === 'true';
         function updateNotificationsUI() {
             if (settingsNotificationsToggle) {
                 settingsNotificationsToggle.textContent = notificationsMuted ? 'Powiadomienia wyłączone' : 'Powiadomienia włączone';
@@ -402,7 +492,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
-        window.logoAudio = window.logoAudio || new Audio('parrot.mp3');
+        window.logoAudio = window.logoAudio || new Audio(resolveUrl('parrot.mp3'));
+        window.logoAudio.addEventListener('error', (e) => {
+             // Suppress console spam for this specific easter egg
+             console.warn('Easter egg sound failed to load:', e);
+        }, { once: true });
+
         if (!window.logoAudioConfigured) {
             window.logoAudio.addEventListener('ended', () => {
                 window.logoAudioPlaying = false;
@@ -639,25 +734,70 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
             if (!shouldShow) return;
+
+            const messagesContainer = document.getElementById("chat-messages");
+            let isContinuation = false;
+            const now = new Date();
+
+            // Check if this message is a continuation of the previous one
+            if (messagesContainer && messagesContainer.lastElementChild) {
+                const lastWrapper = messagesContainer.lastElementChild;
+                const lastSenderId = lastWrapper.dataset.senderId;
+                const lastTimestampStr = lastWrapper.dataset.timestamp;
+                
+                // We use loose equality to handle string/number differences
+                if (lastSenderId && senderId && lastSenderId == senderId) {
+                    const lastDate = lastTimestampStr ? new Date(lastTimestampStr) : null;
+                    // Check if time difference is less than 60 seconds (60000 ms)
+                    if (lastDate && (now - lastDate < 60000)) {
+                        isContinuation = true;
+                        // Hide timestamp of the previous message
+                        const lastTime = lastWrapper.querySelector('.message-time');
+                        if (lastTime) {
+                            lastTime.style.display = 'none';
+                        }
+                        // Optional: Add class to previous wrapper if needed for styling
+                        lastWrapper.classList.add('message-continuation-prev');
+                    }
+                }
+            }
+
             const messageWrapper = document.createElement("div");
             messageWrapper.className = `message-wrapper ${isOwnMessage ? 'own-message' : ''}`;
+            if (isContinuation) messageWrapper.classList.add('message-continuation');
+            messageWrapper.dataset.senderId = senderId;
+            messageWrapper.dataset.timestamp = now.toISOString();
+
             const row = document.createElement("div");
             row.className = "message-row";
+            
             const avatarEl = document.createElement("div");
             avatarEl.className = "message-avatar";
-            if (senderAvatarUrl) {
-                const url = resolveUrl(senderAvatarUrl);
-                avatarEl.style.backgroundImage = `url('${url}')`;
-                avatarEl.textContent = '';
-            } else if (senderUsername) {
-                avatarEl.textContent = senderUsername.charAt(0).toUpperCase();
+            
+            if (isContinuation) {
+                // Keep the element for alignment but make it invisible
+                avatarEl.style.visibility = 'hidden';
+            } else {
+                if (senderAvatarUrl) {
+                    const url = resolveUrl(senderAvatarUrl);
+                    avatarEl.style.backgroundImage = `url('${url}')`;
+                    avatarEl.textContent = '';
+                } else if (senderUsername) {
+                    avatarEl.textContent = senderUsername.charAt(0).toUpperCase();
+                }
             }
+
             const msgDiv = document.createElement("div");
             msgDiv.className = isOwnMessage ? "message sent" : "message received";
-            const senderName = document.createElement("div");
-            senderName.className = "message-sender";
-            senderName.textContent = senderUsername || 'Ty';
-            msgDiv.appendChild(senderName);
+            
+            // Only show sender name if it's not a continuation
+            if (!isContinuation) {
+                const senderName = document.createElement("div");
+                senderName.className = "message-sender";
+                senderName.textContent = senderUsername || 'Ty';
+                msgDiv.appendChild(senderName);
+            }
+
             if (imageUrl) {
                 const img = document.createElement("img");
                 img.src = imageUrl;
@@ -668,8 +808,57 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (message) {
                 const messageText = document.createElement("div");
                 messageText.className = "message-text";
-                messageText.textContent = message;
-                msgDiv.appendChild(messageText);
+                
+                // Link detection logic with Bubbles
+            const urlRegex = /(https?:\/\/[^\s]+)/g;
+            // Escape HTML first to prevent XSS
+            const escapedMessage = message
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+            
+            // Split by URLs to handle text + links
+            const parts = escapedMessage.split(urlRegex);
+            
+            messageText.innerHTML = ''; // Clear
+            
+            parts.forEach(part => {
+                if (part.match(urlRegex)) {
+                    // It's a URL
+                    const url = part;
+                    let domain = '';
+                    try {
+                        domain = new URL(url).hostname;
+                    } catch (e) {
+                        domain = 'Link';
+                    }
+                    
+                    const card = document.createElement('a');
+                    card.href = url;
+                    card.target = "_blank";
+                    card.rel = "noopener noreferrer";
+                    card.className = "link-preview-card";
+                    card.innerHTML = `
+                        <div class="link-icon-container">🔗</div>
+                        <div class="link-info">
+                            <div class="link-title">${url}</div>
+                            <div class="link-domain">${domain}</div>
+                        </div>
+                    `;
+                    messageText.appendChild(card);
+                } else {
+                    // Text
+                    if (part) {
+                        const span = document.createElement('span');
+                        span.innerHTML = part.replace(/\n/g, '<br>');
+                        messageText.appendChild(span);
+                    }
+                }
+            });
+            
+            msgDiv.appendChild(messageText);
             }
             const timestamp = document.createElement("div");
             timestamp.className = "message-time";
@@ -678,7 +867,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             row.appendChild(avatarEl);
             row.appendChild(msgDiv);
             messageWrapper.appendChild(row);
-            const messagesContainer = document.getElementById("chat-messages");
+            
             if (messagesContainer) {
                 messagesContainer.appendChild(messageWrapper);
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
@@ -1362,46 +1551,83 @@ document.addEventListener('DOMContentLoaded', async () => {
                             const currentUsername = currentUser.username || currentUser.userName || currentUser.email || '';
                             isOwnMessage = senderUsername === currentUsername;
                         }
+
+                        let isContinuation = false;
+                        const rawDate = msg.timestamp || msg.Timestamp;
+                        const msgDate = rawDate ? new Date(rawDate) : new Date();
+
+                        if (messagesContainer.lastElementChild) {
+                            const lastWrapper = messagesContainer.lastElementChild;
+                            const lastSenderId = lastWrapper.dataset.senderId;
+                            const lastTimestampStr = lastWrapper.dataset.timestamp;
+
+                            if (lastSenderId && msgSenderId && lastSenderId.toString() === msgSenderId.toString()) {
+                                const lastDate = lastTimestampStr ? new Date(lastTimestampStr) : null;
+                                if (lastDate && (msgDate - lastDate < 60000)) { // 1 minute threshold
+                                    isContinuation = true;
+                                    const lastTime = lastWrapper.querySelector('.message-time');
+                                    if (lastTime) lastTime.style.display = 'none';
+                                    lastWrapper.classList.add('message-continuation-prev');
+                                }
+                            }
+                        }
+
                         const messageWrapper = document.createElement("div");
                         messageWrapper.className = `message-wrapper ${isOwnMessage ? 'own-message' : ''}`;
+                        if (isContinuation) messageWrapper.classList.add('message-continuation');
+                        messageWrapper.dataset.senderId = msgSenderId;
+                        messageWrapper.dataset.timestamp = msgDate.toISOString();
+
                         const row = document.createElement("div");
                         row.className = "message-row";
                         const avatarEl = document.createElement("div");
                         avatarEl.className = "message-avatar";
-                        avatarEl.style.cursor = 'pointer';
-                        avatarEl.onclick = (e) => {
-                            e.stopPropagation();
-                            const sId = msg.senderId || msg.SenderId;
-                            const isOwn = isOwnMessage;
-                            if (isOwn) {
-                                const cUser = JSON.parse(localStorage.getItem('user'));
-                                showUserProfile(cUser.id, cUser.username, cUser.avatarUrl, true);
-                            } else {
-                                if (sId) {
-                                    showUserProfile(sId, senderUsername, senderAvatarUrl, false);
+                        
+                        if (isContinuation) {
+                            avatarEl.style.visibility = 'hidden';
+                            avatarEl.onclick = null;
+                            avatarEl.style.cursor = 'default';
+                        } else {
+                            avatarEl.style.cursor = 'pointer';
+                            avatarEl.onclick = (e) => {
+                                e.stopPropagation();
+                                const sId = msg.senderId || msg.SenderId;
+                                const isOwn = isOwnMessage;
+                                if (isOwn) {
+                                    const cUser = JSON.parse(localStorage.getItem('user'));
+                                    showUserProfile(cUser.id, cUser.username, cUser.avatarUrl, true);
                                 } else {
-                                    const f = friends.find(fr => fr.username === senderUsername);
-                                    if (f) {
-                                        showUserProfile(f.id, f.username, f.avatarUrl || f.AvatarUrl, false);
+                                    if (sId) {
+                                        showUserProfile(sId, senderUsername, senderAvatarUrl, false);
                                     } else {
-                                        showUserProfile(0, senderUsername, senderAvatarUrl, false);
+                                        const f = friends.find(fr => fr.username === senderUsername);
+                                        if (f) {
+                                            showUserProfile(f.id, f.username, f.avatarUrl || f.AvatarUrl, false);
+                                        } else {
+                                            showUserProfile(0, senderUsername, senderAvatarUrl, false);
+                                        }
                                     }
                                 }
+                            };
+                            if (senderAvatarUrl) {
+                                const url = resolveUrl(senderAvatarUrl);
+                                avatarEl.style.backgroundImage = `url('${url}')`;
+                                avatarEl.textContent = '';
+                            } else if (senderUsername) {
+                                avatarEl.textContent = senderUsername.charAt(0).toUpperCase();
                             }
-                        };
-                        if (senderAvatarUrl) {
-                            const url = resolveUrl(senderAvatarUrl);
-                            avatarEl.style.backgroundImage = `url('${url}')`;
-                            avatarEl.textContent = '';
-                        } else if (senderUsername) {
-                            avatarEl.textContent = senderUsername.charAt(0).toUpperCase();
                         }
+
                         const msgDiv = document.createElement("div");
                         msgDiv.className = isOwnMessage ? "message sent" : "message received";
-                        const senderName = document.createElement("div");
-                        senderName.className = "message-sender";
-                        senderName.textContent = senderUsername;
-                        msgDiv.appendChild(senderName);
+                        
+                        if (!isContinuation) {
+                            const senderName = document.createElement("div");
+                            senderName.className = "message-sender";
+                            senderName.textContent = senderUsername;
+                            msgDiv.appendChild(senderName);
+                        }
+
                         const imgUrlRaw = msg.imageUrl || msg.ImageUrl;
                         if (imgUrlRaw) {
                             let imgUrl = resolveUrl(imgUrlRaw);
@@ -1415,19 +1641,53 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (content && content.trim() !== '') {
                             const messageText = document.createElement("div");
                             messageText.className = "message-text";
-                            messageText.textContent = content;
+                            
+                            // Link detection logic with Bubbles (Shared logic)
+                            const urlRegex = /(https?:\/\/[^\s]+)/g;
+                            const escapedMessage = content
+                                .replace(/&/g, "&amp;")
+                                .replace(/</g, "&lt;")
+                                .replace(/>/g, "&gt;")
+                                .replace(/"/g, "&quot;")
+                                .replace(/'/g, "&#039;");
+                            
+                            const parts = escapedMessage.split(urlRegex);
+                            messageText.innerHTML = '';
+                            
+                            parts.forEach(part => {
+                                if (part.match(urlRegex)) {
+                                    const url = part;
+                                    let domain = '';
+                                    try { domain = new URL(url).hostname; } catch (e) { domain = 'Link'; }
+                                    
+                                    const card = document.createElement('a');
+                                    card.href = url;
+                                    card.target = "_blank";
+                                    card.rel = "noopener noreferrer";
+                                    card.className = "link-preview-card";
+                                    card.innerHTML = `
+                                        <div class="link-icon-container">🔗</div>
+                                        <div class="link-info">
+                                            <div class="link-title">${url}</div>
+                                            <div class="link-domain">${domain}</div>
+                                        </div>
+                                    `;
+                                    messageText.appendChild(card);
+                                } else {
+                                    if (part) {
+                                        const span = document.createElement('span');
+                                        span.innerHTML = part.replace(/\n/g, '<br>');
+                                        messageText.appendChild(span);
+                                    }
+                                }
+                            });
+
                             msgDiv.appendChild(messageText);
                         }
                         const timestamp = document.createElement("div");
                         timestamp.className = "message-time";
-                        const rawDate = msg.timestamp || msg.Timestamp;
-                        if (rawDate) {
-                            const msgDate = new Date(rawDate);
-                            if (!isNaN(msgDate.getTime())) {
-                                timestamp.textContent = msgDate.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-                            } else {
-                                timestamp.textContent = "";
-                            }
+                        if (rawDate && !isNaN(msgDate.getTime())) {
+                            timestamp.textContent = msgDate.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
                         } else {
                             timestamp.textContent = "";
                         }
@@ -1729,13 +1989,22 @@ document.addEventListener('DOMContentLoaded', async () => {
         
         async function loadUserData() {
             try {
+                // Force network request to ensure fresh data
                 const response = await fetch(`${API_URL}/users/me`, {
                     headers: {
-                        'Authorization': `Bearer ${token}`
+                        'Authorization': `Bearer ${token}`,
+                        'Cache-Control': 'no-cache, no-store'
                     }
                 });
                 if (response.ok) {
                     const user = await response.json();
+                    console.log('User data loaded:', user); // Debug
+
+                    // Update LocalStorage to keep it in sync
+                    const currentUser = JSON.parse(localStorage.getItem('user')) || {};
+                    const updatedUser = { ...currentUser, ...user };
+                    localStorage.setItem('user', JSON.stringify(updatedUser));
+
                     if (settingsUsername) settingsUsername.value = user.username;
                     if (settingsEmail) settingsEmail.value = user.email;
                     
@@ -1745,19 +2014,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (radio) radio.checked = true;
                     }
 
-                    {
-                        const uAv = user.avatarUrl || user.AvatarUrl;
+                    if (settingsAvatarPreview) {
+                        const uAv = user.avatarUrl || user.AvatarUrl || user.profilePictureUrl;
+                        
+                        // Always clear first
+                        settingsAvatarPreview.textContent = '';
+                        settingsAvatarPreview.style.display = 'flex';
+                        settingsAvatarPreview.style.alignItems = 'center';
+                        settingsAvatarPreview.style.justifyContent = 'center';
+                        settingsAvatarPreview.style.border = '3px solid var(--accent-green)';
+                        
                         if (uAv) {
-                            settingsAvatarPreview.style.backgroundImage = `url('${resolveUrl(uAv)}')`;
-                            settingsAvatarPreview.textContent = '';
+                            const resolved = resolveUrl(uAv);
+                            const urlWithCache = resolved + (resolved.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+                            
+                            // Apply immediately without waiting for load
+                            settingsAvatarPreview.style.background = `url('${urlWithCache}') center/cover no-repeat`;
+                            
+                            // Also update sidebar immediately
+                            const sidebarAvatar = document.getElementById('userAvatar');
+                            if (sidebarAvatar) {
+                                sidebarAvatar.style.background = `url('${urlWithCache}') center/cover no-repeat`;
+                                sidebarAvatar.textContent = '';
+                            }
                         } else {
-                            settingsAvatarPreview.style.backgroundImage = '';
-                            settingsAvatarPreview.textContent = user.username.charAt(0).toUpperCase();
-                            settingsAvatarPreview.style.display = 'flex';
-                            settingsAvatarPreview.style.alignItems = 'center';
-                            settingsAvatarPreview.style.justifyContent = 'center';
-                            settingsAvatarPreview.style.fontSize = '2rem';
-                            settingsAvatarPreview.style.color = 'var(--text-primary)';
+                            // Fallback
+                            settingsAvatarPreview.style.background = 'var(--accent-green)';
+                            settingsAvatarPreview.textContent = (user.username || user.userName || '?').charAt(0).toUpperCase();
+                            settingsAvatarPreview.style.fontSize = '2.5rem';
+                            settingsAvatarPreview.style.color = 'white';
                         }
                     }
                 }
@@ -1783,11 +2068,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 });
                 if (response.ok) {
                     const data = await response.json();
-                    settingsAvatarPreview.style.backgroundImage = `url('${resolveUrl(data.url)}')`;
+                    const fullUrl = resolveUrl(data.url);
+                    
+                    settingsAvatarPreview.style.background = `url('${fullUrl}') center/cover no-repeat`;
                     settingsAvatarPreview.textContent = '';
+                    
                     const mainAvatar = document.getElementById('userAvatar');
                     if (mainAvatar) {
-                        mainAvatar.style.backgroundImage = `url('${resolveUrl(data.url)}')`;
+                        mainAvatar.style.background = `url('${fullUrl}') center/cover no-repeat`;
                         mainAvatar.textContent = '';
                     }
                     const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -2120,7 +2408,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const tile = document.createElement('div');
                 tile.className = 'friend-tile';
                 tile.style.cursor = 'default';
-                tile.style.minWidth = '80px';
+                
                 const av = document.createElement('div');
                 av.className = 'avatar';
                 const url = item.avatarUrl || item.AvatarUrl;
@@ -2129,21 +2417,273 @@ document.addEventListener('DOMContentLoaded', async () => {
                     av.style.backgroundImage = `url('${resolveUrl(url)}')`;
                     av.style.backgroundSize = 'cover';
                     av.style.backgroundPosition = 'center';
+                    av.textContent = '';
                 } else {
                     av.textContent = name.charAt(0).toUpperCase();
                 }
                 const label = document.createElement('span');
                 label.textContent = name;
-                label.style.fontSize = '0.8rem';
-                label.style.overflow = 'hidden';
-                label.style.textOverflow = 'ellipsis';
-                label.style.whiteSpace = 'nowrap';
-                label.style.maxWidth = '100%';
                 tile.appendChild(av);
                 tile.appendChild(label);
                 container.appendChild(tile);
             });
         }
+        function renderGroupMembersList(container, members, isAdmin, groupId) {
+            container.innerHTML = '';
+            if (!members || members.length === 0) {
+                container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Brak uczestników.</div>';
+                return;
+            }
+            members.forEach(member => {
+                const tile = document.createElement('div');
+                tile.className = 'friend-tile';
+                tile.style.cursor = 'default';
+
+                const av = document.createElement('div');
+                av.className = 'avatar';
+                
+                const url = member.avatarUrl || member.AvatarUrl;
+                const name = member.username || member.Username || 'Użytkownik';
+                
+                if (url) {
+                    av.style.backgroundImage = `url('${resolveUrl(url)}')`;
+                    av.style.backgroundSize = 'cover';
+                    av.style.backgroundPosition = 'center';
+                    av.textContent = '';
+                } else {
+                    av.textContent = name.charAt(0).toUpperCase();
+                }
+
+                const label = document.createElement('span');
+                label.textContent = name;
+                
+                tile.appendChild(av);
+                tile.appendChild(label);
+
+                if (isAdmin) {
+                    const currentUser = JSON.parse(localStorage.getItem('user'));
+                    const isSelf = member.id == currentUser.id || member.Id == currentUser.id;
+                    
+                    if (!isSelf) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.className = 'btn-remove-member';
+                        removeBtn.innerHTML = '➖';
+                        removeBtn.title = 'Usuń z grupy';
+                        removeBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            if (!confirm(`Czy na pewno usunąć użytkownika ${name} z grupy?`)) return;
+                            try {
+                                const response = await fetch(`${API_URL}/groups/${groupId}/members/${member.id}`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (response.ok) {
+                                    showNotification('Użytkownik usunięty.', 'success');
+                                    updateConversationSidebar(); // Refresh list
+                                } else {
+                                    await handleApiError(response, 'Nie udało się usunąć użytkownika');
+                                }
+                            } catch (err) {
+                                console.error(err);
+                                showNotification('Błąd usuwania użytkownika.', 'error');
+                            }
+                        };
+                        tile.appendChild(removeBtn);
+                    }
+                }
+
+                container.appendChild(tile);
+            });
+        }
+
+        async function openAddMemberModal(groupId) {
+            const modal = document.getElementById('addMemberModal');
+            const list = document.getElementById('addMemberSelectionList');
+            const hiddenInput = document.getElementById('addMemberHiddenInput');
+            let confirmBtn = document.getElementById('confirmAddMemberBtn');
+            
+            if (!modal || !list || !hiddenInput || !confirmBtn) return;
+            
+            // Clone button to remove old event listeners to prevent conflicts
+            const newConfirmBtn = confirmBtn.cloneNode(true);
+            confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+            confirmBtn = newConfirmBtn;
+            
+            list.innerHTML = 'Ładowanie...';
+            hiddenInput.value = '';
+            modal.classList.add('show');
+            
+            try {
+                // Fetch friends and current members in parallel
+                const [friendsRes, membersRes] = await Promise.all([
+                    fetch(`${API_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch(`${API_URL}/groups/${groupId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
+                ]);
+                
+                if (friendsRes.ok && membersRes.ok) {
+                    const friendsList = await friendsRes.json();
+                    const membersList = await membersRes.json();
+                    
+                    const memberIds = new Set(membersList.map(m => String(m.id || m.Id)));
+                    const availableFriends = friendsList.filter(f => !memberIds.has(String(f.id || f.Id)));
+                    
+                    list.innerHTML = '';
+                    if (availableFriends.length === 0) {
+                        list.innerHTML = '<div style="padding:10px;text-align:center;color:var(--text-muted)">Brak znajomych do dodania.</div>';
+                        return;
+                    }
+                    
+                    availableFriends.forEach(friend => {
+                        const item = document.createElement('div');
+                        item.className = 'friend-select-item';
+                        item.style.display = 'flex';
+                        item.style.alignItems = 'center';
+                        item.style.gap = '10px';
+                        item.style.padding = '8px';
+                        item.style.borderBottom = '1px solid var(--border-color)';
+                        
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.value = friend.id || friend.Id;
+                        checkbox.style.marginRight = '10px';
+                        
+                        const name = document.createElement('span');
+                        name.textContent = friend.username || friend.Username;
+                        
+                        item.appendChild(checkbox);
+                        item.appendChild(name);
+                        list.appendChild(item);
+                    });
+                    
+                    // Setup confirm button logic
+                    confirmBtn.onclick = async () => {
+                        const selectedIds = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+                        if (selectedIds.length === 0) {
+                            showNotification('Wybierz przynajmniej jedną osobę.', 'warning');
+                            return;
+                        }
+                        
+                        try {
+                            let successCount = 0;
+                            for (const userId of selectedIds) {
+                                const res = await fetch(`${API_URL}/groups/${groupId}/members`, {
+                                    method: 'POST',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                        'Authorization': `Bearer ${token}`
+                                    },
+                                    body: JSON.stringify({ userId: userId })
+                                });
+                                if (res.ok) successCount++;
+                            }
+                            
+                            if (successCount > 0) {
+                                showNotification(`Dodano ${successCount} użytkowników.`, 'success');
+                                modal.classList.remove('show');
+                                updateConversationSidebar();
+                            } else {
+                                showNotification('Nie udało się dodać użytkowników.', 'error');
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            showNotification('Błąd podczas dodawania.', 'error');
+                        }
+                    };
+                    
+                } else {
+                    list.innerHTML = '<div style="color:var(--error-color)">Błąd ładowania danych.</div>';
+                }
+            } catch (e) {
+                console.error(e);
+                list.innerHTML = '<div style="color:var(--error-color)">Błąd połączenia.</div>';
+            }
+        }
+
+        async function changeGroupPhoto(groupId) {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = 'image/*';
+            input.style.display = 'none';
+            document.body.appendChild(input);
+
+            input.onchange = async (e) => {
+                if (input.files && input.files[0]) {
+                    const formData = new FormData();
+                    formData.append('avatar', input.files[0]);
+                    try {
+                        showNotification('Wysyłanie ikony...', 'info');
+                        const response = await fetch(`${API_URL}/groups/${groupId}/avatar`, {
+                            method: 'POST',
+                            headers: { 'Authorization': `Bearer ${token}` },
+                            body: formData
+                        });
+                        if (response.ok) {
+                            showNotification('Ikona grupy zmieniona!', 'success');
+                            updateConversationSidebar();
+                            loadGroups(); // Refresh sidebar list
+                            // Also update header if active
+                            const headerAvatar = document.querySelector('.chat-header .avatar');
+                            if (headerAvatar) {
+                                // Simple reload or fetch to get new URL
+                                // For now just assume sidebar update handles it or page refresh
+                            }
+                        } else {
+                            await handleApiError(response, 'Błąd zmiany ikony');
+                        }
+                    } catch (err) {
+                        console.error(err);
+                        showNotification('Wystąpił błąd.', 'error');
+                    }
+                }
+                document.body.removeChild(input);
+            };
+            input.click();
+        }
+
+        async function deleteGroup(groupId) {
+            if (!confirm('Czy na pewno chcesz usunąć tę grupę? Tej operacji nie można cofnąć.')) return;
+            try {
+                const response = await fetch(`${API_URL}/groups/${groupId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    showNotification('Grupa została usunięta.', 'success');
+                    conversationSidebar.classList.remove('open');
+                    if (dashboardContainer) dashboardContainer.classList.remove('sidebar-open');
+                    await loadGroups();
+                    selectChat(null, 'Ogólny', null, 'global');
+                } else {
+                    await handleApiError(response, 'Nie udało się usunąć grupy');
+                }
+            } catch (err) {
+                console.error(err);
+                showNotification('Błąd usuwania grupy.', 'error');
+            }
+        }
+
+        async function leaveGroup(groupId) {
+            if (!confirm('Czy na pewno chcesz opuścić grupę?')) return;
+            try {
+                const response = await fetch(`${API_URL}/groups/${groupId}/members/me`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    showNotification('Opuściłeś grupę.', 'success');
+                    conversationSidebar.classList.remove('open');
+                    if (dashboardContainer) dashboardContainer.classList.remove('sidebar-open');
+                    await loadGroups();
+                    selectChat(null, 'Ogólny', null, 'global');
+                } else {
+                    await handleApiError(response, 'Nie udało się opuścić grupy');
+                }
+            } catch (err) {
+                console.error(err);
+                showNotification('Błąd opuszczania grupy.', 'error');
+            }
+        }
+
         async function updateConversationSidebar() {
             if (!conversationSidebar) return;
             const titleEl = document.getElementById('conversationSidebarTitle');
@@ -2154,42 +2694,41 @@ document.addEventListener('DOMContentLoaded', async () => {
             const mutualsContainer = document.getElementById('conversationSidebarMutualFriends');
             const groupsSection = document.getElementById('conversationSidebarGroupsSection');
             const groupsContainer = document.getElementById('conversationSidebarGroups');
+            const membersSection = document.getElementById('conversationSidebarMembersSection');
+            const membersContainer = document.getElementById('conversationSidebarMembers');
             const imagesContainer = document.getElementById('conversationSidebarImages');
+            
+            // Find or create admin controls container
+            let adminControls = document.getElementById('sidebarAdminControls');
+            if (!adminControls) {
+                adminControls = document.createElement('div');
+                adminControls.id = 'sidebarAdminControls';
+                adminControls.className = 'admin-controls';
+                const sidebarBody = document.getElementById('conversationSidebarBody');
+                if (sidebarBody) sidebarBody.appendChild(adminControls);
+            }
+            adminControls.innerHTML = ''; 
+            adminControls.style.display = 'none';
+
             if (mutualsContainer) mutualsContainer.innerHTML = '';
             if (groupsContainer) groupsContainer.innerHTML = '';
+            if (membersContainer) membersContainer.innerHTML = '';
             if (imagesContainer) imagesContainer.innerHTML = '';
-            if (!titleEl || !avatarEl || !nameEl || !statusEl) return;
+
             if (currentChatType === 'global') {
-                titleEl.textContent = 'Czat ogólny';
+                if(titleEl) titleEl.textContent = 'Czat ogólny';
                 nameEl.textContent = 'Kanał ogólny';
                 avatarEl.style.backgroundImage = '';
-                avatarEl.textContent = ''; // Removed #
-                avatarEl.style.backgroundColor = 'transparent'; // Optional clean up
+                avatarEl.textContent = ''; 
+                avatarEl.style.backgroundColor = 'transparent';
                 statusEl.textContent = '';
                 
                 if (mutualsSection) mutualsSection.style.display = 'none';
-                
-                // Show Users/Members section for Global Chat
-                if (groupsSection) {
-                    groupsSection.style.display = 'block';
-                    const h4 = groupsSection.querySelector('h4');
-                    if (h4) h4.textContent = 'Użytkownicy';
-                    
-                    // Fetch and display all friends/users for Global Chat
-                    // Since we don't have a specific "all users" endpoint visible, we'll use friends + maybe online status
-                    // Or reuse the logic to show all known users. For now, showing friends is safe.
-                    // If the user implies "everyone in the system", that might require a new endpoint.
-                    // Assuming "Użytkownicy" implies available contacts/friends for now as per "friends" array.
-                    
-                    if (groupsContainer) {
-                         // We will list friends as "Użytkownicy" in global chat for now
-                         // or ideally, fetch all users. Let's use friends list which is already loaded.
-                         // If the user wants ALL users in DB, we'd need a fetch.
-                         // Given the context "wspólne grupy tylko użytkownicy", it likely means "Participants".
-                         // Global chat participants are everyone.
-                         // Let's list friends.
-                         renderProfileList(groupsContainer, friends, 'Brak dostępnych użytkowników.');
-                    }
+                if (groupsSection) groupsSection.style.display = 'none';
+                if (membersSection) membersSection.style.display = 'block';
+
+                if (membersContainer) {
+                     renderProfileList(membersContainer, friends, 'Brak dostępnych użytkowników.');
                 }
             } else if (currentChatType === 'private' && currentChatId) {
                 const friend = friends.find(f => f.id == currentChatId || f.Id == currentChatId);
@@ -2216,10 +2755,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const h4 = groupsSection.querySelector('h4');
                     if (h4) h4.textContent = 'Wspólne grupy';
                 }
+                if (membersSection) membersSection.style.display = 'none';
+
                 await loadSidebarMutualsAndGroups(currentChatId);
             } else if (currentChatType === 'group' && currentChatId) {
                 const group = groups.find(g => g.id == currentChatId || g.Id == currentChatId);
-                titleEl.textContent = 'Grupa';
+                if(titleEl) titleEl.textContent = 'Grupa';
                 const groupName = group ? (group.name || group.Name || 'Grupa') : 'Grupa';
                 const avatarUrl = group ? (group.avatarUrl || group.AvatarUrl) : null;
                 nameEl.textContent = groupName;
@@ -2233,26 +2774,73 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
                 statusEl.textContent = '';
                 if (mutualsSection) mutualsSection.style.display = 'none';
-                if (groupsSection) {
-                    groupsSection.style.display = 'block';
-                    const h4 = groupsSection.querySelector('h4');
-                    if (h4) h4.textContent = 'Użytkownicy';
+                if (groupsSection) groupsSection.style.display = 'none';
+                if (membersSection) membersSection.style.display = 'block';
+
+                // --- ACTIONS INJECTION ---
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const currentUserId = currentUser ? (currentUser.id || currentUser.Id) : null;
+                const groupOwnerId = group ? (group.ownerId || group.OwnerId) : null;
+                
+                const isAdmin = group && currentUserId && groupOwnerId && (String(groupOwnerId) === String(currentUserId));
+                
+                adminControls.style.display = 'flex';
+                adminControls.style.flexDirection = 'column';
+                adminControls.style.gap = '10px';
+                adminControls.style.padding = '10px';
+
+                if (isAdmin) {
+                    // Add Member Button
+                    const addBtn = document.createElement('button');
+                    addBtn.className = 'btn-secondary btn-sidebar-action';
+                    addBtn.innerHTML = '➕ Dodaj członków';
+                    addBtn.onclick = () => openAddMemberModal(currentChatId);
+                    adminControls.appendChild(addBtn);
+
+                    // Edit Group Button
+                    const editBtn = document.createElement('button');
+                    editBtn.className = 'btn-secondary btn-sidebar-action';
+                    editBtn.innerHTML = '✏️ Edytuj grupę';
+                    editBtn.onclick = () => openEditGroupModal(currentChatId, group.name || group.Name);
+                    adminControls.appendChild(editBtn);
+                    
+                    // Change Photo Button
+                    const photoBtn = document.createElement('button');
+                    photoBtn.className = 'btn-secondary btn-sidebar-action';
+                    photoBtn.innerHTML = '🖼️ Zmień zdjęcie grupy';
+                    photoBtn.onclick = () => changeGroupPhoto(currentChatId);
+                    adminControls.appendChild(photoBtn);
+                    
+                    // Delete Group Button
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn-secondary btn-sidebar-action danger';
+                    deleteBtn.innerHTML = '🗑️ Usuń grupę';
+                    deleteBtn.onclick = () => deleteGroup(currentChatId);
+                    adminControls.appendChild(deleteBtn);
+                } else {
+                    // Leave Group Button
+                    const leaveBtn = document.createElement('button');
+                    leaveBtn.className = 'btn-secondary btn-sidebar-action danger';
+                    leaveBtn.innerHTML = '🚪 Opuść grupę';
+                    leaveBtn.onclick = () => leaveGroup(currentChatId);
+                    adminControls.appendChild(leaveBtn);
                 }
-                if (groupsContainer) {
-                    groupsContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Ładowanie uczestników...</div>';
+
+                if (membersContainer) {
+                    membersContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Ładowanie uczestników...</div>';
                     try {
                         const res = await fetch(`${API_URL}/groups/${currentChatId}/members`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (res.ok) {
                             const members = await res.json();
-                            renderProfileList(groupsContainer, members, 'Brak uczestników.');
+                            renderGroupMembersList(membersContainer, members, isAdmin, currentChatId);
                         } else {
-                            groupsContainer.innerHTML = '<div style="color: var(--error-color); font-size: 0.85rem;">Nie udało się wczytać uczestników.</div>';
+                            membersContainer.innerHTML = '<div style="color: var(--error-color); font-size: 0.85rem;">Nie udało się wczytać uczestników.</div>';
                         }
                     } catch (e) {
                         console.error(e);
-                        groupsContainer.innerHTML = '<div style="color: var(--error-color); font-size: 0.85rem;">Błąd ładowania uczestników.</div>';
+                        membersContainer.innerHTML = '<div style="color: var(--error-color); font-size: 0.85rem;">Błąd ładowania uczestników.</div>';
                     }
                 }
             }
@@ -2273,6 +2861,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             }
         }
+
         async function loadSidebarMutualsAndGroups(userId) {
             const mutualsSection = document.getElementById('conversationSidebarMutualsSection');
             const mutualsContainer = document.getElementById('conversationSidebarMutualFriends');
@@ -2350,11 +2939,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         function openLightbox(src) {
             if (imageModal && modalImg) {
                 imageModal.style.display = "flex";
+                // Reset zoom state
+                modalImg.classList.remove('zoomed');
                 setTimeout(() => {
                     imageModal.style.opacity = "1";
                 }, 10);
                 modalImg.src = src;
             }
+        }
+        if (modalImg) {
+            modalImg.onclick = function(e) {
+                e.stopPropagation();
+                this.classList.toggle('zoomed');
+            };
         }
         if (closeImageModal) {
             closeImageModal.onclick = function() {
@@ -2397,6 +2994,76 @@ document.addEventListener('DOMContentLoaded', async () => {
             closeConversationSidebarButton.addEventListener('click', () => {
                 conversationSidebar.classList.remove('open');
                 if (dashboardContainer) dashboardContainer.classList.remove('sidebar-open');
+            });
+        }
+
+        // Edit Group Modal Logic
+        const editGroupModal = document.getElementById('editGroupModal');
+        const closeEditGroupModalBtn = document.getElementById('closeEditGroupModal');
+        const confirmEditGroupBtn = document.getElementById('confirmEditGroupBtn');
+        const editGroupNameInput = document.getElementById('editGroupName');
+        let currentEditingGroupId = null;
+
+        function openEditGroupModal(groupId, currentName) {
+            currentEditingGroupId = groupId;
+            if (editGroupNameInput) editGroupNameInput.value = currentName || '';
+            if (editGroupModal) editGroupModal.classList.add('show');
+        }
+
+        if (closeEditGroupModalBtn) {
+            closeEditGroupModalBtn.addEventListener('click', () => {
+                if (editGroupModal) editGroupModal.classList.remove('show');
+                currentEditingGroupId = null;
+            });
+        }
+        
+        // Close on outside click for edit group modal
+        window.addEventListener('click', (e) => {
+             if (e.target === editGroupModal) {
+                 editGroupModal.classList.remove('show');
+                 currentEditingGroupId = null;
+             }
+        });
+
+        if (confirmEditGroupBtn) {
+            confirmEditGroupBtn.addEventListener('click', async () => {
+                if (!currentEditingGroupId) return;
+                const newName = editGroupNameInput.value.trim();
+                if (!newName) {
+                    showNotification('Nazwa grupy nie może być pusta.', 'error');
+                    return;
+                }
+                
+                try {
+                    const res = await fetch(`${API_URL}/groups/${currentEditingGroupId}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify({ Name: newName })
+                    });
+                    
+                    if (res.ok) {
+                        showNotification('Nazwa grupy została zmieniona.', 'success');
+                        if (editGroupModal) editGroupModal.classList.remove('show');
+                        // Reload groups list
+                        loadGroups();
+                        // Update current chat view if open
+                        if (currentChatId == currentEditingGroupId && currentChatType === 'group') {
+                            const titleEl = document.getElementById('chat-title-text');
+                            if (titleEl) titleEl.textContent = newName;
+                            // Update sidebar if open
+                            updateConversationSidebar();
+                        }
+                    } else {
+                        const err = await res.json();
+                        showNotification(err.message || 'Błąd edycji grupy.', 'error');
+                    }
+                } catch (e) {
+                    console.error(e);
+                    showNotification('Błąd połączenia.', 'error');
+                }
             });
         }
 

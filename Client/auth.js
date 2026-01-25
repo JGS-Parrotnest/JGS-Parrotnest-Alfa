@@ -120,6 +120,13 @@ window.handleLogin = async (e) => {
                 return false;
             }
 
+            // Inicjalizacja bezpiecznej sesji PHP (fingerprinting) - USUNIĘTO na życzenie użytkownika
+            // try {
+            //    await fetch('init_session.php', { method: 'POST' });
+            // } catch (e) {
+            //    console.warn('Nie udało się zainicjować sesji PHP', e);
+            // }
+
             showNotification('Zalogowano. Przekierowanie...', 'success');
             
             // Używamy replace aby nie można było cofnąć

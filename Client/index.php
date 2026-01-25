@@ -29,61 +29,66 @@
                 const token = localStorage.getItem('token');
                 const userStr = localStorage.getItem('user');
                 
-                if (!token || !userStr) {
-                    console.warn('Brak tokena lub użytkownika w localStorage. Przekierowanie do logowania.');
+                if (!token) {
+                    console.warn('Brak tokena w localStorage. Przekierowanie do logowania.');
                     window.location.href = '/login.php';
                     return;
+                }
+                
+                // Allow userStr to be missing, app.js will handle recovery
+                let user = null;
+                if (userStr) {
+                    try {
+                        user = JSON.parse(userStr);
+                    } catch (e) {}
                 }
 
-                const user = JSON.parse(userStr);
-                if (!user) {
-                    window.location.href = '/login.php';
-                    return;
-                }
                 document.addEventListener('DOMContentLoaded', () => {
                     const userNameEl = document.getElementById('userName');
                     const userAvatarEl = document.getElementById('userAvatar');
                     
-                    if (userNameEl) {
-                        userNameEl.textContent = user.username || user.userName || user.email || 'Użytkownik';
-                    }
-                    
-                    if (userAvatarEl) {
-                        const uAv = user.avatarUrl || user.AvatarUrl;
-                        if (uAv) {
-                            let url = uAv;
-                            if (!url.startsWith('http') && !url.startsWith('data:')) {
-                                url = url.replace(/\\/g, '/');
-                                if (!url.startsWith('/')) url = '/' + url;
-                                let base = window.location.origin;
-                                url = `${base}${url}`;
-                            } else {
-                                try {
-                                    const target = new URL(url);
-                                    const current = new URL(window.location.origin);
-                                    if (target.hostname === 'localhost' || target.hostname === '0.0.0.0') {
-                                        target.hostname = current.hostname;
-                                        target.port = current.port || target.port;
-                                        target.protocol = current.protocol;
-                                        url = target.toString();
+                    if (user) {
+                        if (userNameEl) {
+                            userNameEl.textContent = user.username || user.userName || user.email || 'Użytkownik';
+                        }
+                        
+                        if (userAvatarEl) {
+                            const uAv = user.avatarUrl || user.AvatarUrl;
+                            if (uAv) {
+                                let url = uAv;
+                                if (!url.startsWith('http') && !url.startsWith('data:')) {
+                                    url = url.replace(/\\/g, '/');
+                                    if (!url.startsWith('/')) url = '/' + url;
+                                    let base = window.location.origin;
+                                    url = `${base}${url}`;
+                                } else {
+                                    try {
+                                        const target = new URL(url);
+                                        const current = new URL(window.location.origin);
+                                        if (target.hostname === 'localhost' || target.hostname === '0.0.0.0') {
+                                            target.hostname = current.hostname;
+                                            target.port = current.port || target.port;
+                                            target.protocol = current.protocol;
+                                            url = target.toString();
+                                        }
+                                    } catch (e) {
                                     }
-                                } catch (e) {
                                 }
+                                
+                                userAvatarEl.style.backgroundImage = `url('${url}')`;
+                                userAvatarEl.style.backgroundSize = 'cover';
+                                userAvatarEl.textContent = '';
+                            } else {
+                                const name = user.username || user.userName || user.email || '?';
+                                userAvatarEl.textContent = name.charAt(0).toUpperCase();
+                                userAvatarEl.style.backgroundImage = '';
+                                userAvatarEl.style.display = 'flex';
+                                userAvatarEl.style.alignItems = 'center';
+                                userAvatarEl.style.justifyContent = 'center';
+                                userAvatarEl.style.backgroundColor = 'var(--accent-color)';
+                                userAvatarEl.style.color = 'white';
+                                userAvatarEl.style.fontSize = '1.5rem';
                             }
-                            
-                            userAvatarEl.style.backgroundImage = `url('${url}')`;
-                            userAvatarEl.style.backgroundSize = 'cover';
-                            userAvatarEl.textContent = '';
-                        } else {
-                            const name = user.username || user.userName || user.email || '?';
-                            userAvatarEl.textContent = name.charAt(0).toUpperCase();
-                            userAvatarEl.style.backgroundImage = '';
-                            userAvatarEl.style.display = 'flex';
-                            userAvatarEl.style.alignItems = 'center';
-                            userAvatarEl.style.justifyContent = 'center';
-                            userAvatarEl.style.backgroundColor = 'var(--accent-color)';
-                            userAvatarEl.style.color = 'white';
-                            userAvatarEl.style.fontSize = '1.5rem';
                         }
                     }
                 });
@@ -161,10 +166,13 @@
                     <h3>Ogólny</h3>
                 </div>
                 <div class="chat-actions">
+                    <button class="btn-icon" id="conversationInfoButton" title="Informacje o czacie">ℹ️</button>
+                    <!-- Przeniesione do panelu bocznego
                     <button class="btn-icon" id="addGroupMemberBtn" style="display: none;" title="Dodaj członków">➕</button>
                     <button class="btn-icon" id="removeGroupMemberBtn" style="display: none;" title="Usuń użytkownika">➖</button>
                     <button class="btn-icon" id="leaveGroupBtn" style="display: none;" title="Opuść grupę">🚪</button>
                     <button class="btn-icon" id="deleteGroupBtn" style="display: none;" title="Usuń grupę">🗑️</button>
+                    -->
                 </div>
             </div>
             <div class="messages-container" id="chat-messages">
@@ -185,29 +193,37 @@
     </div>
     <div class="conversation-sidebar" id="conversationSidebar">
         <div class="conversation-sidebar-header">
-            <h3 id="conversationSidebarTitle"></h3>
+            <h3 id="conversationSidebarTitle" style="display:none;">Informacje</h3>
             <button class="btn-icon" id="closeConversationSidebarButton" title="Zamknij panel">✖</button>
         </div>
-        <div class="conversation-sidebar-body">
-            <div class="conversation-sidebar-section">
+        <div class="conversation-sidebar-body" id="conversationSidebarBody">
+            <div class="info-card">
                 <div class="avatar-large" id="conversationSidebarAvatar"></div>
-                <div class="conversation-sidebar-main">
-                    <h2 id="conversationSidebarName"></h2>
-                    <span id="conversationSidebarStatus" class="status-badge"></span>
-                </div>
+                <h2 id="conversationSidebarName">Nazwa</h2>
+                <div class="status-text" id="conversationSidebarStatus">Status</div>
             </div>
-            <div class="conversation-sidebar-section" id="conversationSidebarMutualsSection">
+
+            <div class="sidebar-section" id="conversationSidebarMembersSection" style="display: none;">
+                <h4>Uczestnicy</h4>
+                <div class="conversation-sidebar-list" id="conversationSidebarMembers"></div>
+            </div>
+
+            <div class="sidebar-section" id="conversationSidebarMutualsSection">
                 <h4>Wspólni znajomi</h4>
-                <div id="conversationSidebarMutualFriends" class="conversation-sidebar-list"></div>
+                <div class="conversation-sidebar-list" id="conversationSidebarMutualFriends"></div>
             </div>
-            <div class="conversation-sidebar-section" id="conversationSidebarGroupsSection">
+
+            <div class="sidebar-section" id="conversationSidebarGroupsSection">
                 <h4>Wspólne grupy</h4>
-                <div id="conversationSidebarGroups" class="conversation-sidebar-list"></div>
+                <div class="conversation-sidebar-list" id="conversationSidebarGroups"></div>
             </div>
-            <div class="conversation-sidebar-section">
-                <h4>Zdjęcia na czacie</h4>
-                <div id="conversationSidebarImages" class="conversation-sidebar-images"></div>
+
+            <div class="sidebar-section">
+                <h4>Zdjęcia i pliki</h4>
+                <div class="conversation-sidebar-images" id="conversationSidebarImages"></div>
             </div>
+            
+            <!-- Admin controls will be injected here -->
         </div>
     </div>
     <div id="addModal" class="modal">
@@ -273,8 +289,24 @@
                     <label>Wybierz znajomych</label>
                     <div id="addMemberSelectionList" style="display: flex; flex-wrap: wrap; gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
                     </div>
+                    <input type="hidden" id="addMemberHiddenInput">
                 </div>
                 <button class="btn-primary" id="confirmAddMemberBtn">Dodaj wybrane osoby</button>
+            </div>
+        </div>
+    </div>
+    <div id="editGroupModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Edytuj grupę</h3>
+                <button class="modal-close" id="closeEditGroupModal">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="input-group">
+                    <label for="editGroupName">Nazwa grupy</label>
+                    <input type="text" id="editGroupName" placeholder="Nowa nazwa grupy">
+                </div>
+                <button class="btn-primary" id="confirmEditGroupBtn">Zapisz zmiany</button>
             </div>
         </div>
     </div>
@@ -322,24 +354,36 @@
                         <button type="button" class="btn-secondary" id="settingsNotificationsToggle">Przełącz powiadomienia</button>
                     </div>
                     <div class="input-group">
-                        <label for="notificationSoundSelect">Dźwięk powiadomień</label>
-                        <select id="notificationSoundSelect" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--input-bg); color: var(--text-main);">
-                            <option value="original">Oryginalny</option>
-                            <option value="sound1">1.mp3</option>
-                            <option value="sound2">2.mp3</option>
-                            <option value="sound3">3.mp3</option>
-                        </select>
+                        <label>Dźwięk powiadomień</label>
+                        <div class="themes-list" id="notificationSoundList">
+                            <label class="theme-option">
+                                <span class="theme-name">Oryginalny</span>
+                                <input type="radio" class="theme-radio" name="notificationSound" value="original" id="soundOriginal">
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Dźwięk 1</span>
+                                <input type="radio" class="theme-radio" name="notificationSound" value="1.mp3" id="sound1">
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Dźwięk 2</span>
+                                <input type="radio" class="theme-radio" name="notificationSound" value="2.mp3" id="sound2">
+                            </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Dźwięk 3</span>
+                                <input type="radio" class="theme-radio" name="notificationSound" value="3.mp3" id="sound3">
+                            </label>
+                        </div>
                     </div>
                 </div>
                 <div class="tab-content" id="settings-themesTab">
                     <div class="input-group">
                         <label>Motyw interfejsu</label>
                         <div class="themes-list">
-                            <label class="theme-option">
-                                <span class="theme-name">Vibrant</span>
-                                <input type="radio" class="theme-radio" name="theme" value="vibrant" id="themeVibrant">
+							<label class="theme-option">
+                                <span class="theme-name">Oryginalny</span>
+                                <input type="radio" class="theme-radio" name="theme" value="original" id="themeOriginal" checked>
                             </label>
-                            <label class="theme-option">
+							<label class="theme-option">
                                 <span class="theme-name">Dark</span>
                                 <input type="radio" class="theme-radio" name="theme" value="dark" id="themeDark">
                             </label>
@@ -348,16 +392,16 @@
                                 <input type="radio" class="theme-radio" name="theme" value="classic" id="themeClassic">
                             </label>
                             <label class="theme-option">
-                                <span class="theme-name">Oryginalny</span>
-                                <input type="radio" class="theme-radio" name="theme" value="original" id="themeOriginal" checked>
-                            </label>
-                            <label class="theme-option">
                                 <span class="theme-name">Neonowy</span>
                                 <input type="radio" class="theme-radio" name="theme" value="neon" id="themeNeon">
                             </label>
                             <label class="theme-option">
                                 <span class="theme-name">Leśny</span>
                                 <input type="radio" class="theme-radio" name="theme" value="forest" id="themeForest">
+                            </label>
+							<label class="theme-option">
+                                <span class="theme-name">Vibrant</span>
+                                <input type="radio" class="theme-radio" name="theme" value="vibrant" id="themeVibrant">
                             </label>
                         </div>
                         <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
@@ -438,7 +482,7 @@
         <img class="image-modal-content" id="img-preview">
         <div id="caption"></div>
     </div>
-    <script src="auth.js?v=5"></script>
-    <script src="app.js?v=15"></script>
+    <script src="auth.js?v=6"></script>
+    <script src="app.js?v=16"></script>
 </body>
 </html>

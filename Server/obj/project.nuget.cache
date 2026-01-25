@@ -1,8 +1,8 @@
 {
   "version": 2,
-  "dgSpecHash": "pfhCoA1P460=",
+  "dgSpecHash": "wfDEk+5NImI=",
   "success": true,
-  "projectFilePath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj",
+  "projectFilePath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\user\\.nuget\\packages\\bcrypt.net-next\\4.0.3\\bcrypt.net-next.4.0.3.nupkg.sha512",
     "C:\\Users\\user\\.nuget\\packages\\humanizer.core\\2.14.1\\humanizer.core.2.14.1.nupkg.sha512",
@@ -52,9 +52,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "Pakiet „Microsoft.IdentityModel.JsonWebTokens” 7.0.3 ma znane umiarkowana luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
-      "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj",
+      "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj",
+      "filePath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
       "libraryId": "Microsoft.IdentityModel.JsonWebTokens",
       "targetGraphs": [
         "net10.0-windows7.0"
@@ -64,9 +64,9 @@
       "code": "NU1902",
       "level": "Warning",
       "message": "Pakiet „System.IdentityModel.Tokens.Jwt” 7.0.3 ma znane umiarkowana luki w zabezpieczeniach o ważności, https://github.com/advisories/GHSA-59j7-ghrg-fj52",
-      "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj",
+      "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
       "warningLevel": 1,
-      "filePath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa\\Alfa\\Alfa\\Server\\ParrotnestServer.csproj",
+      "filePath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
       "libraryId": "System.IdentityModel.Tokens.Jwt",
       "targetGraphs": [
         "net10.0-windows7.0"
