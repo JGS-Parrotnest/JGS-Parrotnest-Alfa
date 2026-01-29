@@ -10,6 +10,18 @@
                     localStorage.setItem('preferredTheme', t);
                 }
                 document.documentElement.setAttribute('data-theme', t);
+                
+                var s = localStorage.getItem('preferredTextSize');
+                if (!s) {
+                    s = 'medium';
+                    localStorage.setItem('preferredTextSize', s);
+                }
+                document.documentElement.setAttribute('data-text-size', s);
+
+                var st = localStorage.getItem('preferredSimpleText');
+                if (st === 'true') {
+                    document.documentElement.setAttribute('data-simple-text', 'true');
+                }
             } catch (e) {
                 document.documentElement.setAttribute('data-theme', 'dark');
             }
@@ -19,7 +31,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parrotnest</title>
     <link rel="icon" href="logo.png" type="image/png">
-    <link rel="stylesheet" href="style.css?v=7">
+    <link rel="stylesheet" href="style.css?v=9">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
@@ -86,7 +98,7 @@
                                 userAvatarEl.style.alignItems = 'center';
                                 userAvatarEl.style.justifyContent = 'center';
                                 userAvatarEl.style.backgroundColor = 'var(--accent-color)';
-                                userAvatarEl.style.color = 'white';
+                                userAvatarEl.style.color = 'var(--btn-text-color, white)';
                                 userAvatarEl.style.fontSize = '1.5rem';
                             }
                         }
@@ -259,9 +271,8 @@
                         <input type="text" id="groupName" placeholder="Wpisz nazwę grupy">
                     </div>
                     <div class="input-group">
-                        <label for="groupMembers">Członkowie (opcjonalnie)</label>
-                        <div id="friendsSelectionList" style="display: flex; flex-wrap: wrap; gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
-                            <div style="color: var(--text-muted); font-size: 0.8rem; width: 100%; text-align: center;">Brak znajomych do wyboru.</div>
+                        <label for="groupMembers">Wybierz członków</label>
+                        <div id="friendsSelectionList" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
                         </div>
                         <input type="hidden" id="groupMembers">
                     </div>
@@ -403,11 +414,33 @@
                                 <span class="theme-name">Vibrant</span>
                                 <input type="radio" class="theme-radio" name="theme" value="vibrant" id="themeVibrant">
                             </label>
+                            <label class="theme-option">
+                                <span class="theme-name">Kontrast</span>
+                                <input type="radio" class="theme-radio" name="theme" value="kontrast" id="themeKontrast">
+                            </label>
                         </div>
                         <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
                             <button type="button" class="btn-primary" id="saveThemeBtn" style="width: auto; padding: 10px 16px;">Zapisz motyw</button>
                         </div>
                     </div>
+                    <div class="input-group">
+                        <label>Wielkość tekstu</label>
+                        <div style="padding: 0 10px;">
+                            <input type="range" id="textSizeSlider" min="0" max="3" step="1" value="1">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted);">
+                                <span>Mały</span>
+                                <span>Średni</span>
+                                <span>Duży</span>
+                                <span>X-Duży</span>
+                            </div>
+                        </div>
+                    </div>
+                    <label class="theme-option" style="cursor: pointer; margin-top: 15px;">
+                        <div style="display:flex; align-items:center;">
+                            <span class="theme-name">Prosty tekst</span>
+                        </div>
+                        <input type="checkbox" class="theme-radio" id="simpleTextToggle" style="border-radius: 4px;">
+                    </label>
                 </div>
                 <div class="tab-content" id="settings-statusTab">
                     <div class="input-group">
@@ -461,6 +494,10 @@
                     <div class="avatar-large" id="profileAvatar"></div>
                     <h2 id="profileUsername" style="margin: 0;"></h2>
                     <span id="profileStatus" class="status-badge"></span>
+                    <div id="profileActions" style="display: flex; gap: 10px; margin-top: 10px; width: 100%; justify-content: center;">
+                        <button id="profileMessageBtn" class="btn-primary" style="flex: 1; max-width: 150px;">Wiadomość</button>
+                        <button id="profileFriendBtn" class="btn-primary" style="flex: 1; max-width: 150px;">Dodaj do znajomych</button>
+                    </div>
                 </div>
                 <div id="profileMutualsSection" style="display: none; width: 100%;">
                     <div class="input-group">
@@ -483,6 +520,6 @@
         <div id="caption"></div>
     </div>
     <script src="auth.js?v=6"></script>
-    <script src="app.js?v=16"></script>
+    <script src="app.js?v=19"></script>
 </body>
 </html>

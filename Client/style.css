@@ -161,8 +161,101 @@
     --settings-sub-bg: #064e3b;
 }
 
+:root[data-theme="kontrast"] {
+    --bg-dark: #000000;
+    --bg-card: #000000;
+    --input-bg: #000000;
+    --text-main: #ffffff;
+    --text-muted: #ffff00;
+    --text-secondary: #00ffff;
+    --accent-green: #ffff00;
+    --accent-green-hover: #ffffff;
+    --border-color: #ffffff;
+    --border-green: #ffff00;
+    --error-color: #ff0000;
+    --bg-primary: #000000;
+    --settings-tabs-bg: #000000;
+    --settings-sub-bg: #000000;
+    --btn-text-color: #000000;
+}
+
 body {
     font-family: 'PixelonOGALo', system-ui, sans-serif;
+}
+
+/* Text Sizes */
+:root[data-simple-text="true"] body,
+:root[data-simple-text="true"] button,
+:root[data-simple-text="true"] input,
+:root[data-simple-text="true"] textarea,
+:root[data-simple-text="true"] select,
+:root[data-simple-text="true"] .btn-primary,
+:root[data-simple-text="true"] .theme-name,
+:root[data-simple-text="true"] h1,
+:root[data-simple-text="true"] h2,
+:root[data-simple-text="true"] h3,
+:root[data-simple-text="true"] h4,
+:root[data-simple-text="true"] h5,
+:root[data-simple-text="true"] h6,
+:root[data-simple-text="true"] span,
+:root[data-simple-text="true"] p,
+:root[data-simple-text="true"] a,
+:root[data-simple-text="true"] label,
+:root[data-simple-text="true"] .message {
+    font-family: Arial, Helvetica, sans-serif !important;
+}
+
+:root[data-text-size="small"] { font-size: 14px; }
+:root[data-text-size="medium"] { font-size: 16px; }
+:root[data-text-size="large"] { font-size: 18px; }
+:root[data-text-size="xlarge"] { font-size: 20px; }
+
+/* Range Slider Styling */
+input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    margin: 10px 0;
+    background: transparent;
+}
+input[type=range]:focus {
+    outline: none;
+}
+input[type=range]::-webkit-slider-runnable-track {
+    width: 100%;
+    height: 8px;
+    cursor: pointer;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+input[type=range]::-webkit-slider-thumb {
+    height: 20px;
+    width: 20px;
+    border-radius: 50%;
+    background: var(--accent-green);
+    cursor: pointer;
+    -webkit-appearance: none;
+    margin-top: -7px;
+    border: 1px solid var(--bg-card);
+}
+input[type=range]:focus::-webkit-slider-runnable-track {
+    background: var(--bg-primary);
+}
+input[type=range]::-moz-range-track {
+    width: 100%;
+    height: 8px;
+    cursor: pointer;
+    background: var(--bg-primary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+input[type=range]::-moz-range-thumb {
+    height: 20px;
+    width: 20px;
+    border: 1px solid var(--bg-card);
+    border-radius: 50%;
+    background: var(--accent-green);
+    cursor: pointer;
 }
 .notification-container {
     position: fixed;
@@ -253,7 +346,7 @@ body {
 }
 .modal-header h3 {
     margin: 0;
-    color: #ffffff;
+    color: var(--btn-text-color, #ffffff);
     font-size: 1.3rem;
     letter-spacing: 0.5px;
     text-shadow: 0 1px 2px rgba(0,0,0,0.1);
@@ -269,7 +362,7 @@ body {
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.15);
-    color: #fff;
+    color: var(--btn-text-color, #ffffff);
     border: 1px solid rgba(255, 255, 255, 0.35);
     cursor: pointer;
     transition: all 0.2s ease;
@@ -483,7 +576,7 @@ body {
     width: 100%;
     padding: 12px;
     background: var(--accent-green);
-    color: #ffffff;
+    color: var(--btn-text-color, #ffffff);
     border: 2px solid var(--border-color);
     border-radius: 8px;
     font-size: 1.05rem;
@@ -743,7 +836,7 @@ body {
     flex-direction: column;
     gap: 8px;
     scroll-behavior: smooth;
-    font-size: 1.1rem;
+    font-size: 1.3rem;
     min-width: 0; /* Flex fix */
 }
 .message {
@@ -1035,14 +1128,7 @@ body {
     cursor: pointer;
     border: 1px solid var(--border-color);
 }
-.conversation-sidebar-list {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-}
-.conversation-sidebar-list .friend-tile {
-    width: 90px;
-}
+/* Removed duplicate list definition */
 .modal-body {
     padding: 20px;
     background-color: var(--settings-sub-bg);
@@ -1317,7 +1403,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
-    color: white;
+    color: var(--btn-text-color, white);
     background-color: var(--accent-green);
 }
 

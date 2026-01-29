@@ -1071,7 +1071,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     acceptBtn.style.border = 'none';
                     acceptBtn.style.borderRadius = '4px';
                     acceptBtn.style.backgroundColor = 'var(--accent-green)';
-                    acceptBtn.style.color = 'white';
+                    acceptBtn.style.color = 'var(--btn-text-color, white)';
                     acceptBtn.style.cursor = 'pointer';
                     acceptBtn.style.fontSize = '0.8rem';
                     acceptBtn.onclick = (e) => {
@@ -1757,24 +1757,48 @@ document.addEventListener('DOMContentLoaded', async () => {
             friends.forEach(friend => {
                 const tile = document.createElement('div');
                 tile.className = 'friend-tile';
+                tile.style.cursor = 'pointer';
+                tile.style.flexDirection = 'column';
+                tile.style.alignItems = 'center';
+                tile.style.textAlign = 'center';
+                tile.style.width = '100%';
+                
                 if (selectedUsernames.has(friend.username)) {
                     tile.classList.add('selected');
                 }
                 const avatar = document.createElement('div');
                 avatar.className = 'avatar';
+                avatar.style.width = '40px';
+                avatar.style.height = '40px';
+                avatar.style.borderRadius = '50%';
+                avatar.style.display = 'flex';
+                avatar.style.alignItems = 'center';
+                avatar.style.justifyContent = 'center';
+                avatar.style.backgroundColor = 'var(--accent-green)';
+                avatar.style.color = 'var(--btn-text-color, white)';
+                avatar.style.marginBottom = '5px';
+                
                 if (friend.avatarUrl) {
                     avatar.style.backgroundImage = `url('${resolveUrl(friend.avatarUrl)}')`;
                     avatar.style.backgroundSize = 'cover';
                     avatar.style.backgroundPosition = 'center';
+                    avatar.textContent = '';
                 } else {
                     avatar.textContent = friend.username.charAt(0).toUpperCase();
                 }
                 const name = document.createElement('span');
                 name.textContent = friend.username;
                 name.title = friend.username;
+                name.style.fontSize = '0.75rem';
+                name.style.overflow = 'hidden';
+                name.style.textOverflow = 'ellipsis';
+                name.style.whiteSpace = 'nowrap';
+                name.style.width = '100%';
+
                 const check = document.createElement('div');
                 check.className = 'check-icon';
                 check.textContent = '✓';
+                
                 tile.appendChild(avatar);
                 tile.appendChild(name);
                 tile.appendChild(check);
@@ -1985,6 +2009,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const themeOriginalRadio = document.getElementById('themeOriginal');
         const themeNeonRadio = document.getElementById('themeNeon');
         const themeForestRadio = document.getElementById('themeForest');
+        const themeKontrastRadio = document.getElementById('themeKontrast');
+        const textSizeSlider = document.getElementById('textSizeSlider');
+        const simpleTextToggle = document.getElementById('simpleTextToggle');
         // Listeners for settings moved to top of DOMContentLoaded
         
         async function loadUserData() {
@@ -2232,13 +2259,57 @@ document.addEventListener('DOMContentLoaded', async () => {
         function applyTheme(themeName) {
             const root = document.documentElement;
             if (!root) return;
-            const allowed = ['vibrant', 'dark', 'classic', 'original', 'neon', 'forest'];
+            const allowed = ['vibrant', 'dark', 'classic', 'original', 'neon', 'forest', 'kontrast'];
             const finalTheme = allowed.includes(themeName) ? themeName : 'original';
             root.setAttribute('data-theme', finalTheme);
         }
 
+        function applyTextSize(size) {
+            const root = document.documentElement;
+            if (!root) return;
+            const allowed = ['small', 'medium', 'large', 'xlarge'];
+            const finalSize = allowed.includes(size) ? size : 'medium';
+            root.setAttribute('data-text-size', finalSize);
+        }
+
+        function applySimpleText(isSimple) {
+            const root = document.documentElement;
+            if (!root) return;
+            if (isSimple) {
+                root.setAttribute('data-simple-text', 'true');
+            } else {
+                root.removeAttribute('data-simple-text');
+            }
+        }
+
         const preferredTheme = localStorage.getItem('preferredTheme') || 'original';
         applyTheme(preferredTheme);
+
+        const preferredTextSize = localStorage.getItem('preferredTextSize') || 'medium';
+        applyTextSize(preferredTextSize);
+        
+        const preferredSimpleText = localStorage.getItem('preferredSimpleText') === 'true';
+        applySimpleText(preferredSimpleText);
+
+        const sizeMap = { 'small': 0, 'medium': 1, 'large': 2, 'xlarge': 3 };
+        const sizeRevMap = ['small', 'medium', 'large', 'xlarge'];
+        
+        if (textSizeSlider) {
+            textSizeSlider.value = sizeMap[preferredTextSize] !== undefined ? sizeMap[preferredTextSize] : 1;
+            textSizeSlider.addEventListener('input', () => {
+                const val = parseInt(textSizeSlider.value);
+                const size = sizeRevMap[val];
+                applyTextSize(size);
+            });
+        }
+
+        if (simpleTextToggle) {
+            simpleTextToggle.checked = preferredSimpleText;
+            simpleTextToggle.addEventListener('change', () => {
+                applySimpleText(simpleTextToggle.checked);
+            });
+        }
+
         if (themeDarkRadio) {
             themeDarkRadio.checked = (preferredTheme === 'dark');
         }
@@ -2256,6 +2327,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         if (themeForestRadio) {
             themeForestRadio.checked = (preferredTheme === 'forest');
+        }
+        if (themeKontrastRadio) {
+            themeKontrastRadio.checked = (preferredTheme === 'kontrast');
         }
 
         if (themeVibrantRadio) {
@@ -2300,6 +2374,13 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
+        if (themeKontrastRadio) {
+            themeKontrastRadio.addEventListener('change', () => {
+                if (themeKontrastRadio.checked) {
+                    applyTheme('kontrast');
+                }
+            });
+        }
         const saveThemeBtn = document.getElementById('saveThemeBtn');
         if (saveThemeBtn) {
             saveThemeBtn.addEventListener('click', () => {
@@ -2310,9 +2391,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 else if (themeOriginalRadio && themeOriginalRadio.checked) selected = 'original';
                 else if (themeNeonRadio && themeNeonRadio.checked) selected = 'neon';
                 else if (themeForestRadio && themeForestRadio.checked) selected = 'forest';
+                else if (themeKontrastRadio && themeKontrastRadio.checked) selected = 'kontrast';
+                
                 localStorage.setItem('preferredTheme', selected);
                 applyTheme(selected);
-                showNotification('Motyw zapisany.', 'success');
+
+                if (textSizeSlider) {
+                    const sizeRevMap = ['small', 'medium', 'large', 'xlarge'];
+                    const val = parseInt(textSizeSlider.value);
+                    const size = sizeRevMap[val];
+                    localStorage.setItem('preferredTextSize', size);
+                }
+
+                if (simpleTextToggle) {
+                    localStorage.setItem('preferredSimpleText', simpleTextToggle.checked);
+                }
+
+                showNotification('Ustawienia wyglądu zapisane.', 'success');
             });
         }
         const userProfileModal = document.getElementById('userProfileModal');
@@ -2335,6 +2430,11 @@ document.addEventListener('DOMContentLoaded', async () => {
             const mutualsSection = document.getElementById('profileMutualsSection');
             const mutualsList = document.getElementById('profileMutualFriendsList');
             const serversList = document.getElementById('profileCommonServersList');
+            
+            const actionsDiv = document.getElementById('profileActions');
+            const msgBtn = document.getElementById('profileMessageBtn');
+            const friendBtn = document.getElementById('profileFriendBtn');
+
             usernameEl.textContent = username;
             if (avatarUrl) {
                 avatarEl.style.backgroundImage = `url('${resolveUrl(avatarUrl)}')`;
@@ -2348,7 +2448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 avatarEl.style.display = 'flex';
                 avatarEl.style.alignItems = 'center';
                 avatarEl.style.justifyContent = 'center';
-                avatarEl.style.color = 'white';
+                avatarEl.style.color = 'var(--btn-text-color, white)';
                 avatarEl.style.fontSize = '2rem';
             }
             let status = 'Niedostępny';
@@ -2361,10 +2461,86 @@ document.addEventListener('DOMContentLoaded', async () => {
                 statusEl.style.color = 'var(--text-muted)';
             }
             statusEl.textContent = status;
+            
             if (isOwnProfile) {
                 mutualsSection.style.display = 'none';
+                if (actionsDiv) actionsDiv.style.display = 'none';
             } else {
                 mutualsSection.style.display = 'block';
+                if (actionsDiv) actionsDiv.style.display = 'flex';
+                
+                // Configure Message Button
+                if (msgBtn) {
+                    const newMsgBtn = msgBtn.cloneNode(true);
+                    msgBtn.parentNode.replaceChild(newMsgBtn, msgBtn);
+                    
+                    newMsgBtn.addEventListener('click', () => {
+                         userProfileModal.classList.remove('show');
+                         selectChat(userId, username, avatarUrl);
+                    });
+                }
+                
+                // Configure Friend Button
+                if (friendBtn) {
+                    const newFriendBtn = friendBtn.cloneNode(true);
+                    friendBtn.parentNode.replaceChild(newFriendBtn, friendBtn);
+                    
+                    if (friend) {
+                        newFriendBtn.textContent = 'Usuń ze znajomych';
+                        newFriendBtn.className = 'btn-primary';
+                        newFriendBtn.style.backgroundColor = 'var(--error-color)';
+                        newFriendBtn.style.color = '';
+                        
+                        newFriendBtn.addEventListener('click', async () => {
+                            if (!confirm(`Czy na pewno usunąć ${username} ze znajomych?`)) return;
+                            try {
+                                const res = await fetch(`${API_URL}/friends/${userId}`, {
+                                    method: 'DELETE',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (res.ok) {
+                                    showNotification('Usunięto ze znajomych.', 'success');
+                                    userProfileModal.classList.remove('show');
+                                    await loadFriends();
+                                } else {
+                                    handleApiError(res, 'Nie udało się usunąć znajomego');
+                                }
+                            } catch (e) {
+                                console.error(e);
+                                showNotification('Błąd sieci.', 'error');
+                            }
+                        });
+                    } else {
+                        newFriendBtn.textContent = 'Dodaj do znajomych';
+                        newFriendBtn.className = 'btn-primary';
+                        newFriendBtn.style.backgroundColor = '';
+                        newFriendBtn.style.color = '';
+                        
+                        newFriendBtn.addEventListener('click', async () => {
+                             try {
+                                const res = await fetch(`${API_URL}/friends/add`, {
+                                    method: 'POST',
+                                    headers: { 
+                                        'Authorization': `Bearer ${token}`,
+                                        'Content-Type': 'application/json'
+                                    },
+                                    body: JSON.stringify({ usernameOrEmail: username })
+                                });
+                                if (res.ok) {
+                                    const data = await res.json();
+                                    showNotification(data.message || 'Zaproszenie wysłane.', 'success');
+                                    userProfileModal.classList.remove('show');
+                                } else {
+                                    handleApiError(res, 'Nie udało się dodać znajomego');
+                                }
+                            } catch (e) {
+                                console.error(e);
+                                showNotification('Błąd sieci.', 'error');
+                            }
+                        });
+                    }
+                }
+
                 mutualsList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
                 serversList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
                 try {
