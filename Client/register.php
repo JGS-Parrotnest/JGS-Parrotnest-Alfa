@@ -6,16 +6,24 @@
     <title>Parrotnest - Rejestracja</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile.css?v=1" media="(max-width: 768px)">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>
     <script>
         (function() {
             try {
-                var t = localStorage.getItem('preferredTheme') || 'dark';
+                var t = localStorage.getItem('preferredTheme') || 'original';
                 document.documentElement.setAttribute('data-theme', t);
+
+                var s = localStorage.getItem('preferredTextSize') || 'medium';
+                document.documentElement.setAttribute('data-text-size', s);
+
+                if (localStorage.getItem('preferredSimpleText') === 'true') {
+                    document.documentElement.setAttribute('data-simple-text', 'true');
+                }
             } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-theme', 'original');
             }
         })();
     </script>
@@ -29,7 +37,7 @@
             <form id="registerForm" onsubmit="event.preventDefault(); handleRegister(event);">
                 <div class="input-group">
                     <label for="username">Nazwa użytkownika</label>
-                    <input type="text" id="username" name="username" required placeholder="Wybierz nazwę użytkownika">
+                    <input type="text" id="username" name="username" required placeholder="Wybierz nazwę użytkownika" maxlength="16">
                 </div>
                 <div class="input-group">
                     <label for="email">Adres e-mail</label>

@@ -2,6 +2,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParrotnestServer.Data;
+using Microsoft.AspNetCore.SignalR;
+using ParrotnestServer.Hubs;
 using ParrotnestServer.Models;
 using ParrotnestServer.Services;
 using System.Security.Claims;
@@ -14,10 +16,13 @@ namespace ParrotnestServer.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly IUserTracker _userTracker;
-        public FriendsController(ApplicationDbContext context, IUserTracker userTracker)
+        private readonly IHubContext<ChatHub> _hubContext;
+
+        public FriendsController(ApplicationDbContext context, IUserTracker userTracker, IHubContext<ChatHub> hubContext)
         {
             _context = context;
             _userTracker = userTracker;
+            _hubContext = hubContext;
         }
         private int? GetUserId()
         {
@@ -89,6 +94,7 @@ namespace ParrotnestServer.Controllers
         {
             var userId = GetUserId();
             if (!userId.HasValue) return Unauthorized();
+
             var pending = await _context.Friendships
                 .Include(f => f.Requester)
                 .Include(f => f.Addressee)
@@ -103,9 +109,34 @@ namespace ParrotnestServer.Controllers
                     CreatedAt = f.CreatedAt
                 })
                 .ToListAsync();
+
             return Ok(pending);
         }
-        [HttpGet("mutual/{targetUserId}")]
+
+        [HttpGet("sent")]
+        public async Task<ActionResult<IEnumerable<object>>> GetSentRequests()
+        {
+            var userId = GetUserId();
+            if (!userId.HasValue) return Unauthorized();
+
+            var sent = await _context.Friendships
+                .Include(f => f.Requester)
+                .Include(f => f.Addressee)
+                .Where(f => f.Status == FriendshipStatus.Pending && f.RequesterId == userId)
+                .Select(f => new
+                {
+                    Id = f.Id,
+                    AddresseeId = f.AddresseeId,
+                    Username = f.Addressee != null ? f.Addressee.Username : "Unknown",
+                    Email = f.Addressee != null ? f.Addressee.Email : null,
+                    AvatarUrl = f.Addressee != null ? f.Addressee.AvatarUrl : null,
+                    CreatedAt = f.CreatedAt
+                })
+                .ToListAsync();
+
+            return Ok(sent);
+        }
+        [HttpGet("mutual/{targetUserId:int}")]
         public async Task<IActionResult> GetMutualFriends(int targetUserId)
         {
             var userId = GetUserId();
@@ -179,6 +210,19 @@ namespace ParrotnestServer.Controllers
                     {
                         existingFriendship.Status = FriendshipStatus.Accepted;
                         await _context.SaveChangesAsync();
+
+                        // Notify the original requester (targetUser) that their request was accepted by current user
+                        var acceptingUser = await _context.Users.FindAsync(userId.Value);
+                        if (acceptingUser != null)
+                        {
+                            await _hubContext.Clients.Group($"User_{targetUser.Id}").SendAsync("FriendRequestAccepted", new 
+                            {
+                                friendId = acceptingUser.Id,
+                                username = acceptingUser.Username,
+                                avatarUrl = acceptingUser.AvatarUrl
+                            });
+                        }
+
                         return Ok(new { 
                             message = "Zaproszenie zostało zaakceptowane.",
                             friendId = targetUser.Id,
@@ -196,6 +240,20 @@ namespace ParrotnestServer.Controllers
             };
             _context.Friendships.Add(friendship);
             await _context.SaveChangesAsync();
+
+            // Notify target user about new request
+            var sender = await _context.Users.FindAsync(userId.Value);
+            if (sender != null)
+            {
+                await _hubContext.Clients.Group($"User_{targetUser.Id}").SendAsync("FriendRequestReceived", new 
+                {
+                    requestId = friendship.Id,
+                    senderId = sender.Id,
+                    username = sender.Username,
+                    avatarUrl = sender.AvatarUrl
+                });
+            }
+
             return Ok(new { 
                 message = "Zaproszenie do znajomych zostało wysłane.",
                 friendId = targetUser.Id,
@@ -204,7 +262,7 @@ namespace ParrotnestServer.Controllers
                 pending = true
             });
         }
-        [HttpPost("accept/{friendshipId}")]
+        [HttpPost("accept/{friendshipId:int}")]
         public async Task<IActionResult> AcceptFriend(int friendshipId)
         {
             var userId = GetUserId();
@@ -221,9 +279,22 @@ namespace ParrotnestServer.Controllers
             }
             friendship.Status = FriendshipStatus.Accepted;
             await _context.SaveChangesAsync();
+
+            // Notify the requester that their request was accepted
+            var acceptingUser = await _context.Users.FindAsync(userId.Value);
+            if (acceptingUser != null)
+            {
+                await _hubContext.Clients.Group($"User_{friendship.RequesterId}").SendAsync("FriendRequestAccepted", new 
+                {
+                    friendId = acceptingUser.Id,
+                    username = acceptingUser.Username,
+                    avatarUrl = acceptingUser.AvatarUrl
+                });
+            }
+
             return Ok(new { message = "Zaproszenie zostało zaakceptowane." });
         }
-        [HttpDelete("{friendId}")]
+        [HttpDelete("{friendId:int}")]
         public async Task<IActionResult> RemoveFriend(int friendId)
         {
             var userId = GetUserId();

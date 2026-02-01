@@ -189,8 +189,8 @@ namespace ParrotnestServer.Controllers
 
             return Ok(new { message = "Grupa została zaktualizowana.", group });
         }
-        [HttpPost("{id}/avatar")]
-        public async Task<IActionResult> UploadAvatar(int id, IFormFile avatar)
+        [HttpPost("{id:int}/avatar")]
+        public async Task<IActionResult> UpdateGroupAvatar(int id, IFormFile avatar)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
             if (string.IsNullOrEmpty(userIdClaim) || !int.TryParse(userIdClaim, out int userId))
@@ -246,7 +246,7 @@ namespace ParrotnestServer.Controllers
             }
             return Ok(new { url = avatarUrl });
         }
-        [HttpDelete("{id}")]
+        [HttpDelete("{id:int}")]
         public async Task<IActionResult> DeleteGroup(int id)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -286,7 +286,7 @@ namespace ParrotnestServer.Controllers
 
             return Ok(new { message = "Grupa została usunięta." });
         }
-        [HttpPost("{id}/members")]
+        [HttpPost("{id:int}/members")]
         public async Task<IActionResult> AddGroupMembers(int id, [FromBody] List<string> usernames)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -363,7 +363,7 @@ namespace ParrotnestServer.Controllers
 
             return Ok(new { message = $"Dodano {addedCount} użytkowników do grupy." });
         }
-        [HttpGet("{id}/members")]
+        [HttpGet("{id:int}/members")]
         public async Task<IActionResult> GetGroupMembers(int id)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
@@ -389,7 +389,7 @@ namespace ParrotnestServer.Controllers
                 .ToListAsync();
             return Ok(members);
         }
-        [HttpDelete("{id}/members/me")]
+        [HttpDelete("{id:int}/members/me")]
         public async Task<IActionResult> LeaveGroup(int id)
         {
             var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;

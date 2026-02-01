@@ -4,10 +4,17 @@
 	<script>
         (function() {
             try {
-                var t = localStorage.getItem('preferredTheme') || 'dark';
+                var t = localStorage.getItem('preferredTheme') || 'original';
                 document.documentElement.setAttribute('data-theme', t);
+
+                var s = localStorage.getItem('preferredTextSize') || 'medium';
+                document.documentElement.setAttribute('data-text-size', s);
+
+                if (localStorage.getItem('preferredSimpleText') === 'true') {
+                    document.documentElement.setAttribute('data-simple-text', 'true');
+                }
             } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-theme', 'original');
             }
         })();
     </script>
@@ -16,6 +23,7 @@
     <title>Parrotnest - Reset hasła</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="mobile.css?v=1" media="(max-width: 768px)">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body>

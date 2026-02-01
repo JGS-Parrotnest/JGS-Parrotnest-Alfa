@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParrotnestServer.Data;
@@ -46,9 +46,8 @@ namespace ParrotnestServer.Controllers
                 {
                     query = query.Where(m => m.GroupId == null && m.ReceiverId == null && m.Sender != null);
                 }
+                // Pobieranie wszystkich wiadomości bez limitu (wymaganie użytkownika: cała historia)
                 var messages = await query
-                    .OrderByDescending(m => m.Timestamp)
-                    .Take(100)
                     .OrderBy(m => m.Timestamp)
                     .Select(m => new 
                     {
@@ -59,7 +58,11 @@ namespace ParrotnestServer.Controllers
                         SenderAvatarUrl = m.Sender != null ? m.Sender.AvatarUrl : null,
                         ReceiverId = m.ReceiverId,
                         Timestamp = m.Timestamp,
-                        ImageUrl = m.ImageUrl
+                        ImageUrl = m.ImageUrl,
+                        ReplyToId = m.ReplyToId,
+                        ReplyToSender = m.ReplyTo != null && m.ReplyTo.Sender != null ? m.ReplyTo.Sender.Username : null,
+                        ReplyToContent = m.ReplyTo != null ? m.ReplyTo.Content : null,
+                        Reactions = m.Reactions
                     })
                     .ToListAsync();
                 return Ok(messages);
@@ -90,6 +93,24 @@ namespace ParrotnestServer.Controllers
             }
             var fileUrl = $"/uploads/{fileName}";
             return Ok(new { url = fileUrl });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteMessage(int id)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized("Brak identyfikatora użytkownika (Claim mismatch).");
+            var userId = int.Parse(userIdStr);
+
+            var message = await _context.Messages.FindAsync(id);
+            if (message == null) return NotFound("Wiadomość nie znaleziona.");
+            
+            if (message.SenderId != userId) {
+                return StatusCode(403, $"Możesz usuwać tylko własne wiadomości. (MsgSender: {message.SenderId}, You: {userId})");
+            }
+            _context.Messages.Remove(message);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Wiadomość usunięta." });
         }
     }
 }

@@ -1,17 +1,17 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj": {}
+    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v5.0\\Server\\ParrotnestServer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj": {
+    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v5.0\\Server\\ParrotnestServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
+        "projectUniqueName": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v5.0\\Server\\ParrotnestServer.csproj",
         "projectName": "ParrotnestServer",
-        "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\ParrotnestServer.csproj",
+        "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v5.0\\Server\\ParrotnestServer.csproj",
         "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v3.5\\Alfa v3.5\\Server\\obj\\",
+        "outputPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v5.0\\Server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
           "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config"
@@ -54,11 +54,17 @@
             },
             "Microsoft.EntityFrameworkCore.Design": {
               "target": "Package",
-              "version": "[8.0.0, )"
+              "version": "[9.0.0, )"
             },
             "Microsoft.EntityFrameworkCore.Sqlite": {
               "target": "Package",
               "version": "[9.0.0, )"
+            },
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.0.1, )",
+              "autoReferenced": true
             },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
@@ -76,6 +82,20 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[10.0.1, 10.0.1]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[10.0.1, 10.0.1]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[10.0.1, 10.0.1]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
@@ -516,6 +536,11 @@
             "System.Xml.XPath": "(,4.3.32767]",
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
+        }
+      },
+      "runtimes": {
+        "win-x64": {
+          "#import": []
         }
       }
     }

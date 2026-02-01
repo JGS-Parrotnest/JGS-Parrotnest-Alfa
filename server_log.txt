@@ -1,0 +1,781 @@
+1.02.2026 20:18:54: SendMessage called. User param: AdamH, Msg: hej, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:18:54: Adding message to DB. Content length: 3
+1.02.2026 20:18:54: Message saved. ID: 237
+1.02.2026 20:18:54: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:18:54: Message broadcast completed.
+1.02.2026 20:18:55: SendMessage called. User param: AdamH, Msg: dsad, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:18:55: Adding message to DB. Content length: 4
+1.02.2026 20:18:55: Message saved. ID: 238
+1.02.2026 20:18:55: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:18:55: Message broadcast completed.
+1.02.2026 20:32:17: SendMessage called. User param: AdamH, Msg: Nówka, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:32:17: SendMessage failed: User with ID 1 not found in DB.
+1.02.2026 20:35:36: SendMessage called. User param: AdamH, Msg: , Img: /uploads/591a7582-72f0-4ac2-8ed8-70487fc07724.png, Rec: , Grp: , Rep: 
+1.02.2026 20:35:37: Adding message to DB. Content length: 0
+1.02.2026 20:35:37: Message saved. ID: 1
+1.02.2026 20:35:37: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:35:37: Message broadcast completed.
+1.02.2026 20:35:51: SendMessage called. User param: AdamH, Msg: hejka, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:35:51: Adding message to DB. Content length: 5
+1.02.2026 20:35:51: Message saved. ID: 2
+1.02.2026 20:35:51: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:35:51: Message broadcast completed.
+1.02.2026 20:36:00: SendMessage called. User param: AdamH, Msg: test ile wiadomosci zapisuje, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:00: Adding message to DB. Content length: 28
+1.02.2026 20:36:00: Message saved. ID: 3
+1.02.2026 20:36:00: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:00: Message broadcast completed.
+1.02.2026 20:36:01: SendMessage called. User param: AdamH, Msg: sd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:01: Adding message to DB. Content length: 2
+1.02.2026 20:36:01: Message saved. ID: 4
+1.02.2026 20:36:01: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:01: Message broadcast completed.
+1.02.2026 20:36:02: SendMessage called. User param: AdamH, Msg: ff, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:02: Adding message to DB. Content length: 2
+1.02.2026 20:36:02: Message saved. ID: 5
+1.02.2026 20:36:02: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:02: Message broadcast completed.
+1.02.2026 20:36:02: SendMessage called. User param: AdamH, Msg: fas, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:02: Adding message to DB. Content length: 3
+1.02.2026 20:36:02: Message saved. ID: 6
+1.02.2026 20:36:02: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:02: Message broadcast completed.
+1.02.2026 20:36:03: SendMessage called. User param: AdamH, Msg: asdf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:03: Adding message to DB. Content length: 4
+1.02.2026 20:36:03: Message saved. ID: 7
+1.02.2026 20:36:03: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:03: Message broadcast completed.
+1.02.2026 20:36:03: SendMessage called. User param: AdamH, Msg: asf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:03: Adding message to DB. Content length: 3
+1.02.2026 20:36:03: Message saved. ID: 8
+1.02.2026 20:36:03: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:03: Message broadcast completed.
+1.02.2026 20:36:03: SendMessage called. User param: AdamH, Msg: asf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:03: Adding message to DB. Content length: 3
+1.02.2026 20:36:03: Message saved. ID: 9
+1.02.2026 20:36:03: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:03: Message broadcast completed.
+1.02.2026 20:36:04: SendMessage called. User param: AdamH, Msg: asf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:04: Adding message to DB. Content length: 3
+1.02.2026 20:36:04: Message saved. ID: 10
+1.02.2026 20:36:04: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:04: Message broadcast completed.
+1.02.2026 20:36:04: SendMessage called. User param: AdamH, Msg: asf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:04: Adding message to DB. Content length: 3
+1.02.2026 20:36:04: Message saved. ID: 11
+1.02.2026 20:36:04: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:04: Message broadcast completed.
+1.02.2026 20:36:04: SendMessage called. User param: AdamH, Msg: asf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:04: Adding message to DB. Content length: 3
+1.02.2026 20:36:04: Message saved. ID: 12
+1.02.2026 20:36:04: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:04: Message broadcast completed.
+1.02.2026 20:36:04: SendMessage called. User param: AdamH, Msg: df, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:04: Adding message to DB. Content length: 2
+1.02.2026 20:36:04: Message saved. ID: 13
+1.02.2026 20:36:04: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:04: Message broadcast completed.
+1.02.2026 20:36:04: SendMessage called. User param: AdamH, Msg: dfbh, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:04: Adding message to DB. Content length: 4
+1.02.2026 20:36:04: Message saved. ID: 14
+1.02.2026 20:36:04: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:04: Message broadcast completed.
+1.02.2026 20:36:05: SendMessage called. User param: AdamH, Msg: fh, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:05: Adding message to DB. Content length: 2
+1.02.2026 20:36:05: Message saved. ID: 15
+1.02.2026 20:36:05: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:05: Message broadcast completed.
+1.02.2026 20:36:05: SendMessage called. User param: AdamH, Msg: dfh, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:05: Adding message to DB. Content length: 3
+1.02.2026 20:36:05: Message saved. ID: 16
+1.02.2026 20:36:05: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:05: Message broadcast completed.
+1.02.2026 20:36:05: SendMessage called. User param: AdamH, Msg: fdh, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:05: Adding message to DB. Content length: 3
+1.02.2026 20:36:05: Message saved. ID: 17
+1.02.2026 20:36:05: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:05: Message broadcast completed.
+1.02.2026 20:36:05: SendMessage called. User param: AdamH, Msg: fdh, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:05: Adding message to DB. Content length: 3
+1.02.2026 20:36:05: Message saved. ID: 18
+1.02.2026 20:36:05: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:05: Message broadcast completed.
+1.02.2026 20:36:05: SendMessage called. User param: AdamH, Msg: fdgs, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:05: Adding message to DB. Content length: 4
+1.02.2026 20:36:05: Message saved. ID: 19
+1.02.2026 20:36:05: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:05: Message broadcast completed.
+1.02.2026 20:36:06: SendMessage called. User param: AdamH, Msg: er, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:06: Adding message to DB. Content length: 2
+1.02.2026 20:36:06: Message saved. ID: 20
+1.02.2026 20:36:06: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:06: Message broadcast completed.
+1.02.2026 20:36:06: SendMessage called. User param: AdamH, Msg: t, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:06: Adding message to DB. Content length: 1
+1.02.2026 20:36:06: Message saved. ID: 21
+1.02.2026 20:36:06: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:06: Message broadcast completed.
+1.02.2026 20:36:06: SendMessage called. User param: AdamH, Msg: e, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:06: Adding message to DB. Content length: 1
+1.02.2026 20:36:06: Message saved. ID: 22
+1.02.2026 20:36:06: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:06: Message broadcast completed.
+1.02.2026 20:36:06: SendMessage called. User param: AdamH, Msg: et, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:06: Adding message to DB. Content length: 2
+1.02.2026 20:36:06: Message saved. ID: 23
+1.02.2026 20:36:06: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:06: Message broadcast completed.
+1.02.2026 20:36:07: SendMessage called. User param: AdamH, Msg: ert, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:07: Adding message to DB. Content length: 3
+1.02.2026 20:36:07: Message saved. ID: 24
+1.02.2026 20:36:07: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:07: Message broadcast completed.
+1.02.2026 20:36:07: SendMessage called. User param: AdamH, Msg: ert, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:07: Adding message to DB. Content length: 3
+1.02.2026 20:36:07: Message saved. ID: 25
+1.02.2026 20:36:07: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:07: Message broadcast completed.
+1.02.2026 20:36:07: SendMessage called. User param: AdamH, Msg: er, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:07: Adding message to DB. Content length: 2
+1.02.2026 20:36:07: Message saved. ID: 26
+1.02.2026 20:36:07: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:07: Message broadcast completed.
+1.02.2026 20:36:07: SendMessage called. User param: AdamH, Msg: t, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:07: Adding message to DB. Content length: 1
+1.02.2026 20:36:07: Message saved. ID: 27
+1.02.2026 20:36:07: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:07: Message broadcast completed.
+1.02.2026 20:36:07: SendMessage called. User param: AdamH, Msg: erte, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:07: Adding message to DB. Content length: 4
+1.02.2026 20:36:07: Message saved. ID: 28
+1.02.2026 20:36:07: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:07: Message broadcast completed.
+1.02.2026 20:36:07: SendMessage called. User param: AdamH, Msg: r, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:07: Adding message to DB. Content length: 1
+1.02.2026 20:36:07: Message saved. ID: 29
+1.02.2026 20:36:07: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:07: Message broadcast completed.
+1.02.2026 20:36:07: SendMessage called. User param: AdamH, Msg: tger, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:07: Adding message to DB. Content length: 4
+1.02.2026 20:36:07: Message saved. ID: 30
+1.02.2026 20:36:07: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:07: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: t, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 1
+1.02.2026 20:36:08: Message saved. ID: 31
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: g, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 1
+1.02.2026 20:36:08: Message saved. ID: 32
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: fd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 2
+1.02.2026 20:36:08: Message saved. ID: 33
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: g, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 1
+1.02.2026 20:36:08: Message saved. ID: 34
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: fd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 2
+1.02.2026 20:36:08: Message saved. ID: 35
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: gd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 2
+1.02.2026 20:36:08: Message saved. ID: 36
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: gd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 2
+1.02.2026 20:36:08: Message saved. ID: 37
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:08: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:08: Adding message to DB. Content length: 1
+1.02.2026 20:36:08: Message saved. ID: 38
+1.02.2026 20:36:08: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:08: Message broadcast completed.
+1.02.2026 20:36:09: SendMessage called. User param: AdamH, Msg: gdf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:09: Adding message to DB. Content length: 3
+1.02.2026 20:36:09: Message saved. ID: 39
+1.02.2026 20:36:09: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:09: Message broadcast completed.
+1.02.2026 20:36:09: SendMessage called. User param: AdamH, Msg: gdf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:09: Adding message to DB. Content length: 3
+1.02.2026 20:36:09: Message saved. ID: 40
+1.02.2026 20:36:09: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:09: Message broadcast completed.
+1.02.2026 20:36:09: SendMessage called. User param: AdamH, Msg: g, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:09: Adding message to DB. Content length: 1
+1.02.2026 20:36:09: Message saved. ID: 41
+1.02.2026 20:36:09: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:09: Message broadcast completed.
+1.02.2026 20:36:09: SendMessage called. User param: AdamH, Msg: df, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:09: Adding message to DB. Content length: 2
+1.02.2026 20:36:09: Message saved. ID: 42
+1.02.2026 20:36:09: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:09: Message broadcast completed.
+1.02.2026 20:36:09: SendMessage called. User param: AdamH, Msg: g, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:09: Adding message to DB. Content length: 1
+1.02.2026 20:36:09: Message saved. ID: 43
+1.02.2026 20:36:09: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:09: Message broadcast completed.
+1.02.2026 20:36:09: SendMessage called. User param: AdamH, Msg: dfg, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:09: Adding message to DB. Content length: 3
+1.02.2026 20:36:09: Message saved. ID: 44
+1.02.2026 20:36:09: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:09: Message broadcast completed.
+1.02.2026 20:36:09: SendMessage called. User param: AdamH, Msg: df, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:09: Adding message to DB. Content length: 2
+1.02.2026 20:36:09: Message saved. ID: 45
+1.02.2026 20:36:09: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:09: Message broadcast completed.
+1.02.2026 20:36:10: SendMessage called. User param: AdamH, Msg: g, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:10: Adding message to DB. Content length: 1
+1.02.2026 20:36:10: Message saved. ID: 46
+1.02.2026 20:36:10: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:10: Message broadcast completed.
+1.02.2026 20:36:10: SendMessage called. User param: AdamH, Msg: vbv, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:10: Adding message to DB. Content length: 3
+1.02.2026 20:36:10: Message saved. ID: 47
+1.02.2026 20:36:10: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:10: Message broadcast completed.
+1.02.2026 20:36:10: SendMessage called. User param: AdamH, Msg: b, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:10: Adding message to DB. Content length: 1
+1.02.2026 20:36:10: Message saved. ID: 48
+1.02.2026 20:36:10: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:10: Message broadcast completed.
+1.02.2026 20:36:10: SendMessage called. User param: AdamH, Msg: v, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:10: Adding message to DB. Content length: 1
+1.02.2026 20:36:10: Message saved. ID: 49
+1.02.2026 20:36:10: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:10: Message broadcast completed.
+1.02.2026 20:36:10: SendMessage called. User param: AdamH, Msg: bv, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:10: Adding message to DB. Content length: 2
+1.02.2026 20:36:10: Message saved. ID: 50
+1.02.2026 20:36:10: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:10: Message broadcast completed.
+1.02.2026 20:36:11: SendMessage called. User param: AdamH, Msg: bv, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:11: Adding message to DB. Content length: 2
+1.02.2026 20:36:11: Message saved. ID: 51
+1.02.2026 20:36:11: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:11: Message broadcast completed.
+1.02.2026 20:36:11: SendMessage called. User param: AdamH, Msg: bv, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:11: Adding message to DB. Content length: 2
+1.02.2026 20:36:11: Message saved. ID: 52
+1.02.2026 20:36:11: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:11: Message broadcast completed.
+1.02.2026 20:36:11: SendMessage called. User param: AdamH, Msg: bv, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:11: Adding message to DB. Content length: 2
+1.02.2026 20:36:11: Message saved. ID: 53
+1.02.2026 20:36:11: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:11: Message broadcast completed.
+1.02.2026 20:36:11: SendMessage called. User param: AdamH, Msg: bv, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:11: Adding message to DB. Content length: 2
+1.02.2026 20:36:11: Message saved. ID: 54
+1.02.2026 20:36:11: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:11: Message broadcast completed.
+1.02.2026 20:36:11: SendMessage called. User param: AdamH, Msg: b, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:11: Adding message to DB. Content length: 1
+1.02.2026 20:36:11: Message saved. ID: 55
+1.02.2026 20:36:11: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:11: Message broadcast completed.
+1.02.2026 20:36:11: SendMessage called. User param: AdamH, Msg: v, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:11: Adding message to DB. Content length: 1
+1.02.2026 20:36:11: Message saved. ID: 56
+1.02.2026 20:36:11: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:11: Message broadcast completed.
+1.02.2026 20:36:12: SendMessage called. User param: AdamH, Msg: b, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:12: Adding message to DB. Content length: 1
+1.02.2026 20:36:12: Message saved. ID: 57
+1.02.2026 20:36:12: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:12: Message broadcast completed.
+1.02.2026 20:36:12: SendMessage called. User param: AdamH, Msg: rf, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:12: Adding message to DB. Content length: 2
+1.02.2026 20:36:12: Message saved. ID: 58
+1.02.2026 20:36:12: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:12: Message broadcast completed.
+1.02.2026 20:36:12: SendMessage called. User param: AdamH, Msg: ff, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:12: Adding message to DB. Content length: 2
+1.02.2026 20:36:12: Message saved. ID: 59
+1.02.2026 20:36:12: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:12: Message broadcast completed.
+1.02.2026 20:36:12: SendMessage called. User param: AdamH, Msg: e, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:12: Adding message to DB. Content length: 1
+1.02.2026 20:36:12: Message saved. ID: 60
+1.02.2026 20:36:12: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:12: Message broadcast completed.
+1.02.2026 20:36:13: SendMessage called. User param: AdamH, Msg: t, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:13: Adding message to DB. Content length: 1
+1.02.2026 20:36:13: Message saved. ID: 61
+1.02.2026 20:36:13: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:13: Message broadcast completed.
+1.02.2026 20:36:13: SendMessage called. User param: AdamH, Msg: eff, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:13: Adding message to DB. Content length: 3
+1.02.2026 20:36:13: Message saved. ID: 62
+1.02.2026 20:36:13: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:13: Message broadcast completed.
+1.02.2026 20:36:17: SendMessage called. User param: AdamH, Msg: dasdas, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:17: Adding message to DB. Content length: 6
+1.02.2026 20:36:17: Message saved. ID: 63
+1.02.2026 20:36:17: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:17: Message broadcast completed.
+1.02.2026 20:36:18: SendMessage called. User param: AdamH, Msg: dsa, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:18: Adding message to DB. Content length: 3
+1.02.2026 20:36:18: Message saved. ID: 64
+1.02.2026 20:36:18: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:18: Message broadcast completed.
+1.02.2026 20:36:18: SendMessage called. User param: AdamH, Msg: asd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:18: Adding message to DB. Content length: 3
+1.02.2026 20:36:18: Message saved. ID: 65
+1.02.2026 20:36:18: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:18: Message broadcast completed.
+1.02.2026 20:36:18: SendMessage called. User param: AdamH, Msg: asd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:18: Adding message to DB. Content length: 3
+1.02.2026 20:36:18: Message saved. ID: 66
+1.02.2026 20:36:18: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:18: Message broadcast completed.
+1.02.2026 20:36:18: SendMessage called. User param: AdamH, Msg: as, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:18: Adding message to DB. Content length: 2
+1.02.2026 20:36:18: Message saved. ID: 67
+1.02.2026 20:36:18: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:18: Message broadcast completed.
+1.02.2026 20:36:19: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:19: Adding message to DB. Content length: 1
+1.02.2026 20:36:19: Message saved. ID: 68
+1.02.2026 20:36:19: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:19: Message broadcast completed.
+1.02.2026 20:36:19: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:19: Adding message to DB. Content length: 1
+1.02.2026 20:36:19: Message saved. ID: 69
+1.02.2026 20:36:19: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:19: Message broadcast completed.
+1.02.2026 20:36:19: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:19: Adding message to DB. Content length: 1
+1.02.2026 20:36:19: Message saved. ID: 70
+1.02.2026 20:36:19: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:19: Message broadcast completed.
+1.02.2026 20:36:19: SendMessage called. User param: AdamH, Msg: ff, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:19: Adding message to DB. Content length: 2
+1.02.2026 20:36:19: Message saved. ID: 71
+1.02.2026 20:36:19: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:19: Message broadcast completed.
+1.02.2026 20:36:19: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:19: Adding message to DB. Content length: 1
+1.02.2026 20:36:19: Message saved. ID: 72
+1.02.2026 20:36:19: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:19: Message broadcast completed.
+1.02.2026 20:36:20: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:20: Adding message to DB. Content length: 1
+1.02.2026 20:36:20: Message saved. ID: 73
+1.02.2026 20:36:20: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:20: Message broadcast completed.
+1.02.2026 20:36:20: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:20: Adding message to DB. Content length: 1
+1.02.2026 20:36:20: Message saved. ID: 74
+1.02.2026 20:36:20: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:20: Message broadcast completed.
+1.02.2026 20:36:20: SendMessage called. User param: AdamH, Msg: sd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:20: Adding message to DB. Content length: 2
+1.02.2026 20:36:20: Message saved. ID: 75
+1.02.2026 20:36:20: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:20: Message broadcast completed.
+1.02.2026 20:36:20: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:20: Adding message to DB. Content length: 1
+1.02.2026 20:36:20: Message saved. ID: 76
+1.02.2026 20:36:20: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:20: Message broadcast completed.
+1.02.2026 20:36:21: SendMessage called. User param: AdamH, Msg: g, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:21: Adding message to DB. Content length: 1
+1.02.2026 20:36:21: Message saved. ID: 77
+1.02.2026 20:36:21: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:21: Message broadcast completed.
+1.02.2026 20:36:21: SendMessage called. User param: AdamH, Msg: df, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:21: Adding message to DB. Content length: 2
+1.02.2026 20:36:21: Message saved. ID: 78
+1.02.2026 20:36:21: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:21: Message broadcast completed.
+1.02.2026 20:36:21: SendMessage called. User param: AdamH, Msg: e, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:21: Adding message to DB. Content length: 1
+1.02.2026 20:36:21: Message saved. ID: 79
+1.02.2026 20:36:21: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:21: Message broadcast completed.
+1.02.2026 20:36:22: SendMessage called. User param: AdamH, Msg: e, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:22: Adding message to DB. Content length: 1
+1.02.2026 20:36:22: Message saved. ID: 80
+1.02.2026 20:36:22: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:22: Message broadcast completed.
+1.02.2026 20:36:22: SendMessage called. User param: AdamH, Msg: r, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:22: Adding message to DB. Content length: 1
+1.02.2026 20:36:22: Message saved. ID: 81
+1.02.2026 20:36:22: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:22: Message broadcast completed.
+1.02.2026 20:36:22: SendMessage called. User param: AdamH, Msg: r, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:22: Adding message to DB. Content length: 1
+1.02.2026 20:36:22: Message saved. ID: 82
+1.02.2026 20:36:22: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:22: Message broadcast completed.
+1.02.2026 20:36:23: SendMessage called. User param: AdamH, Msg: er, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:23: Adding message to DB. Content length: 2
+1.02.2026 20:36:23: Message saved. ID: 83
+1.02.2026 20:36:23: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:23: Message broadcast completed.
+1.02.2026 20:36:23: SendMessage called. User param: AdamH, Msg: re, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:23: Adding message to DB. Content length: 2
+1.02.2026 20:36:23: Message saved. ID: 84
+1.02.2026 20:36:23: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:23: Message broadcast completed.
+1.02.2026 20:36:23: SendMessage called. User param: AdamH, Msg: er, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:23: Adding message to DB. Content length: 2
+1.02.2026 20:36:23: Message saved. ID: 85
+1.02.2026 20:36:23: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:23: Message broadcast completed.
+1.02.2026 20:36:23: SendMessage called. User param: AdamH, Msg: r, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:23: Adding message to DB. Content length: 1
+1.02.2026 20:36:23: Message saved. ID: 86
+1.02.2026 20:36:23: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:23: Message broadcast completed.
+1.02.2026 20:36:24: SendMessage called. User param: AdamH, Msg: w, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:24: Adding message to DB. Content length: 1
+1.02.2026 20:36:24: Message saved. ID: 87
+1.02.2026 20:36:24: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:24: Message broadcast completed.
+1.02.2026 20:36:24: SendMessage called. User param: AdamH, Msg: w, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:24: Adding message to DB. Content length: 1
+1.02.2026 20:36:24: Message saved. ID: 88
+1.02.2026 20:36:24: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:24: Message broadcast completed.
+1.02.2026 20:36:24: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:24: Adding message to DB. Content length: 1
+1.02.2026 20:36:24: Message saved. ID: 89
+1.02.2026 20:36:24: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:24: Message broadcast completed.
+1.02.2026 20:36:24: SendMessage called. User param: AdamH, Msg: fd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:24: Adding message to DB. Content length: 2
+1.02.2026 20:36:24: Message saved. ID: 90
+1.02.2026 20:36:24: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:24: Message broadcast completed.
+1.02.2026 20:36:24: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:24: Adding message to DB. Content length: 1
+1.02.2026 20:36:24: Message saved. ID: 91
+1.02.2026 20:36:24: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:24: Message broadcast completed.
+1.02.2026 20:36:25: SendMessage called. User param: AdamH, Msg: ds, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:25: Adding message to DB. Content length: 2
+1.02.2026 20:36:25: Message saved. ID: 92
+1.02.2026 20:36:25: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:25: Message broadcast completed.
+1.02.2026 20:36:40: SendMessage called. User param: AdamH, Msg: Już chyba jest lepiej, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:36:40: Adding message to DB. Content length: 21
+1.02.2026 20:36:40: Message saved. ID: 93
+1.02.2026 20:36:40: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:36:40: Message broadcast completed.
+1.02.2026 20:38:30: SendMessage called. User param: AdamH, Msg: halo, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:30: Adding message to DB. Content length: 4
+1.02.2026 20:38:30: Message saved. ID: 94
+1.02.2026 20:38:30: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:30: Message broadcast completed.
+1.02.2026 20:38:32: SendMessage called. User param: AdamH, Msg: balo, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:32: Adding message to DB. Content length: 4
+1.02.2026 20:38:32: Message saved. ID: 95
+1.02.2026 20:38:32: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:32: Message broadcast completed.
+1.02.2026 20:38:33: SendMessage called. User param: AdamH, Msg: sdas, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:33: Adding message to DB. Content length: 4
+1.02.2026 20:38:33: Message saved. ID: 96
+1.02.2026 20:38:33: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:33: Message broadcast completed.
+1.02.2026 20:38:34: SendMessage called. User param: AdamH, Msg: fas, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:34: Adding message to DB. Content length: 3
+1.02.2026 20:38:34: Message saved. ID: 97
+1.02.2026 20:38:34: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:34: Message broadcast completed.
+1.02.2026 20:38:34: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:34: Adding message to DB. Content length: 1
+1.02.2026 20:38:34: Message saved. ID: 98
+1.02.2026 20:38:34: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:34: Message broadcast completed.
+1.02.2026 20:38:34: SendMessage called. User param: AdamH, Msg: ff, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:34: Adding message to DB. Content length: 2
+1.02.2026 20:38:34: Message saved. ID: 99
+1.02.2026 20:38:34: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:34: Message broadcast completed.
+1.02.2026 20:38:35: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:35: Adding message to DB. Content length: 1
+1.02.2026 20:38:35: Message saved. ID: 100
+1.02.2026 20:38:35: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:35: Message broadcast completed.
+1.02.2026 20:38:35: SendMessage called. User param: AdamH, Msg: fs, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:35: Adding message to DB. Content length: 2
+1.02.2026 20:38:35: Message saved. ID: 101
+1.02.2026 20:38:35: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:35: Message broadcast completed.
+1.02.2026 20:38:35: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:35: Adding message to DB. Content length: 1
+1.02.2026 20:38:35: Message saved. ID: 102
+1.02.2026 20:38:35: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:35: Message broadcast completed.
+1.02.2026 20:38:35: SendMessage called. User param: AdamH, Msg: a, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:35: Adding message to DB. Content length: 1
+1.02.2026 20:38:35: Message saved. ID: 103
+1.02.2026 20:38:35: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:35: Message broadcast completed.
+1.02.2026 20:38:36: SendMessage called. User param: AdamH, Msg: a, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:36: Adding message to DB. Content length: 1
+1.02.2026 20:38:36: Message saved. ID: 104
+1.02.2026 20:38:36: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:36: Message broadcast completed.
+1.02.2026 20:38:36: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:36: Adding message to DB. Content length: 1
+1.02.2026 20:38:36: Message saved. ID: 105
+1.02.2026 20:38:36: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:36: Message broadcast completed.
+1.02.2026 20:38:36: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:36: Adding message to DB. Content length: 1
+1.02.2026 20:38:36: Message saved. ID: 106
+1.02.2026 20:38:36: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:36: Message broadcast completed.
+1.02.2026 20:38:36: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:36: Adding message to DB. Content length: 1
+1.02.2026 20:38:36: Message saved. ID: 107
+1.02.2026 20:38:36: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:36: Message broadcast completed.
+1.02.2026 20:38:37: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:37: Adding message to DB. Content length: 1
+1.02.2026 20:38:37: Message saved. ID: 108
+1.02.2026 20:38:37: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:37: Message broadcast completed.
+1.02.2026 20:38:37: SendMessage called. User param: AdamH, Msg: dd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:37: Adding message to DB. Content length: 2
+1.02.2026 20:38:37: Message saved. ID: 109
+1.02.2026 20:38:37: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:37: Message broadcast completed.
+1.02.2026 20:38:37: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:37: Adding message to DB. Content length: 1
+1.02.2026 20:38:37: Message saved. ID: 110
+1.02.2026 20:38:37: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:37: Message broadcast completed.
+1.02.2026 20:38:37: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:37: Adding message to DB. Content length: 1
+1.02.2026 20:38:37: Message saved. ID: 111
+1.02.2026 20:38:37: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:37: Message broadcast completed.
+1.02.2026 20:38:38: SendMessage called. User param: AdamH, Msg: dd, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:38: Adding message to DB. Content length: 2
+1.02.2026 20:38:38: Message saved. ID: 112
+1.02.2026 20:38:38: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:38: Message broadcast completed.
+1.02.2026 20:38:38: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:38: Adding message to DB. Content length: 1
+1.02.2026 20:38:38: Message saved. ID: 113
+1.02.2026 20:38:38: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:38: Message broadcast completed.
+1.02.2026 20:38:38: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:38: Adding message to DB. Content length: 1
+1.02.2026 20:38:38: Message saved. ID: 114
+1.02.2026 20:38:38: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:38: Message broadcast completed.
+1.02.2026 20:38:38: SendMessage called. User param: AdamH, Msg: a, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:38: Adding message to DB. Content length: 1
+1.02.2026 20:38:38: Message saved. ID: 115
+1.02.2026 20:38:38: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:38: Message broadcast completed.
+1.02.2026 20:38:39: SendMessage called. User param: AdamH, Msg: a, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:39: Adding message to DB. Content length: 1
+1.02.2026 20:38:39: Message saved. ID: 116
+1.02.2026 20:38:39: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:39: Message broadcast completed.
+1.02.2026 20:38:39: SendMessage called. User param: AdamH, Msg: aa, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:39: Adding message to DB. Content length: 2
+1.02.2026 20:38:39: Message saved. ID: 117
+1.02.2026 20:38:39: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:39: Message broadcast completed.
+1.02.2026 20:38:39: SendMessage called. User param: AdamH, Msg: a, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:39: Adding message to DB. Content length: 1
+1.02.2026 20:38:39: Message saved. ID: 118
+1.02.2026 20:38:39: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:39: Message broadcast completed.
+1.02.2026 20:38:39: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:39: Adding message to DB. Content length: 1
+1.02.2026 20:38:39: Message saved. ID: 119
+1.02.2026 20:38:39: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:39: Message broadcast completed.
+1.02.2026 20:38:39: SendMessage called. User param: AdamH, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:39: Adding message to DB. Content length: 1
+1.02.2026 20:38:39: Message saved. ID: 120
+1.02.2026 20:38:39: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:39: Message broadcast completed.
+1.02.2026 20:38:39: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:39: Adding message to DB. Content length: 1
+1.02.2026 20:38:39: Message saved. ID: 121
+1.02.2026 20:38:39: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:39: Message broadcast completed.
+1.02.2026 20:38:40: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:40: Adding message to DB. Content length: 1
+1.02.2026 20:38:40: Message saved. ID: 122
+1.02.2026 20:38:40: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:40: Message broadcast completed.
+1.02.2026 20:38:40: SendMessage called. User param: AdamH, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:40: Adding message to DB. Content length: 1
+1.02.2026 20:38:40: Message saved. ID: 123
+1.02.2026 20:38:40: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:40: Message broadcast completed.
+1.02.2026 20:38:40: SendMessage called. User param: AdamH, Msg: f, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:40: Adding message to DB. Content length: 1
+1.02.2026 20:38:40: Message saved. ID: 124
+1.02.2026 20:38:40: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:40: Message broadcast completed.
+1.02.2026 20:38:40: SendMessage called. User param: AdamH, Msg: rg, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:40: Adding message to DB. Content length: 2
+1.02.2026 20:38:40: Message saved. ID: 125
+1.02.2026 20:38:40: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:40: Message broadcast completed.
+1.02.2026 20:38:40: SendMessage called. User param: AdamH, Msg: e, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:40: Adding message to DB. Content length: 1
+1.02.2026 20:38:40: Message saved. ID: 126
+1.02.2026 20:38:40: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:40: Message broadcast completed.
+1.02.2026 20:38:41: SendMessage called. User param: AdamH, Msg: rr, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:41: Adding message to DB. Content length: 2
+1.02.2026 20:38:41: Message saved. ID: 127
+1.02.2026 20:38:41: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:41: Message broadcast completed.
+1.02.2026 20:38:41: SendMessage called. User param: AdamH, Msg: e, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:41: Adding message to DB. Content length: 1
+1.02.2026 20:38:41: Message saved. ID: 128
+1.02.2026 20:38:41: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:41: Message broadcast completed.
+1.02.2026 20:38:41: SendMessage called. User param: AdamH, Msg: tet, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:41: Adding message to DB. Content length: 3
+1.02.2026 20:38:41: Message saved. ID: 129
+1.02.2026 20:38:41: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:41: Message broadcast completed.
+1.02.2026 20:38:42: SendMessage called. User param: AdamH, Msg: 3ert3, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:42: Adding message to DB. Content length: 5
+1.02.2026 20:38:42: Message saved. ID: 130
+1.02.2026 20:38:42: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:42: Message broadcast completed.
+1.02.2026 20:38:42: SendMessage called. User param: AdamH, Msg: ert, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:42: Adding message to DB. Content length: 3
+1.02.2026 20:38:42: Message saved. ID: 131
+1.02.2026 20:38:42: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:42: Message broadcast completed.
+1.02.2026 20:38:43: SendMessage called. User param: AdamH, Msg: 3w5, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:43: Adding message to DB. Content length: 3
+1.02.2026 20:38:43: Message saved. ID: 132
+1.02.2026 20:38:43: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:43: Message broadcast completed.
+1.02.2026 20:38:43: SendMessage called. User param: AdamH, Msg: 343, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:43: Adding message to DB. Content length: 3
+1.02.2026 20:38:43: Message saved. ID: 133
+1.02.2026 20:38:43: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:43: Message broadcast completed.
+1.02.2026 20:38:43: SendMessage called. User param: AdamH, Msg: 53, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:43: Adding message to DB. Content length: 2
+1.02.2026 20:38:43: Message saved. ID: 134
+1.02.2026 20:38:43: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:43: Message broadcast completed.
+1.02.2026 20:38:44: SendMessage called. User param: AdamH, Msg: 5435, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:44: Adding message to DB. Content length: 4
+1.02.2026 20:38:44: Message saved. ID: 135
+1.02.2026 20:38:44: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:44: Message broadcast completed.
+1.02.2026 20:38:44: SendMessage called. User param: AdamH, Msg: 435, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:44: Adding message to DB. Content length: 3
+1.02.2026 20:38:44: Message saved. ID: 136
+1.02.2026 20:38:44: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:44: Message broadcast completed.
+1.02.2026 20:38:54: SendMessage called. User param: AdamH, Msg: no chyba zapisuje, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:38:54: Adding message to DB. Content length: 17
+1.02.2026 20:38:54: Message saved. ID: 137
+1.02.2026 20:38:54: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:38:54: Message broadcast completed.
+1.02.2026 20:39:34: SendMessage called. User param: Hnato, Msg: halo, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:39:34: Adding message to DB. Content length: 4
+1.02.2026 20:39:34: Message saved. ID: 138
+1.02.2026 20:39:34: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:39:34: Message broadcast completed.
+1.02.2026 20:39:49: SendMessage called. User param: Hnato, Msg: s, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:39:49: Adding message to DB. Content length: 1
+1.02.2026 20:39:49: Message saved. ID: 139
+1.02.2026 20:39:49: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:39:49: Message broadcast completed.
+1.02.2026 20:39:50: SendMessage called. User param: Hnato, Msg: d, Img: , Rec: , Grp: , Rep: 
+1.02.2026 20:39:50: Adding message to DB. Content length: 1
+1.02.2026 20:39:50: Message saved. ID: 140
+1.02.2026 20:39:50: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 20:39:50: Message broadcast completed.
+1.02.2026 20:46:16: SendMessage called. User param: AdamH, Msg: halo, Img: , Rec: 2, Grp: , Rep: 
+1.02.2026 20:46:16: Adding message to DB. Content length: 4
+1.02.2026 20:46:16: Message saved. ID: 141
+1.02.2026 20:46:16: Broadcasting message. GroupId: , ReceiverId: 2
+1.02.2026 20:46:16: Message broadcast completed.
+1.02.2026 20:57:54: ReactToMessage called. MsgId: 1, Emoji: 😁
+1.02.2026 20:57:54: ReactToMessage completed.
+1.02.2026 20:57:56: ReactToMessage called. MsgId: 1, Emoji: 😅
+1.02.2026 20:57:56: ReactToMessage completed.
+1.02.2026 20:57:57: ReactToMessage called. MsgId: 1, Emoji: 😈
+1.02.2026 20:57:57: ReactToMessage completed.
+1.02.2026 21:10:13: SendMessage called. User param: Hnato, Msg: Hej, Img: , Rec: , Grp: , Rep: 
+1.02.2026 21:10:13: Adding message to DB. Content length: 3
+1.02.2026 21:10:13: Message saved. ID: 142
+1.02.2026 21:10:13: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 21:10:13: Message broadcast completed.
+1.02.2026 21:10:20: SendMessage called. User param: AdamH, Msg: hej, Img: , Rec: , Grp: , Rep: 
+1.02.2026 21:10:20: Adding message to DB. Content length: 3
+1.02.2026 21:10:20: Message saved. ID: 143
+1.02.2026 21:10:20: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 21:10:20: Message broadcast completed.
+1.02.2026 21:10:26: SendMessage called. User param: AdamH, Msg: Hejka, Img: , Rec: , Grp: , Rep: 
+1.02.2026 21:10:26: Adding message to DB. Content length: 5
+1.02.2026 21:10:26: Message saved. ID: 144
+1.02.2026 21:10:26: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 21:10:26: Message broadcast completed.
+1.02.2026 21:11:56: SendMessage called. User param: AdamH, Msg: halo, Img: , Rec: 2, Grp: , Rep: 
+1.02.2026 21:11:56: Adding message to DB. Content length: 4
+1.02.2026 21:11:56: Message saved. ID: 145
+1.02.2026 21:11:56: Broadcasting message. GroupId: , ReceiverId: 2
+1.02.2026 21:11:56: Message broadcast completed.
+1.02.2026 21:12:43: ReactToMessage called. MsgId: 143, Emoji: 👏
+1.02.2026 21:12:43: ReactToMessage completed.
+1.02.2026 21:12:46: ReactToMessage called. MsgId: 143, Emoji: 👏
+1.02.2026 21:12:46: ReactToMessage completed.
+1.02.2026 21:14:21: ReactToMessage called. MsgId: 1, Emoji: 😈
+1.02.2026 21:14:21: ReactToMessage completed.
+1.02.2026 21:14:22: ReactToMessage called. MsgId: 1, Emoji: 😅
+1.02.2026 21:14:22: ReactToMessage completed.
+1.02.2026 21:14:30: SendMessage called. User param: Hnato, Msg: ❤️, Img: , Rec: , Grp: , Rep: 
+1.02.2026 21:14:30: Adding message to DB. Content length: 2
+1.02.2026 21:14:30: Message saved. ID: 146
+1.02.2026 21:14:30: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 21:14:30: Message broadcast completed.
+1.02.2026 21:17:35: SendMessage called. User param: hnatoa, Msg: hej, Img: , Rec: , Grp: , Rep: 
+1.02.2026 21:17:35: Adding message to DB. Content length: 3
+1.02.2026 21:17:35: Message saved. ID: 147
+1.02.2026 21:17:35: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 21:17:35: Message broadcast completed.
+1.02.2026 21:19:48: SendMessage called. User param: AdamH, Msg: , Img: /uploads/3a48f0c0-93ba-46d5-9c9f-b3f0022956cd.gif, Rec: , Grp: , Rep: 
+1.02.2026 21:19:48: Adding message to DB. Content length: 0
+1.02.2026 21:19:48: Message saved. ID: 148
+1.02.2026 21:19:48: Broadcasting message. GroupId: , ReceiverId: 
+1.02.2026 21:19:48: Message broadcast completed.
+1.02.2026 21:29:26: ReactToMessage called. MsgId: 148, Emoji: ❤️
+1.02.2026 21:29:26: ReactToMessage completed.
+1.02.2026 21:36:24: ReactToMessage called. MsgId: 148, Emoji: ❤️
+1.02.2026 21:36:24: ReactToMessage completed.
+1.02.2026 21:36:26: ReactToMessage called. MsgId: 148, Emoji: 💖
+1.02.2026 21:36:26: ReactToMessage completed.
+1.02.2026 22:16:19: ReactToMessage called. MsgId: 148, Emoji: 💖
+1.02.2026 22:16:19: ReactToMessage completed.
+1.02.2026 22:17:39: SendMessage called. User param: hnatoa, Msg: hej, Img: , Rec: 2, Grp: , Rep: 
+1.02.2026 22:17:39: Adding message to DB. Content length: 3
+1.02.2026 22:17:39: Message saved. ID: 149
+1.02.2026 22:17:39: Broadcasting message. GroupId: , ReceiverId: 2
+1.02.2026 22:17:39: Message broadcast completed.
+1.02.2026 22:17:43: ReactToMessage called. MsgId: 149, Emoji: ❤️
+1.02.2026 22:17:43: ReactToMessage completed.

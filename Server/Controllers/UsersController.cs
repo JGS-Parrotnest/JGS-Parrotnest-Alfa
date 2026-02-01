@@ -40,7 +40,10 @@ namespace ParrotnestServer.Controllers
                 user.Id,
                 user.Username,
                 user.Email,
-                user.AvatarUrl
+                user.AvatarUrl,
+                user.Theme,
+                user.TextSize,
+                user.IsSimpleText
             });
         }
         [HttpPost("avatar")]
@@ -122,6 +125,8 @@ namespace ParrotnestServer.Controllers
                 return NotFound();
             if (!string.IsNullOrWhiteSpace(dto.Username) && dto.Username != user.Username)
             {
+                if (dto.Username.Length > 16)
+                    return BadRequest("Nazwa użytkownika nie może przekraczać 16 znaków.");
                 if (await _context.Users.AnyAsync(u => u.Username == dto.Username))
                     return BadRequest("Nazwa użytkownika jest już zajęta.");
                 user.Username = dto.Username;
@@ -130,14 +135,22 @@ namespace ParrotnestServer.Controllers
             {
                 user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password);
             }
+            
+            if (dto.Theme != null) user.Theme = dto.Theme;
+            if (dto.TextSize != null) user.TextSize = dto.TextSize;
+            if (dto.IsSimpleText != null) user.IsSimpleText = dto.IsSimpleText.Value;
+
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Profil zaktualizowany", user = new { user.Id, user.Username, user.Email, user.AvatarUrl } });
+            return Ok(new { message = "Profil zaktualizowany", user = new { user.Id, user.Username, user.Email, user.AvatarUrl, user.Theme, user.TextSize, user.IsSimpleText } });
         }
     }
     public class UpdateProfileDto
     {
         public string? Username { get; set; }
         public string? Password { get; set; }
+        public string? Theme { get; set; }
+        public string? TextSize { get; set; }
+        public bool? IsSimpleText { get; set; }
     }
     public class UpdateStatusDto
     {

@@ -7,11 +7,11 @@ namespace ParrotnestServer
 {
     public class ServerControlForm : Form
     {
-        private Button btnStart;
-        private Button btnStop;
-        private Button btnCleanDB;
-        private Button btnOpenBrowser;
-        private RichTextBox txtLog;
+        private Button btnStart = null!;
+        private Button btnStop = null!;
+        private Button btnCleanDB = null!;
+        private Button btnOpenBrowser = null!;
+        private RichTextBox txtLog = null!;
         private ServerHost _serverHost;
         private bool _isRunning = false;
         public ServerControlForm()

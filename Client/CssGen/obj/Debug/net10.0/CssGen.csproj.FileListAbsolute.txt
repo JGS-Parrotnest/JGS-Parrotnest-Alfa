@@ -1,0 +1,14 @@
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\bin\Debug\net10.0\CssGen.exe
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\bin\Debug\net10.0\CssGen.deps.json
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\bin\Debug\net10.0\CssGen.runtimeconfig.json
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\bin\Debug\net10.0\CssGen.dll
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\bin\Debug\net10.0\CssGen.pdb
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\CssGen.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\CssGen.AssemblyInfoInputs.cache
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\CssGen.AssemblyInfo.cs
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\CssGen.csproj.CoreCompileInputs.cache
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\CssGen.dll
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\refint\CssGen.dll
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\CssGen.pdb
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\CssGen.genruntimeconfig.cache
+C:\Users\user\Music\Komunikator JGS\Alfa v5.0\Client\CssGen\obj\Debug\net10.0\ref\CssGen.dll

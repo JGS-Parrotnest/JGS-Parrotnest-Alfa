@@ -36,6 +36,9 @@ namespace ParrotnestServer.Hubs
             if (userId.HasValue)
             {
                 await _userTracker.UserConnected(Context.ConnectionId, userId.Value);
+                // Ensure reliable targeting by adding to a user-specific group
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId.Value}");
+
                 var user = await _context.Users.FindAsync(userId.Value);
                 int status = (user != null && user.Status != 4) ? user.Status : 0;
                 // If user is invisible (4), status broadcast is 0 (Offline)
@@ -76,102 +79,183 @@ namespace ParrotnestServer.Hubs
                 }
             }
         }
-        public async Task SendMessage(string user, string message, string? imageUrl = null, int? receiverId = null, int? groupId = null)
+        private void Log(string message)
         {
-            Console.WriteLine($"[ChatHub] SendMessage called by {Context.User?.Identity?.Name}. Msg: {message}, Img: {imageUrl}, Rec: {receiverId}, Grp: {groupId}");
-            try 
+            try
             {
-                var senderUsername = Context.User?.Identity?.Name;
-                var sender = await _context.Users.FirstOrDefaultAsync(u => u.Username == senderUsername);
-                if (sender != null)
-                {
-                    Console.WriteLine($"[ChatHub] Sender found: {sender.Id} ({sender.Username})");
-                    var msg = new Message
-                    {
-                        Content = message ?? string.Empty,
-                        ImageUrl = imageUrl,
-                        SenderId = sender.Id,
-                        ReceiverId = receiverId,
-                        GroupId = groupId,
-                        Timestamp = DateTime.UtcNow
-                    };
-                    Console.WriteLine("[ChatHub] Saving message to DB...");
-                    _context.Messages.Add(msg);
-                    await _context.SaveChangesAsync();
-                    Console.WriteLine($"[ChatHub] Message saved. ID: {msg.Id}");
-                    if (groupId.HasValue)
-                    {
-                        var members = await _context.GroupMembers
-                            .Where(gm => gm.GroupId == groupId.Value)
-                            .Select(gm => gm.UserId)
-                            .ToListAsync();
-                        foreach (var memberId in members)
-                        {
-                            await Clients.User(memberId.ToString()).SendAsync(
-                                "ReceiveMessage",
-                                sender.Id,
-                                senderUsername,
-                                message ?? string.Empty,
-                                imageUrl,
-                                receiverId,
-                                groupId,
-                                sender.AvatarUrl
-                            );
-                        }
-                    }
-                    else if (receiverId.HasValue)
-                    {
-                        var receiver = await _context.Users.FindAsync(receiverId.Value);
-                        if (receiver != null)
-                        {
-                            await Clients.User(sender.Id.ToString()).SendAsync(
-                                "ReceiveMessage",
-                                sender.Id,
-                                senderUsername,
-                                message ?? string.Empty,
-                                imageUrl,
-                                receiverId,
-                                null,
-                                sender.AvatarUrl
-                            );
-                            await Clients.User(receiverId.Value.ToString()).SendAsync(
-                                "ReceiveMessage",
-                                sender.Id,
-                                senderUsername,
-                                message ?? string.Empty,
-                                imageUrl,
-                                receiverId,
-                                null,
-                                sender.AvatarUrl
-                            );
-                        }
-                    }
-                    else
-                    {
-                        await Clients.All.SendAsync(
-                            "ReceiveMessage",
-                            sender.Id,
-                            senderUsername,
-                            message ?? string.Empty,
-                            imageUrl,
-                            null,
-                            null,
-                            sender.AvatarUrl
-                        );
-                    }
-                }
-                else
-                {
-                    Console.WriteLine($"[ChatHub] Sender NOT found for username: {senderUsername}");
-                    await Clients.Caller.SendAsync("ReceiveMessage", 0, "System", "Błąd: Nie znaleziono użytkownika. Zaloguj się ponownie.", null, null, null);
-                }
+                var logPath = Path.Combine("c:\\Users\\user\\Music\\Komunikator JGS\\Alfa v5.0", "server_log.txt");
+                var logMsg = $"{DateTime.Now}: {message}\n";
+                System.IO.File.AppendAllText(logPath, logMsg);
+                Console.WriteLine(logMsg);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error sending message: {ex.Message}");
-                Console.WriteLine(ex.StackTrace);
-                await Clients.Caller.SendAsync("ReceiveMessage", 0, "System", $"Błąd wysyłania wiadomości: {ex.Message}", null, null, null);
+                Console.WriteLine($"Failed to write to log: {ex.Message}");
             }
+        }
+
+        public async Task SendMessage(string user, string message, string? imageUrl = null, int? receiverId = null, int? groupId = null, int? replyToId = null)
+        {
+            Log($"SendMessage called. User param: {user}, Msg: {message}, Img: {imageUrl}, Rec: {receiverId}, Grp: {groupId}, Rep: {replyToId}");
+            var userId = GetUserId();
+            if (!userId.HasValue)
+            {
+                Log("SendMessage failed: User ID not found in token.");
+                throw new HubException("Nie zidentyfikowano użytkownika (brak ID w tokenie).");
+            }
+
+            var sender = await _context.Users.FindAsync(userId.Value);
+            if (sender == null)
+            {
+                Log($"SendMessage failed: User with ID {userId.Value} not found in DB.");
+                throw new HubException($"Użytkownik o ID {userId.Value} nie istnieje w bazie danych.");
+            }
+
+            try 
+            {
+                var msg = new Message
+                {
+                    Content = message ?? string.Empty,
+                    ImageUrl = imageUrl,
+                    SenderId = sender.Id,
+                    ReceiverId = receiverId,
+                    GroupId = groupId,
+                    ReplyToId = replyToId,
+                    Timestamp = DateTime.UtcNow
+                };
+                
+                Log($"Adding message to DB. Content length: {msg.Content.Length}");
+                _context.Messages.Add(msg);
+                await _context.SaveChangesAsync();
+                Log($"Message saved. ID: {msg.Id}");
+
+                // Load ReplyTo info if exists
+                string? replyToSender = null;
+                string? replyToContent = null;
+                if (replyToId.HasValue)
+                {
+                    var replyMsg = await _context.Messages.Include(m => m.Sender).FirstOrDefaultAsync(m => m.Id == replyToId.Value);
+                    if (replyMsg != null)
+                    {
+                        replyToSender = replyMsg.Sender?.Username;
+                        replyToContent = replyMsg.Content;
+                    }
+                }
+
+                var response = new
+                {
+                    Id = msg.Id,
+                    Content = msg.Content,
+                    Sender = sender.Username,
+                    SenderId = sender.Id,
+                    SenderAvatarUrl = sender.AvatarUrl,
+                    ReceiverId = msg.ReceiverId,
+                    GroupId = msg.GroupId,
+                    Timestamp = msg.Timestamp,
+                    ImageUrl = msg.ImageUrl,
+                    ReplyToId = msg.ReplyToId,
+                    ReplyToSender = replyToSender,
+                    ReplyToContent = replyToContent,
+                    Reactions = (string?)null
+                };
+
+                Log($"Broadcasting message. GroupId: {groupId}, ReceiverId: {receiverId}");
+
+                if (groupId.HasValue)
+                {
+                    await Clients.Group($"Group_{groupId.Value}").SendAsync("ReceiveMessage", response);
+                }
+                else if (receiverId.HasValue)
+                {
+                        await Clients.Group($"User_{receiverId.Value}").SendAsync("ReceiveMessage", response);
+                        await Clients.Group($"User_{sender.Id}").SendAsync("ReceiveMessage", response);
+                }
+                else
+                {
+                    // Global chat
+                    await Clients.All.SendAsync("ReceiveMessage", response);
+                }
+                Log("Message broadcast completed.");
+            }
+            catch (Exception ex)
+            {
+                Log($"Error in SendMessage: {ex.Message}\nStack: {ex.StackTrace}");
+                if (ex.InnerException != null)
+                {
+                     Log($"Inner Exception: {ex.InnerException.Message}");
+                }
+                throw new HubException($"Błąd serwera podczas wysyłania wiadomości: {ex.Message}");
+            }
+        }
+
+        public async Task ReactToMessage(int messageId, string emoji)
+        {
+            Log($"ReactToMessage called. MsgId: {messageId}, Emoji: {emoji}");
+            var userId = GetUserId();
+            if (!userId.HasValue) 
+            {
+                Log("ReactToMessage failed: User ID not found.");
+                throw new HubException("Nie można zidentyfikować użytkownika.");
+            }
+            
+            var msg = await _context.Messages.FindAsync(messageId);
+            if (msg == null) 
+            {
+                Log($"ReactToMessage failed: Message {messageId} not found.");
+                throw new HubException("Wiadomość nie istnieje.");
+            }
+
+            try
+            {
+                // Simple JSON manipulation
+                var reactions = new System.Collections.Generic.List<ReactionItem>();
+                if (!string.IsNullOrEmpty(msg.Reactions))
+                {
+                    try { reactions = System.Text.Json.JsonSerializer.Deserialize<System.Collections.Generic.List<ReactionItem>>(msg.Reactions) ?? new(); } catch {}
+                }
+
+                // Toggle reaction
+                var existing = reactions.FirstOrDefault(r => r.u == userId.Value && r.e == emoji);
+                if (existing != null)
+                {
+                    reactions.Remove(existing);
+                }
+                else
+                {
+                    reactions.Add(new ReactionItem { u = userId.Value, e = emoji });
+                }
+
+                msg.Reactions = System.Text.Json.JsonSerializer.Serialize(reactions);
+                await _context.SaveChangesAsync();
+
+                // Broadcast update
+                if (msg.GroupId.HasValue)
+                {
+                    await Clients.Group($"Group_{msg.GroupId.Value}").SendAsync("MessageReactionUpdated", messageId, msg.Reactions);
+                }
+                else if (msg.ReceiverId.HasValue)
+                {
+                    await Clients.Group($"User_{msg.ReceiverId.Value}").SendAsync("MessageReactionUpdated", messageId, msg.Reactions);
+                    await Clients.Group($"User_{msg.SenderId}").SendAsync("MessageReactionUpdated", messageId, msg.Reactions);
+                }
+                else
+                {
+                    // Global chat
+                    await Clients.All.SendAsync("MessageReactionUpdated", messageId, msg.Reactions);
+                }
+                Log("ReactToMessage completed.");
+            }
+            catch (Exception ex)
+            {
+                 Log($"Error in ReactToMessage: {ex.Message}");
+                 throw new HubException($"Błąd serwera podczas dodawania reakcji: {ex.Message}");
+            }
+        }
+
+        public class ReactionItem
+        {
+            public int u { get; set; } // UserId
+            public string e { get; set; } // Emoji
         }
         public async Task JoinGroup(string groupName)
         {

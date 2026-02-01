@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 namespace ParrotnestServer.Models
@@ -21,5 +21,10 @@ namespace ParrotnestServer.Models
         [MaxLength(500)]
         public string? ImageUrl { get; set; }
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+
+        public int? ReplyToId { get; set; }
+        [ForeignKey("ReplyToId")]
+        public Message? ReplyTo { get; set; }
+        public string? Reactions { get; set; } // JSON: [{"u":1,"e":"❤️"},...]
     }
 }

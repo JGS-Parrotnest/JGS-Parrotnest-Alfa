@@ -31,7 +31,10 @@ namespace ParrotnestServer
                 builder.Services.AddControllers();
                 builder.Services.AddEndpointsApiExplorer();
                 builder.Services.AddSwaggerGen();
-                builder.Services.AddSignalR();
+                builder.Services.AddSignalR(hubOptions =>
+                {
+                    hubOptions.EnableDetailedErrors = true;
+                });
                 builder.Services.AddSingleton<IUserTracker, UserTracker>();
                 var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db");
                 var connectionString = $"Data Source={dbPath}";
@@ -83,7 +86,25 @@ namespace ParrotnestServer
                     dbContext.Database.EnsureCreated();
                     try {
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN Status INTEGER DEFAULT 1;");
-                    } catch { /* Ignore if exists */ }
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] Status: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN Theme TEXT DEFAULT 'original';");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] Theme: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN TextSize TEXT DEFAULT 'medium';");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] TextSize: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN IsSimpleText INTEGER DEFAULT 0;");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] IsSimpleText: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Messages ADD COLUMN ReplyToId INTEGER NULL;");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] ReplyToId: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Messages ADD COLUMN Reactions TEXT NULL;");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] Reactions: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Messages ADD COLUMN ImageUrl TEXT NULL;");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] ImageUrl: {ex.Message}"); }
                 }
                 _app.Urls.Clear();
                 _app.Urls.Add("http://0.0.0.0:6069");

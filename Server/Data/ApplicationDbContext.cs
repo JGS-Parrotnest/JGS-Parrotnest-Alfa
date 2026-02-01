@@ -1,4 +1,4 @@
-﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore;
 using ParrotnestServer.Models;
 using Message = ParrotnestServer.Models.Message;
 namespace ParrotnestServer.Data
@@ -8,11 +8,11 @@ namespace ParrotnestServer.Data
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options) : base(options)
         {
         }
-        public DbSet<User> Users { get; set; }
-        public DbSet<Message> Messages { get; set; }
-        public DbSet<Group> Groups { get; set; }
-        public DbSet<Friendship> Friendships { get; set; }
-        public DbSet<GroupMember> GroupMembers { get; set; }
+        public DbSet<User> Users { get; set; } = null!;
+        public DbSet<Message> Messages { get; set; } = null!;
+        public DbSet<Group> Groups { get; set; } = null!;
+        public DbSet<Friendship> Friendships { get; set; } = null!;
+        public DbSet<GroupMember> GroupMembers { get; set; } = null!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
