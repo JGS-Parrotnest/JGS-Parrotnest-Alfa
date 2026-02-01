@@ -1,4 +1,4 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ParrotnestServer.Data;
@@ -90,6 +90,24 @@ namespace ParrotnestServer.Controllers
             }
             var fileUrl = $"/uploads/{fileName}";
             return Ok(new { url = fileUrl });
+        }
+
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeleteMessage(int id)
+        {
+            var userIdStr = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdStr)) return Unauthorized("Brak identyfikatora użytkownika (Claim mismatch).");
+            var userId = int.Parse(userIdStr);
+
+            var message = await _context.Messages.FindAsync(id);
+            if (message == null) return NotFound("Wiadomość nie znaleziona.");
+            
+            if (message.SenderId != userId) {
+                return StatusCode(403, $"Możesz usuwać tylko własne wiadomości. (MsgSender: {message.SenderId}, You: {userId})");
+            }
+            _context.Messages.Remove(message);
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Wiadomość usunięta." });
         }
     }
 }

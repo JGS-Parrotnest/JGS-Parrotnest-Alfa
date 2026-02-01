@@ -204,6 +204,28 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (userStr) {
             try {
                 user = JSON.parse(userStr);
+                // Apply cached theme immediately to avoid flash
+                if (user.Theme) {
+                    const currentTheme = localStorage.getItem('preferredTheme');
+                    if (user.Theme !== currentTheme) {
+                         applyTheme(user.Theme);
+                         localStorage.setItem('preferredTheme', user.Theme);
+                    }
+                }
+                if (user.TextSize) {
+                    const currentSize = localStorage.getItem('preferredTextSize');
+                    if (user.TextSize !== currentSize) {
+                         applyTextSize(user.TextSize);
+                         localStorage.setItem('preferredTextSize', user.TextSize);
+                    }
+                }
+                if (user.IsSimpleText !== undefined) {
+                    const currentSimple = localStorage.getItem('preferredSimpleText') === 'true';
+                    if (user.IsSimpleText !== currentSimple) {
+                         applySimpleText(user.IsSimpleText);
+                         localStorage.setItem('preferredSimpleText', user.IsSimpleText);
+                    }
+                }
             } catch (e) {
                 console.error('Error parsing user from localStorage', e);
             }
@@ -214,26 +236,52 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        if (!user) {
-            try {
-                const response = await fetch(`${API_URL}/users/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                if (response.ok) {
-                    user = await response.json();
-                    localStorage.setItem('user', JSON.stringify(user));
-                    console.log('User session recovered:', user);
-                } else {
+        // Always fetch latest user data to sync settings
+        try {
+            const response = await fetch(`${API_URL}/users/me`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const freshUser = await response.json();
+                user = freshUser;
+                localStorage.setItem('user', JSON.stringify(user));
+                
+                // Apply fresh theme settings
+                if (user.Theme) {
+                    applyTheme(user.Theme);
+                    localStorage.setItem('preferredTheme', user.Theme);
+                    if (themeDarkRadio) themeDarkRadio.checked = (user.Theme === 'dark');
+                    if (themeClassicRadio) themeClassicRadio.checked = (user.Theme === 'classic');
+                    if (themeOriginalRadio) themeOriginalRadio.checked = (user.Theme === 'original');
+                    if (themeNeonRadio) themeNeonRadio.checked = (user.Theme === 'neon');
+                    if (themeForestRadio) themeForestRadio.checked = (user.Theme === 'forest');
+                    if (themeKontrastRadio) themeKontrastRadio.checked = (user.Theme === 'kontrast');
+                }
+                if (user.TextSize) {
+                    applyTextSize(user.TextSize);
+                    localStorage.setItem('preferredTextSize', user.TextSize);
+                    if (textSizeSlider) {
+                         const sizeMap = { 'small': 0, 'medium': 1, 'large': 2, 'xlarge': 3 };
+                         textSizeSlider.value = sizeMap[user.TextSize] !== undefined ? sizeMap[user.TextSize] : 1;
+                    }
+                }
+                if (user.IsSimpleText !== undefined) {
+                    applySimpleText(user.IsSimpleText);
+                    localStorage.setItem('preferredSimpleText', user.IsSimpleText);
+                    if (simpleTextToggle) simpleTextToggle.checked = user.IsSimpleText;
+                }
+                console.log('User session synced:', user);
+            } else {
+                if (!user) {
                     console.warn('Session expired or invalid');
                     localStorage.removeItem('token');
                     window.location.href = '/login.php';
                     return;
                 }
-            } catch (e) {
-                console.error('Network error recovering session:', e);
-                // In offline mode, we might want to let them through if we had cached data,
-                // but here we have no user data. 
-                // We can show a retry screen or just redirect.
+            }
+        } catch (e) {
+            console.error('Network error recovering session:', e);
+            if (!user) {
                  document.body.innerHTML = `
                 <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#000;color:#ff3333;font-family:monospace;padding:20px;text-align:center;">
                     <h2 style="font-size:2em;margin-bottom:20px;">⛔ BŁĄD POŁĄCZENIA</h2>
@@ -278,6 +326,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let currentChatType = 'global';
         let friends = [];
         let pendingRequests = [];
+        let sentRequests = [];
         let groups = [];
         let peerConnection = null;
         let localStream = null;
@@ -292,6 +341,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         const storedSoundKey = localStorage.getItem('notificationSound') || 'original';
         const activeSoundKey = notificationSoundConfig[storedSoundKey] ? storedSoundKey : 'original';
         const notificationSound = new Audio(notificationSoundConfig[activeSoundKey].src);
+        let globalVolume = parseFloat(localStorage.getItem('globalVolume'));
+        if (isNaN(globalVolume)) globalVolume = 1.0;
+        notificationSound.volume = globalVolume;
         notificationSound.addEventListener('error', (e) => {
              console.warn('Notification sound failed to load:', e);
         });
@@ -358,6 +410,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadFriends();
         loadGroups();
         loadPendingRequests();
+        loadSentRequests();
 
         const connection = window.connection;
         const messageForm = document.getElementById('messageForm');
@@ -410,6 +463,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showNotification(notificationsMuted ? 'Powiadomienia wyłączone' : 'Powiadomienia włączone', 'info');
             });
         }
+
+        const volumeSlider = document.getElementById('volumeSlider');
+        if (volumeSlider) {
+            volumeSlider.value = Math.round(globalVolume * 100);
+            volumeSlider.title = `Głośność: ${volumeSlider.value}%`;
+            
+            volumeSlider.addEventListener('input', () => {
+                const val = parseInt(volumeSlider.value);
+                globalVolume = val / 100;
+                localStorage.setItem('globalVolume', globalVolume);
+                volumeSlider.title = `Głośność: ${val}%`;
+                
+                if (notificationSound) notificationSound.volume = globalVolume;
+                if (window.logoAudio) window.logoAudio.volume = globalVolume;
+            });
+        }
+
         if (userStatusEl) {
             if (signalRAvailable) {
                 userStatusEl.textContent = 'Online';
@@ -493,6 +563,10 @@ document.addEventListener('DOMContentLoaded', async () => {
             });
         }
         window.logoAudio = window.logoAudio || new Audio(resolveUrl('parrot.mp3'));
+        {
+            const savedVol = parseFloat(localStorage.getItem('globalVolume'));
+            window.logoAudio.volume = isNaN(savedVol) ? 1.0 : savedVol;
+        }
         window.logoAudio.addEventListener('error', (e) => {
              // Suppress console spam for this specific easter egg
              console.warn('Easter egg sound failed to load:', e);
@@ -678,7 +752,84 @@ document.addEventListener('DOMContentLoaded', async () => {
                 console.error('GroupMembershipChanged handler error', e);
             }
         });
-        connection.on("ReceiveMessage", (senderId, senderUsername, message, imageUrl, receiverId, groupId, senderAvatarUrl) => {
+        connection.on("FriendRequestAccepted", async (data) => {
+            console.log("[App] FriendRequestAccepted EVENT RECEIVED:", data);
+            
+            // Play sound
+            if (typeof notificationsMuted === 'undefined' || !notificationsMuted) {
+                try {
+                    const key = localStorage.getItem('notificationSound') || 'original';
+                    if (typeof notificationSoundConfig !== 'undefined') {
+                        const cfg = notificationSoundConfig[key] || notificationSoundConfig.original;
+                        if (cfg && notificationSound) {
+                            notificationSound.src = cfg.src;
+                            notificationSound.play().catch(e => console.log('Sound play error:', e));
+                        }
+                    }
+                } catch (e) { console.warn('Sound error:', e); }
+            }
+            
+            // Show toast
+            if (typeof showNotification === 'function') {
+                showNotification(`Użytkownik ${data.username} zaakceptował Twoje zaproszenie!`, 'success');
+            }
+            
+            // Browser notification
+            try {
+                if (window.Notification && Notification.permission === "granted" && document.hidden) {
+                    new Notification(`Zaproszenie zaakceptowane`, {
+                        body: `${data.username} jest teraz Twoim znajomym!`,
+                        icon: data.avatarUrl ? resolveUrl(data.avatarUrl) : 'parrot.png'
+                    });
+                }
+            } catch (e) {}
+            
+            // Refresh lists
+            try {
+                if (typeof loadFriends === 'function') await loadFriends();
+                if (typeof loadSentRequests === 'function') await loadSentRequests();
+            } catch (e) { console.error('Refresh list error:', e); }
+        });
+
+        connection.on("FriendRequestReceived", async (data) => {
+            console.log("[App] FriendRequestReceived EVENT RECEIVED:", data);
+            
+            // Play sound
+            if (typeof notificationsMuted === 'undefined' || !notificationsMuted) {
+                try {
+                    const key = localStorage.getItem('notificationSound') || 'original';
+                    if (typeof notificationSoundConfig !== 'undefined') {
+                        const cfg = notificationSoundConfig[key] || notificationSoundConfig.original;
+                        if (cfg && notificationSound) {
+                            notificationSound.src = cfg.src;
+                            notificationSound.play().catch(e => console.log('Sound play error:', e));
+                        }
+                    }
+                } catch (e) { console.warn('Sound error:', e); }
+            }
+            
+            // Show toast
+            if (typeof showNotification === 'function') {
+                showNotification(`Nowe zaproszenie od: ${data.username}`, 'info');
+            }
+            
+            // Browser notification
+            try {
+                if (window.Notification && Notification.permission === "granted" && document.hidden) {
+                    new Notification(`Nowe zaproszenie`, {
+                        body: `Użytkownik ${data.username} chce Cię dodać do znajomych.`,
+                        icon: data.avatarUrl ? resolveUrl(data.avatarUrl) : 'parrot.png'
+                    });
+                }
+            } catch (e) {}
+            
+            // Refresh lists
+            try {
+                if (typeof loadPendingRequests === 'function') await loadPendingRequests();
+            } catch (e) { console.error('Refresh list error:', e); }
+        });
+
+        connection.on("ReceiveMessage", (senderId, senderUsername, message, imageUrl, receiverId, groupId, senderAvatarUrl, msgId) => {
             if (imageUrl) {
                 imageUrl = resolveUrl(imageUrl);
             }
@@ -770,6 +921,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
             const row = document.createElement("div");
             row.className = "message-row";
+
+            if (isOwnMessage && msgId) {
+                const actionsDiv = document.createElement("div");
+                actionsDiv.className = "message-actions";
+                
+                const deleteBtn = document.createElement("button");
+                deleteBtn.className = "btn-msg-action";
+                deleteBtn.title = "Usuń wiadomość";
+                deleteBtn.innerHTML = `<span class="material-symbols-outlined">delete</span>`;
+                deleteBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    deleteMessage(msgId);
+                };
+                actionsDiv.appendChild(deleteBtn);
+                
+                row.appendChild(actionsDiv);
+            }
             
             const avatarEl = document.createElement("div");
             avatarEl.className = "message-avatar";
@@ -951,6 +1119,45 @@ document.addEventListener('DOMContentLoaded', async () => {
                 showNotification('Brak połączenia z bazą lub serwerem (zaproszenia).', 'error');
             }
         }
+
+        async function loadSentRequests() {
+            try {
+                const response = await fetch(`${API_URL}/friends/sent`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    sentRequests = await response.json();
+                    updateChatList();
+                    renderSentRequestsModal();
+                } else {
+                    console.warn('Failed to load sent requests', response.status);
+                }
+            } catch (error) {
+                console.error('Error loading sent requests:', error);
+            }
+        }
+        async function cancelSentRequest(friendshipId) {
+            if (!confirm('Czy na pewno chcesz anulować wysłane zaproszenie?')) return;
+            try {
+                const response = await fetch(`${API_URL}/friends/${friendshipId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                if (response.ok) {
+                    showNotification('Zaproszenie anulowane.', 'success');
+                    loadSentRequests();
+                } else {
+                    showNotification('Nie udało się anulować zaproszenia.', 'error');
+                }
+            } catch (error) {
+                console.error('Error canceling request:', error);
+            }
+        }
+
         async function acceptFriend(friendshipId) {
             try {
                 const response = await fetch(`${API_URL}/friends/accept/${friendshipId}`, {
@@ -1094,6 +1301,66 @@ document.addEventListener('DOMContentLoaded', async () => {
                     actionsDiv.appendChild(acceptBtn);
                     actionsDiv.appendChild(rejectBtn);
                     reqItem.appendChild(headerDiv);
+                    reqItem.appendChild(actionsDiv);
+                    chatList.appendChild(reqItem);
+                });
+            }
+
+            if (sentRequests && sentRequests.length > 0) {
+                const sentHeader = document.createElement('div');
+                sentHeader.textContent = 'Wysłane zaproszenia';
+                sentHeader.style.padding = '10px 20px';
+                sentHeader.style.fontSize = '0.75rem';
+                sentHeader.style.fontWeight = 'bold';
+                sentHeader.style.color = 'var(--text-secondary)';
+                sentHeader.style.textTransform = 'uppercase';
+                sentHeader.style.letterSpacing = '1px';
+                chatList.appendChild(sentHeader);
+
+                sentRequests.forEach(req => {
+                    const reqItem = document.createElement('div');
+                    reqItem.className = 'chat-item sent-request';
+                    reqItem.style.cursor = 'default';
+                    reqItem.style.gap = '10px';
+                    
+                    const avatar = document.createElement('div');
+                    avatar.className = 'avatar';
+                    
+                    const rAv = req.avatarUrl || req.AvatarUrl;
+                    if (rAv) {
+                        avatar.style.backgroundImage = `url('${resolveUrl(rAv)}')`;
+                        avatar.style.backgroundSize = 'cover';
+                        avatar.style.backgroundPosition = 'center';
+                        avatar.textContent = '';
+                    } else {
+                        avatar.textContent = (req.username || 'U').charAt(0).toUpperCase();
+                    }
+
+                    const nameDiv = document.createElement('div');
+                    nameDiv.style.fontWeight = 'bold';
+                    nameDiv.textContent = req.username || 'Użytkownik';
+                    
+                    const actionsDiv = document.createElement('div');
+                    actionsDiv.style.marginLeft = 'auto';
+                    
+                    const cancelBtn = document.createElement('button');
+                    cancelBtn.textContent = 'Anuluj';
+                    cancelBtn.style.padding = '2px 8px';
+                    cancelBtn.style.fontSize = '0.7rem';
+                    cancelBtn.style.backgroundColor = 'transparent';
+                    cancelBtn.style.color = 'var(--text-muted)';
+                    cancelBtn.style.border = '1px solid var(--border-color)';
+                    cancelBtn.style.borderRadius = '4px';
+                    cancelBtn.style.cursor = 'pointer';
+                    cancelBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        cancelSentRequest(req.id);
+                    };
+                    
+                    actionsDiv.appendChild(cancelBtn);
+
+                    reqItem.appendChild(avatar);
+                    reqItem.appendChild(nameDiv);
                     reqItem.appendChild(actionsDiv);
                     chatList.appendChild(reqItem);
                 });
@@ -1313,6 +1580,54 @@ document.addEventListener('DOMContentLoaded', async () => {
                 row.appendChild(name);
                 row.appendChild(accept);
                 row.appendChild(reject);
+                list.appendChild(row);
+            });
+        }
+
+        function renderSentRequestsModal() {
+            const list = document.getElementById('sentRequestsList');
+            if (!list) return;
+            list.innerHTML = '';
+            if (!sentRequests || sentRequests.length === 0) {
+                const empty = document.createElement('div');
+                empty.style.color = 'var(--text-muted)';
+                empty.style.fontSize = '0.8rem';
+                empty.style.width = '100%';
+                empty.style.textAlign = 'center';
+                empty.textContent = 'Brak wysłanych zaproszeń.';
+                list.appendChild(empty);
+                return;
+            }
+            sentRequests.forEach(req => {
+                const row = document.createElement('div');
+                row.style.display = 'flex';
+                row.style.alignItems = 'center';
+                row.style.gap = '10px';
+                const avatar = document.createElement('div');
+                avatar.className = 'avatar';
+                
+                const rAv = req.avatarUrl || req.AvatarUrl;
+                if (rAv) {
+                    avatar.style.backgroundImage = `url('${resolveUrl(rAv)}')`;
+                    avatar.style.backgroundSize = 'cover';
+                    avatar.style.backgroundPosition = 'center';
+                    avatar.textContent = '';
+                } else {
+                    avatar.textContent = (req.username || 'U').charAt(0).toUpperCase();
+                }
+                
+                const name = document.createElement('div');
+                name.style.flex = '1';
+                name.textContent = req.username || 'Użytkownik';
+                
+                const cancelBtn = document.createElement('button');
+                cancelBtn.className = 'btn-secondary';
+                cancelBtn.textContent = 'Anuluj';
+                cancelBtn.onclick = () => cancelSentRequest(req.id);
+
+                row.appendChild(avatar);
+                row.appendChild(name);
+                row.appendChild(cancelBtn);
                 list.appendChild(row);
             });
         }
@@ -1577,9 +1892,27 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (isContinuation) messageWrapper.classList.add('message-continuation');
                         messageWrapper.dataset.senderId = msgSenderId;
                         messageWrapper.dataset.timestamp = msgDate.toISOString();
+                        messageWrapper.dataset.messageId = msg.id || msg.Id;
 
                         const row = document.createElement("div");
                         row.className = "message-row";
+
+                        const actionsDiv = document.createElement("div");
+                        actionsDiv.className = "message-actions";
+                        
+                        if (isOwnMessage) {
+                            const deleteBtn = document.createElement("button");
+                            deleteBtn.className = "btn-msg-action";
+                            deleteBtn.title = "Usuń wiadomość";
+                            deleteBtn.innerHTML = `<span class="material-symbols-outlined">delete</span>`;
+                            deleteBtn.onclick = (e) => {
+                                e.stopPropagation();
+                                deleteMessage(msg.id || msg.Id);
+                            };
+                            actionsDiv.appendChild(deleteBtn);
+                        }
+                        row.appendChild(actionsDiv);
+
                         const avatarEl = document.createElement("div");
                         avatarEl.className = "message-avatar";
                         
@@ -1757,43 +2090,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             friends.forEach(friend => {
                 const tile = document.createElement('div');
                 tile.className = 'friend-tile';
-                tile.style.cursor = 'pointer';
-                tile.style.flexDirection = 'column';
-                tile.style.alignItems = 'center';
-                tile.style.textAlign = 'center';
-                tile.style.width = '100%';
+                // Inline styles removed to rely on CSS class
                 
-                if (selectedUsernames.has(friend.username)) {
+                const fAvatarUrl = friend.avatarUrl || friend.AvatarUrl;
+                const fName = friend.username || friend.Username;
+
+                if (selectedUsernames.has(fName)) {
                     tile.classList.add('selected');
                 }
                 const avatar = document.createElement('div');
                 avatar.className = 'avatar';
-                avatar.style.width = '40px';
-                avatar.style.height = '40px';
-                avatar.style.borderRadius = '50%';
-                avatar.style.display = 'flex';
-                avatar.style.alignItems = 'center';
-                avatar.style.justifyContent = 'center';
-                avatar.style.backgroundColor = 'var(--accent-green)';
-                avatar.style.color = 'var(--btn-text-color, white)';
-                avatar.style.marginBottom = '5px';
+                // Inline styles removed to rely on CSS class
                 
-                if (friend.avatarUrl) {
-                    avatar.style.backgroundImage = `url('${resolveUrl(friend.avatarUrl)}')`;
-                    avatar.style.backgroundSize = 'cover';
-                    avatar.style.backgroundPosition = 'center';
+                if (fAvatarUrl) {
+                    avatar.style.backgroundImage = `url('${resolveUrl(fAvatarUrl)}')`;
                     avatar.textContent = '';
                 } else {
-                    avatar.textContent = friend.username.charAt(0).toUpperCase();
+                    avatar.textContent = fName.charAt(0).toUpperCase();
                 }
+                
                 const name = document.createElement('span');
-                name.textContent = friend.username;
-                name.title = friend.username;
-                name.style.fontSize = '0.75rem';
-                name.style.overflow = 'hidden';
-                name.style.textOverflow = 'ellipsis';
-                name.style.whiteSpace = 'nowrap';
-                name.style.width = '100%';
+                name.textContent = fName;
+                name.title = fName;
+                // Inline styles removed to rely on CSS class
 
                 const check = document.createElement('div');
                 check.className = 'check-icon';
@@ -1805,9 +2124,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                 tile.onclick = () => {
                     tile.classList.toggle('selected');
                     if (tile.classList.contains('selected')) {
-                        selectedUsernames.add(friend.username);
+                        selectedUsernames.add(fName);
                     } else {
-                        selectedUsernames.delete(friend.username);
+                        selectedUsernames.delete(fName);
                     }
                     hiddenInput.value = Array.from(selectedUsernames).join(',');
                 };
@@ -1819,13 +2138,24 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const tab = button.dataset.tab;
                 tabButtons.forEach(btn => btn.classList.remove('active'));
                 button.classList.add('active');
+                
+                const friendTab = document.getElementById('friendTab');
+                const groupTab = document.getElementById('groupTab');
+                const requestsTab = document.getElementById('requestsTab');
+
+                if (friendTab) friendTab.classList.remove('active');
+                if (groupTab) groupTab.classList.remove('active');
+                if (requestsTab) requestsTab.classList.remove('active');
+
                 if (tab === 'friend') {
-                    friendTab.classList.add('active');
-                    groupTab.classList.remove('active');
-                } else {
-                    groupTab.classList.add('active');
-                    friendTab.classList.remove('active');
+                    if (friendTab) friendTab.classList.add('active');
+                } else if (tab === 'group') {
+                    if (groupTab) groupTab.classList.add('active');
                     renderFriendSelection('friendsSelectionList', 'groupMembers');
+                } else if (tab === 'requests') {
+                    if (requestsTab) requestsTab.classList.add('active');
+                    renderPendingRequestsModal();
+                    renderSentRequestsModal();
                 }
             });
         });
@@ -1849,12 +2179,19 @@ document.addEventListener('DOMContentLoaded', async () => {
                     if (response.ok) {
                         const data = await response.json();
                         friendInput.value = '';
-                        addModal.classList.remove('show');
+                        
                         await loadFriends();
+                        
                         if (data.pending) {
-                            showNotification('Zaproszenie zostało wysłane. Poczekaj na akceptację użytkownika.', 'success');
-                            showNotification(data.message || 'Jesteście już znajomymi.', 'success');
-                            selectChat(data.friendId, data.username, data.avatarUrl);
+                            showNotification('Zaproszenie zostało wysłane.', 'success');
+                            await loadSentRequests();
+                            
+                            // Switch to requests tab to show the new request
+                            const requestsTabBtn = document.querySelector('.tab-button[data-tab="requests"]');
+                            if (requestsTabBtn) requestsTabBtn.click();
+                            
+                        } else if (data.alreadyFriends) {
+                             showNotification(data.message || 'Jesteście już znajomymi.', 'info');
                         } else {
                             showNotification(data.message || 'Operacja zakończona sukcesem.', 'success');
                         }
@@ -1940,16 +2277,23 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (addGroupMemberBtn) {
             addGroupMemberBtn.addEventListener('click', () => {
                 if (currentChatType !== 'group' || !currentChatId) return;
-                let hiddenInput = document.getElementById('addMemberHiddenInput');
-                if (!hiddenInput) {
-                    hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.id = 'addMemberHiddenInput';
-                    document.body.appendChild(hiddenInput);
+                
+                if (typeof openAddMemberModal === 'function') {
+                    openAddMemberModal(currentChatId);
+                } else {
+                    console.error('openAddMemberModal not found');
+                    // Fallback to old logic
+                    let hiddenInput = document.getElementById('addMemberHiddenInput');
+                    if (!hiddenInput) {
+                        hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.id = 'addMemberHiddenInput';
+                        document.body.appendChild(hiddenInput);
+                    }
+                    hiddenInput.value = '';
+                    renderFriendSelection('addMemberSelectionList', 'addMemberHiddenInput');
+                    addMemberModal.classList.add('show');
                 }
-                hiddenInput.value = '';
-                renderFriendSelection('addMemberSelectionList', 'addMemberHiddenInput');
-                addMemberModal.classList.add('show');
             });
         }
         if (closeAddMemberModal) {
@@ -2003,7 +2347,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
         const settingsUsername = document.getElementById('settingsUsername');
         const settingsEmail = document.getElementById('settingsEmail');
-        const themeVibrantRadio = document.getElementById('themeVibrant');
         const themeDarkRadio = document.getElementById('themeDark');
         const themeClassicRadio = document.getElementById('themeClassic');
         const themeOriginalRadio = document.getElementById('themeOriginal');
@@ -2043,8 +2386,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     if (settingsAvatarPreview) {
                         const uAv = user.avatarUrl || user.AvatarUrl || user.profilePictureUrl;
-                        
-                        // Always clear first
+                        console.log('Detected avatar URL:', uAv);
+
+                        // Reset styles first
                         settingsAvatarPreview.textContent = '';
                         settingsAvatarPreview.style.display = 'flex';
                         settingsAvatarPreview.style.alignItems = 'center';
@@ -2054,19 +2398,29 @@ document.addEventListener('DOMContentLoaded', async () => {
                         if (uAv) {
                             const resolved = resolveUrl(uAv);
                             const urlWithCache = resolved + (resolved.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
+                            console.log('Resolved avatar URL:', urlWithCache);
                             
-                            // Apply immediately without waiting for load
-                            settingsAvatarPreview.style.background = `url('${urlWithCache}') center/cover no-repeat`;
+                            // Apply properly
+                            settingsAvatarPreview.style.backgroundImage = `url('${urlWithCache}')`;
+                            settingsAvatarPreview.style.backgroundSize = 'cover';
+                            settingsAvatarPreview.style.backgroundPosition = 'center';
+                            settingsAvatarPreview.style.backgroundRepeat = 'no-repeat';
+                            settingsAvatarPreview.style.backgroundColor = 'transparent';
                             
                             // Also update sidebar immediately
                             const sidebarAvatar = document.getElementById('userAvatar');
                             if (sidebarAvatar) {
-                                sidebarAvatar.style.background = `url('${urlWithCache}') center/cover no-repeat`;
+                                sidebarAvatar.style.backgroundImage = `url('${urlWithCache}')`;
+                                sidebarAvatar.style.backgroundSize = 'cover';
+                                sidebarAvatar.style.backgroundPosition = 'center';
+                                sidebarAvatar.style.backgroundRepeat = 'no-repeat';
+                                sidebarAvatar.style.backgroundColor = 'transparent';
                                 sidebarAvatar.textContent = '';
                             }
                         } else {
                             // Fallback
-                            settingsAvatarPreview.style.background = 'var(--accent-green)';
+                            settingsAvatarPreview.style.backgroundImage = 'none';
+                            settingsAvatarPreview.style.backgroundColor = 'var(--accent-green)';
                             settingsAvatarPreview.textContent = (user.username || user.userName || '?').charAt(0).toUpperCase();
                             settingsAvatarPreview.style.fontSize = '2.5rem';
                             settingsAvatarPreview.style.color = 'white';
@@ -2096,13 +2450,23 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (response.ok) {
                     const data = await response.json();
                     const fullUrl = resolveUrl(data.url);
+                    const urlWithCache = fullUrl + (fullUrl.includes('?') ? '&' : '?') + 't=' + new Date().getTime();
                     
-                    settingsAvatarPreview.style.background = `url('${fullUrl}') center/cover no-repeat`;
+                    // Apply properly to settings preview
+                    settingsAvatarPreview.style.backgroundImage = `url('${urlWithCache}')`;
+                    settingsAvatarPreview.style.backgroundSize = 'cover';
+                    settingsAvatarPreview.style.backgroundPosition = 'center';
+                    settingsAvatarPreview.style.backgroundRepeat = 'no-repeat';
+                    settingsAvatarPreview.style.backgroundColor = 'transparent';
                     settingsAvatarPreview.textContent = '';
                     
                     const mainAvatar = document.getElementById('userAvatar');
                     if (mainAvatar) {
-                        mainAvatar.style.background = `url('${fullUrl}') center/cover no-repeat`;
+                        mainAvatar.style.backgroundImage = `url('${urlWithCache}')`;
+                        mainAvatar.style.backgroundSize = 'cover';
+                        mainAvatar.style.backgroundPosition = 'center';
+                        mainAvatar.style.backgroundRepeat = 'no-repeat';
+                        mainAvatar.style.backgroundColor = 'transparent';
                         mainAvatar.textContent = '';
                     }
                     const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -2129,6 +2493,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             settingsForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const newUsername = settingsUsername.value.trim();
+                
+                if (newUsername.length > 16) {
+                    showNotification('Nazwa użytkownika nie może być dłuższa niż 16 znaków.', 'error');
+                    return;
+                }
+
                 const newPassword = document.getElementById('settingsPassword').value;
                 const newEmail = settingsEmail ? settingsEmail.value.trim() : '';
                 const updateData = {};
@@ -2259,7 +2629,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         function applyTheme(themeName) {
             const root = document.documentElement;
             if (!root) return;
-            const allowed = ['vibrant', 'dark', 'classic', 'original', 'neon', 'forest', 'kontrast'];
+            const allowed = ['dark', 'classic', 'original', 'neon', 'forest', 'kontrast'];
             const finalTheme = allowed.includes(themeName) ? themeName : 'original';
             root.setAttribute('data-theme', finalTheme);
         }
@@ -2279,6 +2649,49 @@ document.addEventListener('DOMContentLoaded', async () => {
                 root.setAttribute('data-simple-text', 'true');
             } else {
                 root.removeAttribute('data-simple-text');
+            }
+        }
+
+        async function saveThemeSettings() {
+            const theme = localStorage.getItem('preferredTheme') || 'original';
+            const textSize = localStorage.getItem('preferredTextSize') || 'medium';
+            const isSimpleText = localStorage.getItem('preferredSimpleText') === 'true';
+            
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                
+                // Use window.API_URL which is defined in the scope or fallback
+                const apiUrl = window.API_URL || ((window.SERVER_BASE || window.location.origin) + '/api');
+
+                const response = await fetch(`${apiUrl}/users/profile`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        theme: theme,
+                        textSize: textSize,
+                        isSimpleText: isSimpleText
+                    })
+                });
+                
+                if (response.ok) {
+                    // Update local user object
+                    const userStr = localStorage.getItem('user');
+                    if (userStr) {
+                        try {
+                            const user = JSON.parse(userStr);
+                            user.Theme = theme;
+                            user.TextSize = textSize;
+                            user.IsSimpleText = isSimpleText;
+                            localStorage.setItem('user', JSON.stringify(user));
+                        } catch(e) {}
+                    }
+                }
+            } catch (e) {
+                console.error('Failed to save theme settings to server', e);
             }
         }
 
@@ -2307,14 +2720,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             simpleTextToggle.checked = preferredSimpleText;
             simpleTextToggle.addEventListener('change', () => {
                 applySimpleText(simpleTextToggle.checked);
+                localStorage.setItem('preferredSimpleText', simpleTextToggle.checked);
+                saveThemeSettings();
             });
         }
 
         if (themeDarkRadio) {
             themeDarkRadio.checked = (preferredTheme === 'dark');
-        }
-        if (themeVibrantRadio) {
-            themeVibrantRadio.checked = (preferredTheme === 'vibrant');
         }
         if (themeClassicRadio) {
             themeClassicRadio.checked = (preferredTheme === 'classic');
@@ -2332,17 +2744,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             themeKontrastRadio.checked = (preferredTheme === 'kontrast');
         }
 
-        if (themeVibrantRadio) {
-            themeVibrantRadio.addEventListener('change', () => {
-                if (themeVibrantRadio.checked) {
-                    applyTheme('vibrant');
-                }
-            });
-        }
+
         if (themeDarkRadio) {
             themeDarkRadio.addEventListener('change', () => {
                 if (themeDarkRadio.checked) {
                     applyTheme('dark');
+                    localStorage.setItem('preferredTheme', 'dark');
+                    saveThemeSettings();
                 }
             });
         }
@@ -2350,6 +2758,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             themeClassicRadio.addEventListener('change', () => {
                 if (themeClassicRadio.checked) {
                     applyTheme('classic');
+                    localStorage.setItem('preferredTheme', 'classic');
+                    saveThemeSettings();
                 }
             });
         }
@@ -2357,6 +2767,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             themeOriginalRadio.addEventListener('change', () => {
                 if (themeOriginalRadio.checked) {
                     applyTheme('original');
+                    localStorage.setItem('preferredTheme', 'original');
+                    saveThemeSettings();
                 }
             });
         }
@@ -2364,6 +2776,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             themeNeonRadio.addEventListener('change', () => {
                 if (themeNeonRadio.checked) {
                     applyTheme('neon');
+                    localStorage.setItem('preferredTheme', 'neon');
+                    saveThemeSettings();
                 }
             });
         }
@@ -2371,6 +2785,8 @@ document.addEventListener('DOMContentLoaded', async () => {
             themeForestRadio.addEventListener('change', () => {
                 if (themeForestRadio.checked) {
                     applyTheme('forest');
+                    localStorage.setItem('preferredTheme', 'forest');
+                    saveThemeSettings();
                 }
             });
         }
@@ -2378,38 +2794,12 @@ document.addEventListener('DOMContentLoaded', async () => {
             themeKontrastRadio.addEventListener('change', () => {
                 if (themeKontrastRadio.checked) {
                     applyTheme('kontrast');
+                    localStorage.setItem('preferredTheme', 'kontrast');
+                    saveThemeSettings();
                 }
             });
         }
-        const saveThemeBtn = document.getElementById('saveThemeBtn');
-        if (saveThemeBtn) {
-            saveThemeBtn.addEventListener('click', () => {
-                let selected = 'original';
-                if (themeDarkRadio && themeDarkRadio.checked) selected = 'dark';
-                else if (themeVibrantRadio && themeVibrantRadio.checked) selected = 'vibrant';
-                else if (themeClassicRadio && themeClassicRadio.checked) selected = 'classic';
-                else if (themeOriginalRadio && themeOriginalRadio.checked) selected = 'original';
-                else if (themeNeonRadio && themeNeonRadio.checked) selected = 'neon';
-                else if (themeForestRadio && themeForestRadio.checked) selected = 'forest';
-                else if (themeKontrastRadio && themeKontrastRadio.checked) selected = 'kontrast';
-                
-                localStorage.setItem('preferredTheme', selected);
-                applyTheme(selected);
-
-                if (textSizeSlider) {
-                    const sizeRevMap = ['small', 'medium', 'large', 'xlarge'];
-                    const val = parseInt(textSizeSlider.value);
-                    const size = sizeRevMap[val];
-                    localStorage.setItem('preferredTextSize', size);
-                }
-
-                if (simpleTextToggle) {
-                    localStorage.setItem('preferredSimpleText', simpleTextToggle.checked);
-                }
-
-                showNotification('Ustawienia wyglądu zapisane.', 'success');
-            });
-        }
+        /* saveThemeBtn removed - auto save implemented */
         const userProfileModal = document.getElementById('userProfileModal');
         const closeUserProfileModal = document.getElementById('closeUserProfileModal');
         if (closeUserProfileModal && userProfileModal) {
@@ -2612,7 +3002,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             members.forEach(member => {
                 const tile = document.createElement('div');
-                tile.className = 'friend-tile';
+                tile.className = 'group-member-card';
                 tile.style.cursor = 'default';
 
                 const av = document.createElement('div');
@@ -2700,7 +3090,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     const friendsList = await friendsRes.json();
                     const membersList = await membersRes.json();
                     
-                    const memberIds = new Set(membersList.map(m => String(m.id || m.Id)));
+                    const memberIds = new Set(membersList.map(m => String(m.userId || m.UserId)));
                     const availableFriends = friendsList.filter(f => !memberIds.has(String(f.id || f.Id)));
                     
                     list.innerHTML = '';
@@ -2710,30 +3100,74 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                     
                     availableFriends.forEach(friend => {
-                        const item = document.createElement('div');
-                        item.className = 'friend-select-item';
-                        item.style.display = 'flex';
-                        item.style.alignItems = 'center';
-                        item.style.gap = '10px';
-                        item.style.padding = '8px';
-                        item.style.borderBottom = '1px solid var(--border-color)';
+                        const tile = document.createElement('div');
+                        tile.className = 'friend-tile';
+                        tile.style.cursor = 'pointer';
+                        tile.style.flexDirection = 'column';
+                        tile.style.alignItems = 'center';
+                        tile.style.textAlign = 'center';
+                        tile.style.width = '100%';
                         
-                        const checkbox = document.createElement('input');
-                        checkbox.type = 'checkbox';
-                        checkbox.value = friend.id || friend.Id;
-                        checkbox.style.marginRight = '10px';
+                        const avatar = document.createElement('div');
+                        avatar.className = 'avatar';
+                        avatar.style.width = '40px';
+                        avatar.style.height = '40px';
+                        avatar.style.borderRadius = '50%';
+                        avatar.style.display = 'flex';
+                        avatar.style.alignItems = 'center';
+                        avatar.style.justifyContent = 'center';
+                        avatar.style.backgroundColor = 'var(--accent-green)';
+                        avatar.style.color = 'var(--btn-text-color, white)';
+                        avatar.style.marginBottom = '5px';
+                        
+                        const fAvatarUrl = friend.avatarUrl || friend.AvatarUrl;
+                        const fName = friend.username || friend.Username;
+
+                        if (fAvatarUrl) {
+                            avatar.style.backgroundImage = `url('${resolveUrl(fAvatarUrl)}')`;
+                            avatar.style.backgroundSize = 'cover';
+                            avatar.style.backgroundPosition = 'center';
+                            avatar.textContent = '';
+                        } else {
+                            avatar.textContent = fName.charAt(0).toUpperCase();
+                        }
                         
                         const name = document.createElement('span');
-                        name.textContent = friend.username || friend.Username;
+                        name.textContent = fName;
+                        name.title = fName;
+                        name.style.fontSize = '0.75rem';
+                        name.style.overflow = 'hidden';
+                        name.style.textOverflow = 'ellipsis';
+                        name.style.whiteSpace = 'nowrap';
+                        name.style.width = '100%';
+
+                        const check = document.createElement('div');
+                        check.className = 'check-icon';
+                        check.textContent = '✓';
                         
-                        item.appendChild(checkbox);
-                        item.appendChild(name);
-                        list.appendChild(item);
+                        tile.appendChild(avatar);
+                        tile.appendChild(name);
+                        tile.appendChild(check);
+                        
+                        tile.onclick = () => {
+                            tile.classList.toggle('selected');
+                            const fid = String(friend.id || friend.Id);
+                            let currentSelected = hiddenInput.value ? hiddenInput.value.split(',') : [];
+                            
+                            if (tile.classList.contains('selected')) {
+                                if (!currentSelected.includes(fid)) currentSelected.push(fid);
+                            } else {
+                                currentSelected = currentSelected.filter(id => id !== fid);
+                            }
+                            hiddenInput.value = currentSelected.join(',');
+                        };
+                        
+                        list.appendChild(tile);
                     });
                     
                     // Setup confirm button logic
                     confirmBtn.onclick = async () => {
-                        const selectedIds = Array.from(list.querySelectorAll('input[type="checkbox"]:checked')).map(cb => cb.value);
+                        const selectedIds = hiddenInput.value ? hiddenInput.value.split(',').filter(x => x) : [];
                         if (selectedIds.length === 0) {
                             showNotification('Wybierz przynajmniej jedną osobę.', 'warning');
                             return;
@@ -2969,35 +3403,35 @@ document.addEventListener('DOMContentLoaded', async () => {
                     // Add Member Button
                     const addBtn = document.createElement('button');
                     addBtn.className = 'btn-secondary btn-sidebar-action';
-                    addBtn.innerHTML = '➕ Dodaj członków';
+                    addBtn.innerHTML = '<span class="material-symbols-outlined">person_add</span> Dodaj członków';
                     addBtn.onclick = () => openAddMemberModal(currentChatId);
                     adminControls.appendChild(addBtn);
 
                     // Edit Group Button
                     const editBtn = document.createElement('button');
                     editBtn.className = 'btn-secondary btn-sidebar-action';
-                    editBtn.innerHTML = '✏️ Edytuj grupę';
+                    editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Edytuj grupę';
                     editBtn.onclick = () => openEditGroupModal(currentChatId, group.name || group.Name);
                     adminControls.appendChild(editBtn);
                     
                     // Change Photo Button
                     const photoBtn = document.createElement('button');
                     photoBtn.className = 'btn-secondary btn-sidebar-action';
-                    photoBtn.innerHTML = '🖼️ Zmień zdjęcie grupy';
+                    photoBtn.innerHTML = '<span class="material-symbols-outlined">image</span> Zmień zdjęcie grupy';
                     photoBtn.onclick = () => changeGroupPhoto(currentChatId);
                     adminControls.appendChild(photoBtn);
                     
                     // Delete Group Button
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'btn-secondary btn-sidebar-action danger';
-                    deleteBtn.innerHTML = '🗑️ Usuń grupę';
+                    deleteBtn.innerHTML = '<span class="material-symbols-outlined">delete</span> Usuń grupę';
                     deleteBtn.onclick = () => deleteGroup(currentChatId);
                     adminControls.appendChild(deleteBtn);
                 } else {
                     // Leave Group Button
                     const leaveBtn = document.createElement('button');
                     leaveBtn.className = 'btn-secondary btn-sidebar-action danger';
-                    leaveBtn.innerHTML = '🚪 Opuść grupę';
+                    leaveBtn.innerHTML = '<span class="material-symbols-outlined">logout</span> Opuść grupę';
                     leaveBtn.onclick = () => leaveGroup(currentChatId);
                     adminControls.appendChild(leaveBtn);
                 }
@@ -3024,10 +3458,11 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const messagesContainer = document.getElementById('chat-messages');
                 if (messagesContainer) {
                     const imgs = messagesContainer.querySelectorAll('img.message-image');
-                    if (!imgs.length) {
-                        imagesContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Brak obrazków w tej konwersacji.</div>';
-                    } else {
-                        imgs.forEach(img => {
+                imagesContainer.innerHTML = ''; // Clear existing images before repopulating
+                if (!imgs.length) {
+                    imagesContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Brak obrazków w tej konwersacji.</div>';
+                } else {
+                    imgs.forEach(img => {
                             const thumb = document.createElement('img');
                             thumb.src = img.src;
                             thumb.onclick = () => openLightbox(img.src);
@@ -3106,6 +3541,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await startConnection();
         setInterval(() => {
             loadPendingRequests();
+            loadSentRequests();
             loadFriends();
             loadGroups();
         }, 6069);
@@ -3242,6 +3678,43 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
+
+        window.deleteMessage = async function(messageId) {
+            if (!confirm('Czy na pewno chcesz usunąć tę wiadomość?')) return;
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`${API_URL}/messages/${messageId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (response.ok) {
+                    const wrapper = document.querySelector(`.message-wrapper[data-message-id="${messageId}"]`);
+                    if (wrapper) {
+                        wrapper.style.transition = 'opacity 0.3s, height 0.3s';
+                        wrapper.style.opacity = '0';
+                        setTimeout(() => wrapper.remove(), 300);
+                    }
+                    showNotification('Wiadomość usunięta.', 'success');
+                } else {
+                    let errorMsg = 'Nie udało się usunąć wiadomości';
+                    try {
+                        const errData = await response.json();
+                        if (errData && (errData.message || errData.error)) {
+                            errorMsg = errData.message || errData.error;
+                        } else {
+                            errorMsg = await response.text();
+                        }
+                    } catch (e) {
+                         // ignore json parse error
+                    }
+                    console.error('Failed to delete message:', errorMsg);
+                    showNotification(errorMsg, 'error');
+                }
+            } catch (e) {
+                console.error('Error deleting message', e);
+                showNotification('Błąd sieci/serwera podczas usuwania wiadomości', 'error');
+            }
+        };
 
     })();
     }

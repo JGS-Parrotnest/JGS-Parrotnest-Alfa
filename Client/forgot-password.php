@@ -4,10 +4,17 @@
 	<script>
         (function() {
             try {
-                var t = localStorage.getItem('preferredTheme') || 'dark';
+                var t = localStorage.getItem('preferredTheme') || 'original';
                 document.documentElement.setAttribute('data-theme', t);
+
+                var s = localStorage.getItem('preferredTextSize') || 'medium';
+                document.documentElement.setAttribute('data-text-size', s);
+
+                if (localStorage.getItem('preferredSimpleText') === 'true') {
+                    document.documentElement.setAttribute('data-simple-text', 'true');
+                }
             } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-theme', 'original');
             }
         })();
     </script>

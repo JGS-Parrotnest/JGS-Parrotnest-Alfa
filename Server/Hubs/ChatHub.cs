@@ -36,6 +36,9 @@ namespace ParrotnestServer.Hubs
             if (userId.HasValue)
             {
                 await _userTracker.UserConnected(Context.ConnectionId, userId.Value);
+                // Ensure reliable targeting by adding to a user-specific group
+                await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId.Value}");
+
                 var user = await _context.Users.FindAsync(userId.Value);
                 int status = (user != null && user.Status != 4) ? user.Status : 0;
                 // If user is invisible (4), status broadcast is 0 (Offline)
@@ -115,7 +118,8 @@ namespace ParrotnestServer.Hubs
                                 imageUrl,
                                 receiverId,
                                 groupId,
-                                sender.AvatarUrl
+                                sender.AvatarUrl,
+                                msg.Id
                             );
                         }
                     }
@@ -132,7 +136,8 @@ namespace ParrotnestServer.Hubs
                                 imageUrl,
                                 receiverId,
                                 null,
-                                sender.AvatarUrl
+                                sender.AvatarUrl,
+                                msg.Id
                             );
                             await Clients.User(receiverId.Value.ToString()).SendAsync(
                                 "ReceiveMessage",
@@ -142,7 +147,8 @@ namespace ParrotnestServer.Hubs
                                 imageUrl,
                                 receiverId,
                                 null,
-                                sender.AvatarUrl
+                                sender.AvatarUrl,
+                                msg.Id
                             );
                         }
                     }

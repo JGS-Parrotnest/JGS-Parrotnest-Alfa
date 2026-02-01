@@ -23,6 +23,10 @@ namespace ParrotnestServer.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterDto dto)
         {
+            if (dto.Username.Length > 16)
+            {
+                return BadRequest("Nazwa użytkownika nie może przekraczać 16 znaków.");
+            }
             if (await _context.Users.AnyAsync(u => u.Email == dto.Email))
             {
                 return BadRequest("Email already exists");

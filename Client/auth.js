@@ -156,6 +156,11 @@ window.handleRegister = async (e) => {
     console.log("Rozpoczynam rejestrację...");
 
     const username = document.getElementById('username').value;
+    if (username.length > 16) {
+        showNotification('Nazwa użytkownika nie może być dłuższa niż 16 znaków.', 'error');
+        return false;
+    }
+
     const email = document.getElementById('email').value;
     const password = document.getElementById('password').value;
     const confirmPassword = document.getElementById('confirmPassword').value;

@@ -23,7 +23,7 @@
                     document.documentElement.setAttribute('data-simple-text', 'true');
                 }
             } catch (e) {
-                document.documentElement.setAttribute('data-theme', 'dark');
+                document.documentElement.setAttribute('data-theme', 'original');
             }
         })();
     </script>
@@ -33,6 +33,7 @@
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="style.css?v=9">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
 
@@ -178,7 +179,7 @@
                     <h3>Ogólny</h3>
                 </div>
                 <div class="chat-actions">
-                    <button class="btn-icon" id="conversationInfoButton" title="Informacje o czacie">ℹ️</button>
+                    <button class="btn-icon" id="conversationInfoButton" title="Informacje o czacie"><span class="material-symbols-outlined">info</span></button>
                     <!-- Przeniesione do panelu bocznego
                     <button class="btn-icon" id="addGroupMemberBtn" style="display: none;" title="Dodaj członków">➕</button>
                     <button class="btn-icon" id="removeGroupMemberBtn" style="display: none;" title="Usuń użytkownika">➖</button>
@@ -194,11 +195,11 @@
             </div>
             <form class="chat-input-area" id="messageForm">
                 <input type="file" id="imageInput" accept="image/*" style="display: none;">
-                <button type="button" class="btn-icon" id="attachButton" title="Załącz plik">📎</button>
-                <button type="button" class="btn-icon" id="emojiButton" title="Emoji">😊</button>
+                <button type="button" class="btn-icon" id="attachButton" title="Załącz plik"><span class="material-symbols-outlined">attach_file</span></button>
+                <button type="button" class="btn-icon" id="emojiButton" title="Emoji"><span class="material-symbols-outlined">mood</span></button>
                 <div id="attachmentPreview" style="display: none; margin-right: 10px; color: var(--accent-green);"></div>
                 <input type="text" id="messageInput" placeholder="Napisz wiadomość...">
-                <button type="submit" id="sendButton" class="btn-send" title="Wyślij wiadomość">➤</button>
+                <button type="submit" id="sendButton" class="btn-send" title="Wyślij wiadomość"><span class="material-symbols-outlined">send</span></button>
             </form>
             <div id="emojiPicker" class="emoji-picker"></div>
         </main>
@@ -206,7 +207,7 @@
     <div class="conversation-sidebar" id="conversationSidebar">
         <div class="conversation-sidebar-header">
             <h3 id="conversationSidebarTitle" style="display:none;">Informacje</h3>
-            <button class="btn-icon" id="closeConversationSidebarButton" title="Zamknij panel">✖</button>
+            <button class="btn-icon" id="closeConversationSidebarButton" title="Zamknij panel"><span class="material-symbols-outlined">close</span></button>
         </div>
         <div class="conversation-sidebar-body" id="conversationSidebarBody">
             <div class="info-card">
@@ -272,7 +273,7 @@
                     </div>
                     <div class="input-group">
                         <label for="groupMembers">Wybierz członków</label>
-                        <div id="friendsSelectionList" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
+                        <div id="friendsSelectionList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; max-height: 250px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
                         </div>
                         <input type="hidden" id="groupMembers">
                     </div>
@@ -283,6 +284,12 @@
                         <label>Oczekujące zaproszenia</label>
                         <div id="pendingRequestsList" style="display: flex; flex-direction: column; gap: 10px;">
                             <div style="color: var(--text-muted); font-size: 0.8rem; width: 100%; text-align: center;">Brak zaproszeń.</div>
+                        </div>
+                    </div>
+                    <div class="input-group">
+                        <label>Wysłane zaproszenia</label>
+                        <div id="sentRequestsList" style="display: flex; flex-direction: column; gap: 10px;">
+                            <div style="color: var(--text-muted); font-size: 0.8rem; width: 100%; text-align: center;">Brak wysłanych zaproszeń.</div>
                         </div>
                     </div>
                 </div>
@@ -298,7 +305,7 @@
             <div class="modal-body">
                 <div class="input-group">
                     <label>Wybierz znajomych</label>
-                    <div id="addMemberSelectionList" style="display: flex; flex-wrap: wrap; gap: 10px; max-height: 200px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
+                    <div id="addMemberSelectionList" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 10px; max-height: 300px; overflow-y: auto; padding: 10px; border: 1px solid var(--border-color); border-radius: 8px;">
                     </div>
                     <input type="hidden" id="addMemberHiddenInput">
                 </div>
@@ -343,7 +350,7 @@
                     <form id="settingsForm">
                         <div class="input-group">
                             <label for="settingsUsername">Nazwa użytkownika</label>
-                            <input type="text" id="settingsUsername" name="username" placeholder="Twoja nazwa">
+                            <input type="text" id="settingsUsername" name="username" placeholder="Twoja nazwa" maxlength="16">
                         </div>
                         <div class="input-group">
                             <label for="settingsEmail">Adres e-mail</label>
@@ -362,7 +369,34 @@
                 <div class="tab-content" id="settings-notificationsTab">
                     <div class="input-group">
                         <label for="settingsNotificationsToggle">Powiadomienia</label>
-                        <button type="button" class="btn-secondary" id="settingsNotificationsToggle">Przełącz powiadomienia</button>
+                        <div style="display: flex; align-items: flex-start; gap: 20px;">
+                            <button type="button" class="btn-secondary" id="settingsNotificationsToggle" style="flex: 0 0 auto; height: 44px;">Przełącz powiadomienia</button>
+                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; height: 44px;">
+                                <input type="range" id="volumeSlider" min="0" max="100" value="100" style="width: 100%; cursor: pointer;" title="Głośność: 100%">
+                                <div style="display: flex; justify-content: space-between; position: relative; height: 10px; margin-top: 5px; margin-left: 2px; margin-right: 2px;">
+                                    <div style="position: absolute; left: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+                                        <div style="width: 1px; height: 4px; background: var(--text-muted); margin-bottom: 2px;"></div>
+                                        <span style="font-size: 0.6rem; color: var(--text-muted);">0%</span>
+                                    </div>
+                                    <div style="position: absolute; left: 25%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+                                        <div style="width: 1px; height: 4px; background: var(--text-muted); margin-bottom: 2px;"></div>
+                                        <span style="font-size: 0.6rem; color: var(--text-muted);">25%</span>
+                                    </div>
+                                    <div style="position: absolute; left: 50%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+                                        <div style="width: 1px; height: 4px; background: var(--text-muted); margin-bottom: 2px;"></div>
+                                        <span style="font-size: 0.6rem; color: var(--text-muted);">50%</span>
+                                    </div>
+                                    <div style="position: absolute; left: 75%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+                                        <div style="width: 1px; height: 4px; background: var(--text-muted); margin-bottom: 2px;"></div>
+                                        <span style="font-size: 0.6rem; color: var(--text-muted);">75%</span>
+                                    </div>
+                                    <div style="position: absolute; left: 100%; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
+                                        <div style="width: 1px; height: 4px; background: var(--text-muted); margin-bottom: 2px;"></div>
+                                        <span style="font-size: 0.6rem; color: var(--text-muted);">100%</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="input-group">
                         <label>Dźwięk powiadomień</label>
@@ -410,17 +444,13 @@
                                 <span class="theme-name">Leśny</span>
                                 <input type="radio" class="theme-radio" name="theme" value="forest" id="themeForest">
                             </label>
-							<label class="theme-option">
-                                <span class="theme-name">Vibrant</span>
-                                <input type="radio" class="theme-radio" name="theme" value="vibrant" id="themeVibrant">
-                            </label>
                             <label class="theme-option">
                                 <span class="theme-name">Kontrast</span>
                                 <input type="radio" class="theme-radio" name="theme" value="kontrast" id="themeKontrast">
                             </label>
                         </div>
                         <div style="margin-top: 12px; display: flex; justify-content: flex-end;">
-                            <button type="button" class="btn-primary" id="saveThemeBtn" style="width: auto; padding: 10px 16px;">Zapisz motyw</button>
+    
                         </div>
                     </div>
                     <div class="input-group">

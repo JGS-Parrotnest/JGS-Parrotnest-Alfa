@@ -84,6 +84,15 @@ namespace ParrotnestServer
                     try {
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN Status INTEGER DEFAULT 1;");
                     } catch { /* Ignore if exists */ }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN Theme TEXT DEFAULT 'original';");
+                    } catch { /* Ignore if exists */ }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN TextSize TEXT DEFAULT 'medium';");
+                    } catch { /* Ignore if exists */ }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN IsSimpleText INTEGER DEFAULT 0;");
+                    } catch { /* Ignore if exists */ }
                 }
                 _app.Urls.Clear();
                 _app.Urls.Add("http://0.0.0.0:6069");
