@@ -97,6 +97,12 @@ namespace ParrotnestServer
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN IsSimpleText INTEGER DEFAULT 0;");
                     } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] IsSimpleText: {ex.Message}"); }
                     try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN IsAdmin INTEGER DEFAULT 0;");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] IsAdmin: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN BanUntil TEXT NULL;");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] BanUntil: {ex.Message}"); }
+                    try {
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Messages ADD COLUMN ReplyToId INTEGER NULL;");
                     } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] ReplyToId: {ex.Message}"); }
                     try {
@@ -105,6 +111,59 @@ namespace ParrotnestServer
                     try {
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Messages ADD COLUMN ImageUrl TEXT NULL;");
                     } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] ImageUrl: {ex.Message}"); }
+                    try
+                    {
+                        var adminByUsername = dbContext.Users.FirstOrDefault(u => u.Username.ToLower() == "admin");
+                        var adminByEmail = dbContext.Users.FirstOrDefault(u => u.Email.ToLower() == "admin@zse.pl");
+                        if (adminByUsername == null && adminByEmail == null)
+                        {
+                            var adminUser = new ParrotnestServer.Models.User
+                            {
+                                Username = "admin",
+                                Email = "admin@zse.pl",
+                                PasswordHash = BCrypt.Net.BCrypt.HashPassword("skyadmin"),
+                                IsAdmin = true,
+                                Status = 1,
+                                Theme = "original",
+                                TextSize = "medium",
+                                IsSimpleText = false
+                            };
+                            dbContext.Users.Add(adminUser);
+                            dbContext.SaveChanges();
+                            _logAction("Utworzono konto administratora: login 'admin', hasło 'skyadmin'.");
+                        }
+                        else if (adminByEmail != null && adminByUsername == null)
+                        {
+                            adminByEmail.Username = "admin";
+                            adminByEmail.IsAdmin = true;
+                            adminByEmail.PasswordHash = BCrypt.Net.BCrypt.HashPassword("skyadmin");
+                            dbContext.SaveChanges();
+                            _logAction("Promowano istniejące konto admin@zse.pl do administratora.");
+                        }
+                        else if (adminByUsername != null && adminByEmail == null)
+                        {
+                            adminByUsername.Email = "admin@zse.pl";
+                            adminByUsername.IsAdmin = true;
+                            adminByUsername.PasswordHash = BCrypt.Net.BCrypt.HashPassword("skyadmin");
+                            dbContext.SaveChanges();
+                            _logAction("Zaktualizowano konto 'admin' o email admin@zse.pl.");
+                        }
+                        else if (adminByUsername != null && adminByEmail != null && adminByUsername.Id != adminByEmail.Id)
+                        {
+                            // Jeśli istnieją dwa różne konta, promuj konto z adresem admin@zse.pl i odróżnij stare konto
+                            adminByEmail.Username = "admin";
+                            adminByEmail.IsAdmin = true;
+                            adminByEmail.PasswordHash = BCrypt.Net.BCrypt.HashPassword("skyadmin");
+                            // Odróżnij stare konto, aby uniknąć kolizji nazw
+                            adminByUsername.Username = "admin_old";
+                            dbContext.SaveChanges();
+                            _logAction("Ujednolicono konta admin: admin@zse.pl ustawiono jako główne.");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logAction($"[DB Warning] Admin seed: {ex.Message}");
+                    }
                 }
                 _app.Urls.Clear();
                 _app.Urls.Add("http://0.0.0.0:6069");

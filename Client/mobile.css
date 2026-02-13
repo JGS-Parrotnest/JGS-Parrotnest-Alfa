@@ -298,6 +298,16 @@ body.chat-open .chat-area { transform: translateX(0); }
 .p-3 { padding: 3px !important; }
 .pt-3 { padding-top: 3px !important; }
 .pb-3 { padding-bottom: 3px !important; }
+
+/* Message actions adjustment for mobile */
+.message-actions {
+    right: 5px !important;
+}
+
+/* Reduce message spacing on mobile */
+.message-wrapper:not(.message-continuation) {
+    margin-top: 6px !important;
+}
 .pl-3 { padding-left: 3px !important; }
 .pr-3 { padding-right: 3px !important; }
 .m-4 { margin: 4px !important; }
@@ -2200,3 +2210,22 @@ body.chat-open .chat-area { transform: translateX(0); }
 .ls-8 { letter-spacing: 0,8px !important; }
 .ls-9 { letter-spacing: 0,9px !important; }
 .ls-10 { letter-spacing: 1px !important; }
+
+/* 6. SETTINGS MODAL TWEAKS */
+.notification-settings-row {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 15px !important;
+}
+
+.notification-toggle-btn {
+    width: 100% !important;
+    margin-bottom: 10px !important;
+}
+
+.volume-controls-wrapper {
+    width: 100% !important;
+    height: auto !important;
+    padding: 0 5px !important;
+    margin-top: 10px !important;
+}

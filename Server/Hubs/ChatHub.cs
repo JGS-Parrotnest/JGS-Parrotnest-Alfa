@@ -40,6 +40,11 @@ namespace ParrotnestServer.Hubs
                 await Groups.AddToGroupAsync(Context.ConnectionId, $"User_{userId.Value}");
 
                 var user = await _context.Users.FindAsync(userId.Value);
+                if (user != null && user.BanUntil.HasValue && user.BanUntil.Value > DateTime.UtcNow)
+                {
+                    Context.Abort();
+                    return;
+                }
                 int status = (user != null && user.Status != 4) ? user.Status : 0;
                 // If user is invisible (4), status broadcast is 0 (Offline)
                 // However, we might want to differentiate "Invisible" vs "Offline" for the user themselves?
@@ -109,6 +114,10 @@ namespace ParrotnestServer.Hubs
             {
                 Log($"SendMessage failed: User with ID {userId.Value} not found in DB.");
                 throw new HubException($"Użytkownik o ID {userId.Value} nie istnieje w bazie danych.");
+            }
+            if (sender.BanUntil.HasValue && sender.BanUntil.Value > DateTime.UtcNow)
+            {
+                throw new HubException($"Twoje konto jest zbanowane do {sender.BanUntil.Value.ToLocalTime():yyyy-MM-dd HH:mm}.");
             }
 
             try 
@@ -255,7 +264,7 @@ namespace ParrotnestServer.Hubs
         public class ReactionItem
         {
             public int u { get; set; } // UserId
-            public string e { get; set; } // Emoji
+            public string? e { get; set; } // Emoji
         }
         public async Task JoinGroup(string groupName)
         {

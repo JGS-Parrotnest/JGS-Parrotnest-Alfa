@@ -18,6 +18,8 @@ namespace ParrotnestServer.Models
         public string Theme { get; set; } = "original";
         public string TextSize { get; set; } = "medium";
         public bool IsSimpleText { get; set; } = false;
+        public bool IsAdmin { get; set; } = false;
+        public DateTime? BanUntil { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

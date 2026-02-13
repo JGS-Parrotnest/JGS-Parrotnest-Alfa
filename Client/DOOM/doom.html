@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>DOOM 1</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link href="css/styledoom.css" rel="stylesheet">
+    <link rel="shortcut icon" href="img/logo.png">
+  </head>
+  <body data-spy="scroll" data-target=".bs-docs-sidebar" style="text-align:center;">
+    <div class="emscripten">
+      <canvas class="emscripten" id="canvas" oncontextmenu="event.preventDefault()"></canvas>
+    </div>
+    <div class="fullscreen">
+      <a id="fullscreen" href="javascript:void(0);">Fullscreen</a><br/><br/>
+    </div>
+    <div class="controls-guide">
+      <h3>Poradnik sterowania</h3>
+      <ul>
+        <li><strong>Strzałki</strong>: Poruszanie się / Obracanie</li>
+        <li><strong>Ctrl</strong>: Strzał</li>
+        <li><strong>Spacja</strong>: Otwieranie drzwi / Użycie</li>
+        <li><strong>Shift</strong>: Skradanie</li>
+        <li><strong>Alt</strong>: Strafe</li>
+        <li><strong>1-7</strong>: Wybór broni</li>
+        <li><strong>Esc</strong>: Menu</li>
+      </ul>
+    </div>
+    <footer class="site-footer">
+      DEV <span>Hnato</span>
+    </footer>
+    <script src="js/jquery-1.11.2.min.js"></script>
+    <script src="js/bootstrap.min.js" defer></script>
+    <script src="js/dosbox-config.js"></script>
+    <script src="js/doom-data.js"></script>
+</body>
+</html>

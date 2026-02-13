@@ -43,8 +43,22 @@ namespace ParrotnestServer.Controllers
                 user.AvatarUrl,
                 user.Theme,
                 user.TextSize,
-                user.IsSimpleText
+                user.IsSimpleText,
+                user.IsAdmin
             });
+        }
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<object>>> GetAllUsers()
+        {
+            return await _context.Users
+                .Select(u => new
+                {
+                    u.Id,
+                    u.Username,
+                    u.AvatarUrl,
+                    u.Status
+                })
+                .ToListAsync();
         }
         [HttpPost("avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile file)
@@ -141,7 +155,7 @@ namespace ParrotnestServer.Controllers
             if (dto.IsSimpleText != null) user.IsSimpleText = dto.IsSimpleText.Value;
 
             await _context.SaveChangesAsync();
-            return Ok(new { message = "Profil zaktualizowany", user = new { user.Id, user.Username, user.Email, user.AvatarUrl, user.Theme, user.TextSize, user.IsSimpleText } });
+            return Ok(new { message = "Profil zaktualizowany", user = new { user.Id, user.Username, user.Email, user.AvatarUrl, user.Theme, user.TextSize, user.IsSimpleText, user.IsAdmin } });
         }
     }
     public class UpdateProfileDto

@@ -104,9 +104,10 @@ namespace ParrotnestServer.Controllers
 
             var message = await _context.Messages.FindAsync(id);
             if (message == null) return NotFound("Wiadomość nie znaleziona.");
-            
-            if (message.SenderId != userId) {
-                return StatusCode(403, $"Możesz usuwać tylko własne wiadomości. (MsgSender: {message.SenderId}, You: {userId})");
+            var requester = await _context.Users.FindAsync(userId);
+            var isAdmin = requester != null && requester.IsAdmin;
+            if (message.SenderId != userId && !isAdmin) {
+                return StatusCode(403, $"Możesz usuwać tylko własne wiadomości.");
             }
             _context.Messages.Remove(message);
             await _context.SaveChangesAsync();

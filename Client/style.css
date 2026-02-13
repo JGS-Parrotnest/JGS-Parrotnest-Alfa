@@ -213,7 +213,7 @@ body {
 :root[data-simple-text="true"] h4,
 :root[data-simple-text="true"] h5,
 :root[data-simple-text="true"] h6,
-:root[data-simple-text="true"] span,
+:root[data-simple-text="true"] span:not(.material-symbols-outlined),
 :root[data-simple-text="true"] p,
 :root[data-simple-text="true"] a,
 :root[data-simple-text="true"] label,
@@ -1014,11 +1014,11 @@ body {
     top: -32px;
     background-color: var(--bg-card);
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: 6px;
     display: none;
     align-items: center;
     justify-content: center;
-    padding: 6px 8px;
+    padding: 2px;
     box-shadow: 0 4px 12px rgba(0,0,0,0.3);
     z-index: 100;
 }
@@ -1033,23 +1033,29 @@ body {
     border: none;
     color: var(--text-muted);
     cursor: pointer;
-    padding: 6px;
+    padding: 0;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 6px;
+    border-radius: 4px;
     transition: all 0.2s;
-    width: 44px;
-    height: 44px;
+    width: 32px;
+    height: 32px;
 }
 
 .btn-msg-action .material-symbols-outlined {
-    font-size: 1.6rem;
+    font-size: 20px !important;
+    font-variation-settings: 'wght' 700;
 }
 
 .btn-msg-action:hover {
     color: var(--text-main);
     background-color: var(--bg-primary);
+}
+
+.btn-msg-action.btn-delete:hover {
+    color: var(--error-color, #ff4444);
+    background-color: rgba(255, 68, 68, 0.15);
 }
 
 
@@ -1584,7 +1590,7 @@ body {
 /* Conversation Info Sidebar (Right Side Drawer) */
 .conversation-sidebar {
     position: fixed;
-    top: 101px;
+    top: 0;
     right: 0;
     bottom: 0;
     width: 470px; /* Fixed width updated to 470px */
@@ -1752,7 +1758,7 @@ body {
     padding: 0;
     height: 0;
     border: none;
-    background: transparent;
+    background-color: var(--bg-card);
 }
 
 .conversation-sidebar-header h3 {
@@ -1777,7 +1783,7 @@ body {
 
 .conversation-sidebar-body {
     padding: 20px;
-    padding-top: 0; /* Content moved to top as requested */
+    padding-top: 121px; /* 101px header + 20px padding */
     overflow-y: auto;
     flex: 1;
     margin-top: 0;

@@ -3,6 +3,8 @@ const SERVER_URL = window.SERVER_BASE || (window.location.protocol === 'file:' ?
 const HUB_URL = `${SERVER_URL}/chatHub`;
 // API_URL is defined in auth.js, using window.API_URL fallback
 const apiBase = window.API_URL || `${SERVER_URL}/api`;
+// Global API_URL is provided by auth.js. Using it here.
+const currentApiUrl = typeof API_URL !== 'undefined' ? API_URL : apiBase;
 
 if (typeof window.resolveUrl === 'undefined') {
         window.resolveUrl = function(url) {
@@ -190,6 +192,15 @@ document.addEventListener('DOMContentLoaded', async () => {
             if (confirm('Czy na pewno chcesz się wylogować?')) {
                 localStorage.removeItem('token');
                 localStorage.removeItem('user');
+                localStorage.setItem('preferredTheme', 'original'); // Reset theme to original on logout
+                localStorage.setItem('preferredTextSize', 'medium'); // Reset text size
+                localStorage.removeItem('preferredSimpleText'); // Reset simple text preference
+                
+                // Force theme update immediately
+                document.documentElement.setAttribute('data-theme', 'original');
+                document.documentElement.setAttribute('data-text-size', 'medium');
+                document.documentElement.removeAttribute('data-simple-text');
+
                 window.location.href = '/';
             }
         });
@@ -232,6 +243,31 @@ document.addEventListener('DOMContentLoaded', async () => {
         window.API_BASE_URL = base;
         // Use window.API_URL if defined
         const API_URL = window.API_URL || (base + '/api');
+
+        // Initialize UI elements for settings and theme
+        const themeDarkRadio = document.getElementById('themeDark');
+        const themeClassicRadio = document.getElementById('themeClassic');
+        const themeOriginalRadio = document.getElementById('themeOriginal');
+        const themeNeonRadio = document.getElementById('themeNeon');
+        const themeForestRadio = document.getElementById('themeForest');
+        const themeKontrastRadio = document.getElementById('themeKontrast');
+        const textSizeSlider = document.getElementById('textSizeSlider');
+        const simpleTextToggle = document.getElementById('simpleTextToggle');
+        const settingsUsername = document.getElementById('settingsUsername');
+        const settingsEmail = document.getElementById('settingsEmail');
+        const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
+        const changeAvatarBtn = document.getElementById('changeAvatarBtn');
+        const avatarInput = document.getElementById('avatarInput');
+        const settingsForm = document.getElementById('settingsForm');
+
+        window.themeDarkRadio = themeDarkRadio;
+        window.themeClassicRadio = themeClassicRadio;
+        window.themeOriginalRadio = themeOriginalRadio;
+        window.themeNeonRadio = themeNeonRadio;
+        window.themeForestRadio = themeForestRadio;
+        window.themeKontrastRadio = themeKontrastRadio;
+        window.textSizeSlider = textSizeSlider;
+        window.simpleTextToggle = simpleTextToggle;
         
         let signalRAvailable = typeof signalR !== 'undefined';
         if (!signalRAvailable) {
@@ -246,25 +282,28 @@ document.addEventListener('DOMContentLoaded', async () => {
             try {
                 user = JSON.parse(userStr);
                 // Apply cached theme immediately to avoid flash
-                if (user.Theme) {
+                const theme = user.Theme || user.theme;
+                if (theme) {
                     const currentTheme = localStorage.getItem('preferredTheme');
-                    if (user.Theme !== currentTheme) {
-                         applyTheme(user.Theme);
-                         localStorage.setItem('preferredTheme', user.Theme);
+                    if (theme !== currentTheme) {
+                         applyTheme(theme);
+                         localStorage.setItem('preferredTheme', theme);
                     }
                 }
-                if (user.TextSize) {
+                const textSize = user.TextSize || user.textSize;
+                if (textSize) {
                     const currentSize = localStorage.getItem('preferredTextSize');
-                    if (user.TextSize !== currentSize) {
-                         applyTextSize(user.TextSize);
-                         localStorage.setItem('preferredTextSize', user.TextSize);
+                    if (textSize !== currentSize) {
+                         applyTextSize(textSize);
+                         localStorage.setItem('preferredTextSize', textSize);
                     }
                 }
-                if (user.IsSimpleText !== undefined) {
+                const isSimpleText = user.IsSimpleText !== undefined ? user.IsSimpleText : user.isSimpleText;
+                if (isSimpleText !== undefined) {
                     const currentSimple = localStorage.getItem('preferredSimpleText') === 'true';
-                    if (user.IsSimpleText !== currentSimple) {
-                         applySimpleText(user.IsSimpleText);
-                         localStorage.setItem('preferredSimpleText', user.IsSimpleText);
+                    if (isSimpleText !== currentSimple) {
+                         applySimpleText(isSimpleText);
+                         localStorage.setItem('preferredSimpleText', isSimpleText);
                     }
                 }
             } catch (e) {
@@ -279,37 +318,40 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         // Always fetch latest user data to sync settings
         try {
-            const response = await fetch(`${API_URL}/users/me`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+                    const response = await fetch(`${currentApiUrl}/Users/me`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
             if (response.ok) {
                 const freshUser = await response.json();
                 user = freshUser;
                 localStorage.setItem('user', JSON.stringify(user));
                 
                 // Apply fresh theme settings
-                if (user.Theme) {
-                    applyTheme(user.Theme);
-                    localStorage.setItem('preferredTheme', user.Theme);
-                    if (themeDarkRadio) themeDarkRadio.checked = (user.Theme === 'dark');
-                    if (themeClassicRadio) themeClassicRadio.checked = (user.Theme === 'classic');
-                    if (themeOriginalRadio) themeOriginalRadio.checked = (user.Theme === 'original');
-                    if (themeNeonRadio) themeNeonRadio.checked = (user.Theme === 'neon');
-                    if (themeForestRadio) themeForestRadio.checked = (user.Theme === 'forest');
-                    if (themeKontrastRadio) themeKontrastRadio.checked = (user.Theme === 'kontrast');
+                const theme = user.Theme || user.theme;
+                if (theme) {
+                    applyTheme(theme);
+                    localStorage.setItem('preferredTheme', theme);
+                    if (window.themeDarkRadio) window.themeDarkRadio.checked = (theme === 'dark');
+                    if (window.themeClassicRadio) window.themeClassicRadio.checked = (theme === 'classic');
+                    if (window.themeOriginalRadio) window.themeOriginalRadio.checked = (theme === 'original');
+                    if (window.themeNeonRadio) window.themeNeonRadio.checked = (theme === 'neon');
+                    if (window.themeForestRadio) window.themeForestRadio.checked = (theme === 'forest');
+                    if (window.themeKontrastRadio) window.themeKontrastRadio.checked = (theme === 'kontrast');
                 }
-                if (user.TextSize) {
-                    applyTextSize(user.TextSize);
-                    localStorage.setItem('preferredTextSize', user.TextSize);
-                    if (textSizeSlider) {
+                const textSize = user.TextSize || user.textSize;
+                if (textSize) {
+                    applyTextSize(textSize);
+                    localStorage.setItem('preferredTextSize', textSize);
+                    if (window.textSizeSlider) {
                          const sizeMap = { 'small': 0, 'medium': 1, 'large': 2, 'xlarge': 3 };
-                         textSizeSlider.value = sizeMap[user.TextSize] !== undefined ? sizeMap[user.TextSize] : 1;
+                         window.textSizeSlider.value = sizeMap[textSize] !== undefined ? sizeMap[textSize] : 1;
                     }
                 }
-                if (user.IsSimpleText !== undefined) {
-                    applySimpleText(user.IsSimpleText);
-                    localStorage.setItem('preferredSimpleText', user.IsSimpleText);
-                    if (simpleTextToggle) simpleTextToggle.checked = user.IsSimpleText;
+                const isSimpleText = user.IsSimpleText !== undefined ? user.IsSimpleText : user.isSimpleText;
+                if (isSimpleText !== undefined) {
+                    applySimpleText(isSimpleText);
+                    localStorage.setItem('preferredSimpleText', isSimpleText);
+                    if (window.simpleTextToggle) window.simpleTextToggle.checked = isSimpleText;
                 }
                 console.log('User session synced:', user);
             } else {
@@ -337,6 +379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.log('User logged in, updating UI:', user);
         const userNameEl = document.getElementById('userName');
         const userAvatarEl = document.getElementById('userAvatar');
+        const userAvatarLargeEls = document.querySelectorAll('.avatar-large');
         
         if (userNameEl) {
             userNameEl.textContent = user.username || user.userName || user.email || 'Użytkownik';
@@ -345,16 +388,40 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (userAvatarEl) {
             const uAv = user.avatarUrl || user.AvatarUrl;
             if (uAv) {
-                userAvatarEl.style.backgroundImage = `url('${resolveUrl(uAv)}')`;
+                const url = `url('${resolveUrl(uAv)}')`;
+                userAvatarEl.style.backgroundImage = url;
                 userAvatarEl.style.backgroundSize = 'cover';
                 userAvatarEl.textContent = '';
+                
+                // Update .avatar-large elements
+                userAvatarLargeEls.forEach(el => {
+                    el.style.backgroundImage = url;
+                    el.style.backgroundSize = 'cover';
+                    el.textContent = '';
+                    el.style.display = '';
+                    el.style.alignItems = '';
+                    el.style.justifyContent = '';
+                    el.style.backgroundColor = '';
+                });
             } else {
                 const nameForAvatar = user.username || user.userName || user.email || '?';
-                userAvatarEl.textContent = nameForAvatar.charAt(0).toUpperCase();
+                const initial = nameForAvatar.charAt(0).toUpperCase();
+                
+                userAvatarEl.textContent = initial;
                 userAvatarEl.style.backgroundImage = '';
                 userAvatarEl.style.display = 'flex';
                 userAvatarEl.style.alignItems = 'center';
                 userAvatarEl.style.justifyContent = 'center';
+                
+                // Update .avatar-large elements
+                userAvatarLargeEls.forEach(el => {
+                    el.textContent = initial;
+                    el.style.backgroundImage = '';
+                    el.style.display = 'flex';
+                    el.style.alignItems = 'center';
+                    el.style.justifyContent = 'center';
+                    el.style.backgroundColor = 'var(--accent-green)'; // Fallback color if needed
+                });
             }
         }
 
@@ -621,8 +688,110 @@ document.addEventListener('DOMContentLoaded', async () => {
             window.logoAudioConfigured = true;
         }
         const logoContainer = document.getElementById('logoContainer');
+        
+        // Apply persisted experimental modes on load
+        try {
+            const savedRainbow = localStorage.getItem('exp_rainbowMode') === 'true';
+            if (savedRainbow) document.body.classList.add('rainbow-mode');
+            const savedSpin = localStorage.getItem('exp_spinMode') === 'true';
+            if (savedSpin) document.body.classList.add('spin-avatars');
+        } catch {}
         if (logoContainer) {
+            let logoClickCount = 0;
+            let logoClickResetTimeout = null;
+
             logoContainer.onclick = () => {
+                // Secret Menu Logic
+                logoClickCount++;
+                if (logoClickResetTimeout) clearTimeout(logoClickResetTimeout);
+                logoClickResetTimeout = setTimeout(() => {
+                    logoClickCount = 0;
+                }, 5000); // 5 seconds reset
+
+                if (logoClickCount >= 15) {
+                    logoClickCount = 0;
+                    
+                    console.log(`%c
+_____                     _   _   _           _   
+  |  __ \\                   | | | \\ | |         | |  
+  | |__) |_ _ _ __ _ __ ___ | |_|  \\| | ___  ___| |_ 
+  |  ___/ _\` | '__| '__/ _ \\| __| . \` |/ _ \\/ __| __| 
+  | |  | (_| | |  | | | (_) | |_| |\\  |  __/\__ \\ |_ 
+  |_|   \\__,_|_|  |_|  \\___/ \\__|_| \\_\\|___||___/\\__| 
+                                                     
+`, "color: #00ff00; font-weight: bold;");
+
+                    // Logic for Secret Menu visibility:
+                    // Requirement: Only friends defined in the system should see it.
+                    // Implementation: If the user has any friends (is part of the network), allow access.
+                    const currentUser = JSON.parse(localStorage.getItem('user'));
+                    const isAuthorized = friends && friends.length > 0;
+                    
+                    if (!isAuthorized) {
+                        console.warn("Access to Secret Menu denied: User must have friends in the system.");
+                        showNotification("Tylko zweryfikowani członkowie gniazda (posiadający znajomych) mają tu wstęp!", "warning");
+                        return;
+                    }
+
+                    const secretMenu = document.getElementById('secretMenu');
+                    if (secretMenu) {
+                        secretMenu.classList.add('show');
+                        
+                        // Initialize secret menu controls if not already done
+                         if (!secretMenu.dataset.initialized) {
+                            secretMenu.dataset.initialized = "true";
+                            
+                            const closeSecretMenu = document.getElementById('closeSecretMenu');
+                            if (closeSecretMenu) {
+                                closeSecretMenu.onclick = () => secretMenu.classList.remove('show');
+                            }
+
+                            // Rainbow Mode
+                            const rainbowMode = document.getElementById('rainbowMode');
+                            if (rainbowMode) {
+                                try {
+                                    const wasOn = localStorage.getItem('exp_rainbowMode') === 'true';
+                                    rainbowMode.checked = wasOn;
+                                    if (wasOn) document.body.classList.add('rainbow-mode');
+                                } catch {}
+                                rainbowMode.onchange = (e) => {
+                                    const checked = !!e.target.checked;
+                                    try { localStorage.setItem('exp_rainbowMode', checked ? 'true' : 'false'); } catch {}
+                                    if (checked) document.body.classList.add('rainbow-mode');
+                                    else document.body.classList.remove('rainbow-mode');
+                                };
+                            }
+
+                            // Spin Mode
+                            const spinMode = document.getElementById('spinMode');
+                            if (spinMode) {
+                                try {
+                                    const wasOn = localStorage.getItem('exp_spinMode') === 'true';
+                                    spinMode.checked = wasOn;
+                                    if (wasOn) document.body.classList.add('spin-avatars');
+                                } catch {}
+                                spinMode.onchange = (e) => {
+                                    const checked = !!e.target.checked;
+                                    try { localStorage.setItem('exp_spinMode', checked ? 'true' : 'false'); } catch {}
+                                    if (checked) document.body.classList.add('spin-avatars');
+                                    else document.body.classList.remove('spin-avatars');
+                                };
+                            }
+                            
+                            // Hell Mode
+                            const hellMode = document.getElementById('hellMode');
+                            if (hellMode) {
+                                hellMode.onchange = (e) => {
+                                    if (e.target.checked) {
+                                        hellMode.checked = false;
+                                                                                window.location.href = '/doom/doom.html';
+                                    }
+                                };
+                            }
+                         }
+                    }
+                }
+
                 if (window.logoAudioPlaying) return;
                 window.logoAudioPlaying = true;
                 window.logoAudio.currentTime = 0;
@@ -1038,7 +1207,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                 if (isOwnMessage) {
                     const deleteBtn = document.createElement("button");
-                    deleteBtn.className = "btn-msg-action";
+                    deleteBtn.className = "btn-msg-action btn-delete";
                     deleteBtn.title = "Usuń wiadomość";
                     deleteBtn.innerHTML = `<span class="material-symbols-outlined">delete</span>`;
                     deleteBtn.onclick = (e) => {
@@ -1282,7 +1451,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
         async function loadFriends() {
             try {
-                const response = await fetch(`${API_URL}/friends`, {
+                const response = await fetch(`${currentApiUrl}/friends`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1291,12 +1460,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                     friends = await response.json();
                     updateChatList();
                     
-                    // If Global Chat is open, refresh member list with friend filtering
+                    // If Global Chat is open, refresh member list (uses all users now)
                     if (currentChatType === 'global') {
-                         const membersContainer = document.getElementById('chat-members-list');
-                         if (membersContainer) {
-                              renderProfileList(membersContainer, friends, 'Brak dostępnych użytkowników (tylko znajomi).');
-                         }
+                         updateConversationSidebar();
                     }
                 } else {
                     await handleApiError(response, 'Błąd pobierania listy znajomych');
@@ -1308,7 +1474,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         }
         async function loadGroups() {
             try {
-                const response = await fetch(`${API_URL}/groups`, {
+                const response = await fetch(`${currentApiUrl}/groups`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -2074,6 +2240,17 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (!restored) {
             loadPreviousMessages();
         }
+        
+        function ensureScrollBottom() {
+            const c = document.getElementById('chat-messages');
+            if (!c) return;
+            const scroll = () => { c.scrollTop = c.scrollHeight; };
+            scroll();
+            requestAnimationFrame(scroll);
+            setTimeout(scroll, 50);
+            setTimeout(scroll, 200);
+            setTimeout(scroll, 500);
+        }
         async function loadPreviousMessages() {
             const messagesContainer = document.getElementById("chat-messages");
             if (messagesContainer) {
@@ -2116,6 +2293,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     console.error('Current user not found');
                     return;
                 }
+                const isAdmin = !!(currentUser.isAdmin || currentUser.IsAdmin);
                 messagesContainer.innerHTML = '';
                 if (!messages || !Array.isArray(messages) || messages.length === 0) {
                     const welcomeMsg = document.createElement("div");
@@ -2192,9 +2370,9 @@ document.addEventListener('DOMContentLoaded', async () => {
                         };
                         actionsDiv.appendChild(reactBtn);
                         
-                        if (isOwnMessage) {
+                        if (isOwnMessage || isAdmin) {
                             const deleteBtn = document.createElement("button");
-                            deleteBtn.className = "btn-msg-action";
+                            deleteBtn.className = "btn-msg-action btn-delete";
                             deleteBtn.title = "Usuń wiadomość";
                             deleteBtn.innerHTML = `<span class="material-symbols-outlined">delete</span>`;
                             deleteBtn.onclick = (e) => {
@@ -2402,6 +2580,16 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 });
                 messagesContainer.scrollTop = messagesContainer.scrollHeight;
+                
+                try {
+                    const imgs = messagesContainer.querySelectorAll('img.message-image');
+                    imgs.forEach(img => {
+                        if (!img.complete) {
+                            img.addEventListener('load', ensureScrollBottom, { once: true });
+                        }
+                    });
+                } catch {}
+                ensureScrollBottom();
                 console.log('Messages displayed successfully');
             } catch (error) {
                 console.error('Error loading messages:', error);
@@ -2685,7 +2873,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                     return;
                 }
                 try {
-                    const response = await fetch(`${API_URL}/groups/${currentChatId}/members`, {
+                    const response = await fetch(`${currentApiUrl}/groups/${currentChatId}/members`, {
                         method: 'POST',
                         headers: {
                              'Content-Type': 'application/json',
@@ -2706,29 +2894,12 @@ document.addEventListener('DOMContentLoaded', async () => {
                 }
             });
         }
-        const settingsButton = document.getElementById('settingsButton');
-        const settingsModal = document.getElementById('settingsModal');
-        const closeSettingsModal = document.getElementById('closeSettingsModal');
-        const changeAvatarBtn = document.getElementById('changeAvatarBtn');
-        const avatarInput = document.getElementById('avatarInput');
-        const settingsForm = document.getElementById('settingsForm');
-        const settingsAvatarPreview = document.getElementById('settingsAvatarPreview');
-        const settingsUsername = document.getElementById('settingsUsername');
-        const settingsEmail = document.getElementById('settingsEmail');
-        const themeDarkRadio = document.getElementById('themeDark');
-        const themeClassicRadio = document.getElementById('themeClassic');
-        const themeOriginalRadio = document.getElementById('themeOriginal');
-        const themeNeonRadio = document.getElementById('themeNeon');
-        const themeForestRadio = document.getElementById('themeForest');
-        const themeKontrastRadio = document.getElementById('themeKontrast');
-        const textSizeSlider = document.getElementById('textSizeSlider');
-        const simpleTextToggle = document.getElementById('simpleTextToggle');
         // Listeners for settings moved to top of DOMContentLoaded
         
         async function loadUserData() {
             try {
                 // Force network request to ensure fresh data
-                const response = await fetch(`${API_URL}/users/me`, {
+                const response = await fetch(`${currentApiUrl}/Users/me`, {
                     headers: {
                         'Authorization': `Bearer ${token}`,
                         'Cache-Control': 'no-cache, no-store'
@@ -3366,6 +3537,68 @@ document.addEventListener('DOMContentLoaded', async () => {
                     }
                 }
 
+                // Admin actions
+                const currentUserAdminCheck = JSON.parse(localStorage.getItem('user'));
+                const isAdminProfileView = currentUserAdminCheck && (currentUserAdminCheck.isAdmin || currentUserAdminCheck.IsAdmin);
+                if (isAdminProfileView && actionsDiv) {
+                    const adminActions = document.createElement('div');
+                    adminActions.style.display = 'flex';
+                    adminActions.style.gap = '10px';
+                    adminActions.style.marginTop = '10px';
+                    const deleteUserBtn = document.createElement('button');
+                    deleteUserBtn.className = 'btn-secondary danger';
+                    deleteUserBtn.innerHTML = '<span class="material-symbols-outlined">delete</span> Usuń konto';
+                    deleteUserBtn.onclick = async () => {
+                        if (!confirm(`Czy na pewno usunąć konto użytkownika ${username}?`)) return;
+                        try {
+                            const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                showNotification(data.message || 'Użytkownik usunięty.', 'success');
+                                userProfileModal.classList.remove('show');
+                                updateConversationSidebar();
+                            } else {
+                                await handleApiError(res, 'Nie udało się usunąć użytkownika');
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            showNotification('Błąd sieci.', 'error');
+                        }
+                    };
+                    const banUserBtn = document.createElement('button');
+                    banUserBtn.className = 'btn-secondary danger';
+                    banUserBtn.innerHTML = '<span class="material-symbols-outlined">block</span> Zbanuj';
+                    banUserBtn.onclick = async () => {
+                        const minutesStr = prompt('Na ile minut zbanować użytkownika?', '60');
+                        if (minutesStr === null) return;
+                        const minutes = parseInt(minutesStr) || 60;
+                        try {
+                            const res = await fetch(`${API_URL}/admin/ban/${userId}`, {
+                                method: 'POST',
+                                headers: { 
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ minutes })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                showNotification(data.message || 'Użytkownik zbanowany.', 'success');
+                            } else {
+                                await handleApiError(res, 'Nie udało się zbanować użytkownika');
+                            }
+                        } catch (e) {
+                            console.error(e);
+                            showNotification('Błąd sieci.', 'error');
+                        }
+                    };
+                    adminActions.appendChild(deleteUserBtn);
+                    adminActions.appendChild(banUserBtn);
+                    actionsDiv.parentNode.appendChild(adminActions);
+                }
                 mutualsList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
                 serversList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
                 try {
@@ -3408,24 +3641,51 @@ document.addEventListener('DOMContentLoaded', async () => {
             items.forEach(item => {
                 const tile = document.createElement('div');
                 tile.className = 'friend-tile';
-                tile.style.cursor = 'default';
                 
                 const av = document.createElement('div');
                 av.className = 'avatar';
                 const url = item.avatarUrl || item.AvatarUrl;
                 const name = item.username || item.Username || item.name || item.Name;
+                const itemId = item.id || item.Id || item.userId || item.UserId;
+
                 if (url) {
                     av.style.backgroundImage = `url('${resolveUrl(url)}')`;
                     av.style.backgroundSize = 'cover';
                     av.style.backgroundPosition = 'center';
                     av.textContent = '';
                 } else {
-                    av.textContent = name.charAt(0).toUpperCase();
+                    av.textContent = name ? name.charAt(0).toUpperCase() : '?';
                 }
+
                 const label = document.createElement('span');
                 label.textContent = name;
+                
+                // Online status indicator
+                const status = item.status || item.Status || (item.isOnline || item.IsOnline ? 1 : 0);
+                if (status > 0 && status != 4) {
+                    const statusDot = document.createElement('span');
+                    statusDot.className = 'status-dot';
+                    statusDot.textContent = ' ●';
+                    statusDot.style.fontSize = '10px';
+                    if (status == 1) statusDot.style.color = 'var(--accent-green)';
+                    else if (status == 2) statusDot.style.color = '#f1c40f';
+                    else if (status == 3) statusDot.style.color = '#e74c3c';
+                    label.appendChild(statusDot);
+                }
+
                 tile.appendChild(av);
                 tile.appendChild(label);
+                
+                // Make clickable to open private chat
+                if (itemId) {
+                    tile.style.cursor = 'pointer';
+                    tile.onclick = () => {
+                        selectChat(itemId, name, url, 'private');
+                    };
+                } else {
+                    tile.style.cursor = 'default';
+                }
+
                 container.appendChild(tile);
             });
         }
@@ -3462,8 +3722,30 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const label = document.createElement('span');
                 label.textContent = name;
                 
+                // Online status indicator
+                const status = member.status || member.Status || (member.isOnline || member.IsOnline ? 1 : 0);
+                if (status > 0 && status != 4) {
+                    const statusDot = document.createElement('span');
+                    statusDot.className = 'status-dot';
+                    statusDot.textContent = ' ●';
+                    statusDot.style.fontSize = '10px';
+                    if (status == 1) statusDot.style.color = 'var(--accent-green)';
+                    else if (status == 2) statusDot.style.color = '#f1c40f';
+                    else if (status == 3) statusDot.style.color = '#e74c3c';
+                    label.appendChild(statusDot);
+                }
+
                 tile.appendChild(av);
                 tile.appendChild(label);
+                
+                // Make clickable to open private chat
+                const memberId = member.userId || member.UserId || member.id || member.Id;
+                if (memberId) {
+                    tile.style.cursor = 'pointer';
+                    tile.onclick = () => {
+                        selectChat(memberId, name, url, 'private');
+                    };
+                }
 
                 if (isAdmin) {
                     const currentUser = JSON.parse(localStorage.getItem('user'));
@@ -3773,7 +4055,46 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (membersSection) membersSection.style.display = 'block';
 
                 if (membersContainer) {
-                     renderProfileList(membersContainer, friends, 'Brak dostępnych użytkowników.');
+                    membersContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Ładowanie użytkowników...</div>';
+                    try {
+                        const res = await fetch(`${currentApiUrl}/Users`, {
+                            headers: { 'Authorization': `Bearer ${token}` }
+                        });
+                        console.log(`Fetch /api/Users status: ${res.status}`);
+                        if (res.ok) {
+                            const allUsers = await res.json();
+                            const usersArray = Array.isArray(allUsers) ? allUsers : [];
+                            
+                            // Map to expected format for renderProfileList
+                            const mappedUsers = usersArray.map(u => ({
+                                id: u.id || u.Id,
+                                username: u.username || u.Username,
+                                avatarUrl: u.avatarUrl || u.AvatarUrl,
+                                status: u.status || u.Status
+                            }));
+
+                            renderProfileList(membersContainer, mappedUsers, 'Brak dostępnych użytkowników.');
+                        } else {
+                            console.warn(`Failed to fetch all users: ${res.status} ${res.statusText}`);
+                            renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
+                        }
+                    } catch (e) {
+                        console.error("Error fetching all users:", e);
+                        renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
+                    }
+                }
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const isAdminGlobal = currentUser && (currentUser.isAdmin || currentUser.IsAdmin);
+                if (isAdminGlobal) {
+                    adminControls.style.display = 'flex';
+                    adminControls.style.flexDirection = 'column';
+                    adminControls.style.gap = '10px';
+                    adminControls.style.padding = '10px';
+                    const clearBtn = document.createElement('button');
+                    clearBtn.className = 'btn-secondary btn-sidebar-action danger';
+                    clearBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span> Wyczyść kanał ogólny';
+                    clearBtn.onclick = () => window.clearGlobalChat && window.clearGlobalChat();
+                    adminControls.appendChild(clearBtn);
                 }
             } else if (currentChatType === 'private' && currentChatId) {
                 if (avatarEl) avatarEl.style.backgroundColor = '';
@@ -3876,7 +4197,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (membersContainer) {
                     membersContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Ładowanie uczestników...</div>';
                     try {
-                        const res = await fetch(`${API_URL}/groups/${currentChatId}/members`, {
+                        const res = await fetch(`${currentApiUrl}/groups/${currentChatId}/members`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         if (res.ok) {
@@ -4204,6 +4525,25 @@ document.addEventListener('DOMContentLoaded', async () => {
             // Force reflow
             void modalOverlay.offsetWidth;
             modalOverlay.classList.add('show');
+        };
+
+        window.clearGlobalChat = async function() {
+            try {
+                const res = await fetch(`${API_URL}/admin/messages/global`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    showNotification(data.message || 'Kanał ogólny wyczyszczony.', 'success');
+                    await loadMessages(null, 'global');
+                } else {
+                    await handleApiError(res, 'Nie udało się wyczyścić kanału ogólnego');
+                }
+            } catch (e) {
+                console.error(e);
+                showNotification('Błąd połączenia.', 'error');
+            }
         };
 
         window.toggleReactionPicker = function(messageId, btnElement) {

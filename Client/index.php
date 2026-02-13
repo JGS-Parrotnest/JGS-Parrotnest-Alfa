@@ -6,7 +6,7 @@
             try {
                 var t = localStorage.getItem('preferredTheme');
                 if (!t) {
-                    t = 'dark';
+                    t = 'original';
                     localStorage.setItem('preferredTheme', t);
                 }
                 document.documentElement.setAttribute('data-theme', t);
@@ -32,9 +32,9 @@
     <title>Parrotnest</title>
     <link rel="icon" href="logo.png" type="image/png">
     <link rel="stylesheet" href="style.css?v=13">
-    <link rel="stylesheet" href="mobile.css?v=1" media="(max-width: 768px)">
+    <link rel="stylesheet" href="mobile.css?v=2" media="(max-width: 768px)">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <script>
 
@@ -371,9 +371,9 @@
                 <div class="tab-content" id="settings-notificationsTab">
                     <div class="input-group">
                         <label for="settingsNotificationsToggle">Powiadomienia</label>
-                        <div style="display: flex; align-items: flex-start; gap: 20px;">
-                            <button type="button" class="btn-secondary" id="settingsNotificationsToggle" style="flex: 0 0 auto; height: 44px;">Przełącz powiadomienia</button>
-                            <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; height: 44px;">
+                        <div class="notification-settings-row" style="display: flex; align-items: flex-start; gap: 20px;">
+                            <button type="button" class="btn-secondary notification-toggle-btn" id="settingsNotificationsToggle" style="flex: 0 0 auto; height: 44px;">Przełącz powiadomienia</button>
+                            <div class="volume-controls-wrapper" style="flex: 1; display: flex; flex-direction: column; justify-content: center; height: 44px;">
                                 <input type="range" id="volumeSlider" min="0" max="100" value="100" style="width: 100%; cursor: pointer;" title="Głośność: 100%">
                                 <div style="display: flex; justify-content: space-between; position: relative; height: 10px; margin-top: 5px; margin-left: 2px; margin-right: 2px;">
                                     <div style="position: absolute; left: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center;">
@@ -558,7 +558,126 @@
         </div>
     </div>
 
-    <!-- Image Preview Modal -->
+    <!-- Secret Menu -->
+    <div id="secretMenu" class="modal" style="z-index: 10000;">
+        <div class="modal-content" style="width: 95%; height: 95%; max-width: none; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h3>Sekretne Menu</h3>
+                <button class="modal-close" id="closeSecretMenu">&times;</button>
+            </div>
+            <div class="modal-body" style="flex: 1; overflow-y: auto; padding: 20px;">
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img src="logo.png" alt="Secret Parrot" style="width: 100px; height: 100px; animation: spin 2s linear infinite;">
+                    <h2>Witaj w tajnym gnieździe!</h2>
+                </div>
+
+                <div class="settings-section" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <h4>Eksperymentalne funkcje</h4>
+                    <div style="display: flex; flex-direction: column; gap: 15px; margin-top: 15px;">
+                        <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                            <span style="font-size: 1.1em;">Tryb tęczowy (Rainbow Mode)</span>
+                            <div style="position: relative; width: 50px; height: 26px;">
+                                <input type="checkbox" id="rainbowMode" style="opacity: 0; width: 0; height: 0;">
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                         <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                            <span style="font-size: 1.1em;">Obracanie awatarów (Spin Mode)</span>
+                             <div style="position: relative; width: 50px; height: 26px;">
+                                <input type="checkbox" id="spinMode" style="opacity: 0; width: 0; height: 0;">
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                        <label class="toggle-switch" style="display: flex; align-items: center; justify-content: space-between; cursor: pointer;">
+                            <span style="font-size: 1.1em;">HELL MODE</span>
+                            <div style="position: relative; width: 50px; height: 26px;">
+                                <input type="checkbox" id="hellMode" style="opacity: 0; width: 0; height: 0;">
+                                <span class="toggle-slider"></span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+                
+                 <div class="settings-section" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
+                    <h4>JGS Team</h4>
+                    <div id="debugInfo" style="background: #111; padding: 15px; border-radius: 8px; color: #0f0; font-family: monospace; margin-top: 10px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #333;">
+                        <div><strong>System:</strong> Parrotnest v7.0</div>
+                        <div><strong>Copyright:</strong> &copy; 2026 Parrotnest</div>
+                        <div><strong>Made by:</strong> JGS team</div>
+                    </div>
+                    <div class="team-grid" style="display: flex; gap: 16px; justify-content: center; align-items: stretch; margin-top: 15px;">
+                        <div class="team-card" style="flex: 0 1 180px; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; text-align: center;">
+                            <img src="Igor.jpg" alt="Igor Kondraciuk" style="width: 100%; height: auto; display: block;">
+                            <div style="padding: 10px; font-weight: 600;">Igor Kondraciuk</div>
+                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: TEAPOT] <br>Kod pisze w takim tempie, że klawiatura zaczyna tęsknić za spokojnym życiem w Excelu.  A gdy aplikacja nie chce połączyć się z bazą danych? (włącza z program z folderu debug).</div>
+                        </div>
+                        <div class="team-card team-card-center" style="flex: 0 1 210px; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; text-align: center; transform: scale(1.06);">
+                            <img src="Adam.jpg" alt="Adam Hnatko" style="width: 100%; height: auto; display: block;">
+                            <div style="padding: 10px; font-weight: 700;">Adam Hnatko</div>
+                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: UMNIEDZIAŁA]<br>Król StackOverflow i wierny wyznawca zasady: „u mnie działa”. Na świętach już się napracował, więc teraz czas, żeby reszta zespołu miała swoją chwilę chwały.</div>
+                        </div>
+                        <div class="team-card" style="flex: 0 1 180px; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; text-align: center;">
+                            <img src="Jakub.jpg" alt="Jakub Fedorowicz" style="width: 100%; height: auto; display: block;">
+                            <div style="padding: 10px; font-weight: 600;">Jakub Fedorowicz</div>
+                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: W_TRAKCIE]<br>Termin traktuje jak wskazówkę „jeszcze nie zdążyłem”. Narzeka, gdy zespół odblokowuje 25. godzinę i robi jego zadania, bo on miał to zrobić sam.</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <style>
+        @keyframes spin { 100% { transform: rotate(360deg); } }
+        .rainbow-mode { animation: rainbow 5s infinite; }
+        @keyframes rainbow { 
+            0% { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(360deg); }
+        }
+        .spin-avatars .avatar, .spin-avatars .avatar-large, .spin-avatars .message-avatar { animation: spin 3s linear infinite; }
+        
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #333;
+            transition: .4s;
+            border-radius: 34px;
+            border: 2px solid #555;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 2px;
+            bottom: 2px;
+            background-color: #888;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .toggle-slider {
+            background-color: var(--accent-green, #2ecc71);
+            border-color: var(--accent-green, #2ecc71);
+        }
+
+        input:focus + .toggle-slider {
+            box-shadow: 0 0 1px var(--accent-green, #2ecc71);
+        }
+
+        input:checked + .toggle-slider:before {
+            transform: translateX(24px);
+            background-color: white;
+        }
+        
+        .team-grid .team-card-center { margin: 0 6px; }
+    </style>
+
     <div id="image-modal" class="image-modal">
         <span class="close-image-modal">&times;</span>
         <img class="image-modal-content" id="img-preview">
