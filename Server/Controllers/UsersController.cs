@@ -47,7 +47,8 @@ namespace ParrotnestServer.Controllers
                 user.IsAdmin
             });
         }
-        [HttpGet]
+        [AllowAnonymous]
+        [HttpGet("all")]
         public async Task<ActionResult<IEnumerable<object>>> GetAllUsers()
         {
             return await _context.Users

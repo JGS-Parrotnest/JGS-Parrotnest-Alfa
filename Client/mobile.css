@@ -139,8 +139,11 @@ body.chat-open .chat-area { transform: translateX(0); }
     flex-direction: column;
 }
 .conversation-sidebar.open { right: 0 !important; }
-.conversation-sidebar-header { padding: 15px; border-bottom: 1px solid var(--border-color); display: flex; align-items: center; justify-content: space-between; }
-.conversation-sidebar-body { flex: 1; overflow-y: auto; padding: 15px; }
+.conversation-sidebar-header { padding: 10px; border-bottom: 1px solid var(--border-color); display: flex; flex-direction: column; align-items: center; position: relative; }
+.conversation-sidebar-header .info-card { width: 100%; margin-bottom: 0; background: transparent; border: none; padding: 10px 0; }
+.conversation-sidebar-header .info-card .avatar-large { width: 60px; height: 60px; font-size: 1.8rem; }
+.conversation-sidebar-header .info-card h2 { font-size: 1.1rem; }
+.conversation-sidebar-body { flex: 1; overflow-y: auto; padding: 15px; padding-top: 10px; }
 .admin-controls { display: flex; flex-direction: column; gap: 10px; margin-top: 20px; }
 .btn-sidebar-action { width: 100%; padding: 12px; text-align: left; display: flex; align-items: center; gap: 10px; background: rgba(255,255,255,0.05); border: none; border-radius: 8px; color: var(--text-main); }
 .btn-sidebar-action:active { background: rgba(255,255,255,0.1); }

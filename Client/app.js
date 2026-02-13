@@ -5,6 +5,7 @@ const HUB_URL = `${SERVER_URL}/chatHub`;
 const apiBase = window.API_URL || `${SERVER_URL}/api`;
 // Global API_URL is provided by auth.js. Using it here.
 const currentApiUrl = typeof API_URL !== 'undefined' ? API_URL : apiBase;
+window.API_URL = currentApiUrl;
 
 if (typeof window.resolveUrl === 'undefined') {
         window.resolveUrl = function(url) {
@@ -241,9 +242,6 @@ document.addEventListener('DOMContentLoaded', async () => {
         // Determine base URL and export it for resolveUrl
         const base = window.SERVER_BASE || window.location.origin;
         window.API_BASE_URL = base;
-        // Use window.API_URL if defined
-        const API_URL = window.API_URL || (base + '/api');
-
         // Initialize UI elements for settings and theme
         const themeDarkRadio = document.getElementById('themeDark');
         const themeClassicRadio = document.getElementById('themeClassic');
@@ -846,7 +844,7 @@ _____                     _   _   _           _
                     const formData = new FormData();
                     formData.append('file', selectedImageFile);
                     try {
-                        const response = await fetch(`${API_URL}/messages/upload`, {
+                        const response = await fetch(`${currentApiUrl}/messages/upload`, {
                             method: 'POST',
                             headers: {
                                 'Authorization': `Bearer ${token}`
@@ -1449,6 +1447,47 @@ _____                     _   _   _           _
                 console.error("Error parsing signal:", e);
             }
         });
+        let allUsersEndpointAvailable = true;
+        let allUsersInFlight = null;
+        let allUsersCache = null;
+        let allUsersCacheAt = 0;
+        const ALL_USERS_CACHE_MS = 15000;
+        async function fetchAllUsersSafe() {
+            if (!token) return null;
+            if (!allUsersEndpointAvailable) return null;
+            const now = Date.now();
+            if (allUsersCache && (now - allUsersCacheAt) < ALL_USERS_CACHE_MS) return allUsersCache;
+            if (allUsersInFlight) return allUsersInFlight;
+
+            allUsersInFlight = (async () => {
+                try {
+                    const res = await fetch(`${currentApiUrl}/Users/all`, {
+                        headers: { 'Authorization': `Bearer ${token}` },
+                    });
+                    if (res.status === 404) {
+                        allUsersEndpointAvailable = false;
+                        return null;
+                    }
+                    if (!res.ok) return null;
+                    let data;
+                    try {
+                        data = await res.json();
+                    } catch {
+                        return null;
+                    }
+                    const users = Array.isArray(data) ? data : [];
+                    allUsersCache = users;
+                    allUsersCacheAt = Date.now();
+                    return users;
+                } catch {
+                    return null;
+                } finally {
+                    allUsersInFlight = null;
+                }
+            })();
+
+            return allUsersInFlight;
+        }
         async function loadFriends() {
             try {
                 const response = await fetch(`${currentApiUrl}/friends`, {
@@ -1461,7 +1500,7 @@ _____                     _   _   _           _
                     updateChatList();
                     
                     // If Global Chat is open, refresh member list (uses all users now)
-                    if (currentChatType === 'global') {
+                    if (currentChatType === 'global' && conversationSidebar && conversationSidebar.classList.contains('open')) {
                          updateConversationSidebar();
                     }
                 } else {
@@ -1507,7 +1546,7 @@ _____                     _   _   _           _
         }
         async function loadPendingRequests() {
             try {
-                const response = await fetch(`${API_URL}/friends/pending`, {
+                const response = await fetch(`${currentApiUrl}/friends/pending`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1536,8 +1575,8 @@ _____                     _   _   _           _
                 return;
             }
             try {
-                console.log(`Fetching sent requests from: ${API_URL}/friends/sent`);
-                const response = await fetch(`${API_URL}/friends/sent`, {
+                console.log(`Fetching sent requests from: ${currentApiUrl}/friends/sent`);
+                const response = await fetch(`${currentApiUrl}/friends/sent`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -1556,7 +1595,7 @@ _____                     _   _   _           _
                     const errorText = await response.text();
                     console.error('Failed to load sent requests', response.status, errorText);
                     if (response.status === 405 || response.status === 404) {
-                        console.error("Method Not Allowed or Not Found. Check CORS or API endpoint:", `${API_URL}/friends/sent`);
+                        console.error("Method Not Allowed or Not Found. Check CORS or API endpoint:", `${currentApiUrl}/friends/sent`);
                         sentRequestsFailCount = 100; // Stop retrying immediately
                     }
                 }
@@ -1568,7 +1607,7 @@ _____                     _   _   _           _
         async function cancelSentRequest(friendshipId) {
             if (!confirm('Czy na pewno chcesz anulować wysłane zaproszenie?')) return;
             try {
-                const response = await fetch(`${API_URL}/friends/${friendshipId}`, {
+                const response = await fetch(`${currentApiUrl}/friends/${friendshipId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -1587,7 +1626,7 @@ _____                     _   _   _           _
 
         async function acceptFriend(friendshipId) {
             try {
-                const response = await fetch(`${API_URL}/friends/accept/${friendshipId}`, {
+                const response = await fetch(`${currentApiUrl}/friends/accept/${friendshipId}`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -1606,7 +1645,7 @@ _____                     _   _   _           _
         async function rejectFriend(friendshipId) {
             if (!confirm('Czy na pewno chcesz odrzucić to zaproszenie?')) return;
             try {
-                const response = await fetch(`${API_URL}/friends/${friendshipId}`, {
+                const response = await fetch(`${currentApiUrl}/friends/${friendshipId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -1892,7 +1931,7 @@ _____                     _   _   _           _
                         e.stopPropagation();
                         if (!confirm(`Usunąć znajomego ${friend.username || friend.Username}?`)) return;
                         try {
-                            const response = await fetch(`${API_URL}/friends/${fId}`, {
+                            const response = await fetch(`${currentApiUrl}/friends/${fId}`, {
                                 method: 'DELETE',
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
@@ -1969,7 +2008,7 @@ _____                     _   _   _           _
                 accept.textContent = 'Akceptuj';
                 accept.onclick = async () => {
                     try {
-                        const response = await fetch(`${API_URL}/friends/accept/${req.id || req.Id}`, {
+                        const response = await fetch(`${currentApiUrl}/friends/accept/${req.id || req.Id}`, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -1991,7 +2030,7 @@ _____                     _   _   _           _
                 reject.onclick = async () => {
                     if (!confirm('Odrzucić zaproszenie?')) return;
                     try {
-                        const response = await fetch(`${API_URL}/friends/${req.id || req.Id}`, {
+                        const response = await fetch(`${currentApiUrl}/friends/${req.id || req.Id}`, {
                             method: 'DELETE',
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -2061,10 +2100,21 @@ _____                     _   _   _           _
                 list.appendChild(row);
             });
         }
+        function normalizeChatType(inputType, chatId) {
+            const t = (inputType ?? '').toString().toLowerCase();
+            const hasId = !(chatId === null || chatId === undefined || chatId === '' || chatId === 'null' || chatId === 'undefined');
+            if (t === 'global') return 'global';
+            if (t === 'group' || t === 'private') return hasId ? t : 'global';
+            if (!hasId) return 'global';
+            return 'private';
+        }
         function selectChat(chatId, chatName, chatAvatar, type = 'private') {
             // Mobile: Open chat view
             document.body.classList.add('chat-open');
-            
+
+            type = normalizeChatType(type, chatId);
+            if (type === 'global') chatId = null;
+
             currentChatId = chatId;
             currentChatType = type;
             localStorage.setItem('lastChat', JSON.stringify({
@@ -2115,7 +2165,7 @@ _____                     _   _   _           _
                             deleteGroupBtn.onclick = async () => {
                                 if (!confirm('Usunąć tę grupę?')) return;
                                 try {
-                                    const response = await fetch(`${API_URL}/groups/${chatId}`, {
+                                    const response = await fetch(`${currentApiUrl}/groups/${chatId}`, {
                                         method: 'DELETE',
                                         headers: { 'Authorization': `Bearer ${token}` }
                                     });
@@ -2141,7 +2191,7 @@ _____                     _   _   _           _
                                     formData.append('avatar', input.files[0]);
                                     try {
                                         showNotification('Wysyłanie ikony...', 'info');
-                                        const response = await fetch(`${API_URL}/groups/${chatId}/avatar`, {
+                                        const response = await fetch(`${currentApiUrl}/groups/${chatId}/avatar`, {
                                             method: 'POST',
                                             headers: {
                                                 'Authorization': `Bearer ${token}`
@@ -2231,8 +2281,17 @@ _____                     _   _   _           _
         if (lastChat) {
             try {
                 const { id, name, avatar, type } = JSON.parse(lastChat);
-                selectChat(id, name, avatar, type);
-                restored = true;
+                const normalizedType = normalizeChatType(type, id);
+                const normalizedId = normalizedType === 'global' ? null : id;
+                if (normalizedType === 'private' || normalizedType === 'group') {
+                    if (normalizedId !== null && normalizedId !== undefined && normalizedId !== '') {
+                        selectChat(normalizedId, name, avatar, normalizedType);
+                        restored = true;
+                    }
+                } else {
+                    selectChat(null, name || 'Ogólny', avatar || null, 'global');
+                    restored = true;
+                }
             } catch (e) {
                 console.error('Error parsing lastChat', e);
             }
@@ -2257,15 +2316,15 @@ _____                     _   _   _           _
                 messagesContainer.innerHTML = '<div class="message received"><div class="message-text">Ładowanie wiadomości...</div></div>';
             }
             try {
-                let url = `${API_URL}/messages`;
+                let url = `${currentApiUrl}/messages`;
                 const cacheBuster = `t=${new Date().getTime()}`;
                 
                 if (currentChatType === 'private' && currentChatId) {
-                    url = `${API_URL}/messages?receiverId=${currentChatId}&${cacheBuster}`;
+                    url = `${currentApiUrl}/messages?receiverId=${currentChatId}&${cacheBuster}`;
                 } else if (currentChatType === 'group' && currentChatId) {
-                    url = `${API_URL}/messages?groupId=${currentChatId}&${cacheBuster}`;
+                    url = `${currentApiUrl}/messages?groupId=${currentChatId}&${cacheBuster}`;
                 } else {
-                     url = `${API_URL}/messages?${cacheBuster}`;
+                     url = `${currentApiUrl}/messages?${cacheBuster}`;
                 }
                 
                 console.log('Fetching messages from:', url);
@@ -2639,54 +2698,63 @@ _____                     _   _   _           _
             if (!container || !hiddenInput) return;
             container.innerHTML = '';
             const selectedUsernames = new Set(hiddenInput.value ? hiddenInput.value.split(',').filter(x => x) : []);
-            if (friends.length === 0) {
-                container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; width: 100%; text-align: center;">Brak znajomych do wyboru.</div>';
-                return;
-            }
-            friends.forEach(friend => {
-                const tile = document.createElement('div');
-                tile.className = 'friend-tile';
-                // Inline styles removed to rely on CSS class
-                
-                const fAvatarUrl = friend.avatarUrl || friend.AvatarUrl;
-                const fName = friend.username || friend.Username;
-
-                if (selectedUsernames.has(fName)) {
-                    tile.classList.add('selected');
-                }
-                const avatar = document.createElement('div');
-                avatar.className = 'avatar';
-                // Inline styles removed to rely on CSS class
-                
-                if (fAvatarUrl) {
-                    avatar.style.backgroundImage = `url('${resolveUrl(fAvatarUrl)}')`;
-                    avatar.textContent = '';
-                } else {
-                    avatar.textContent = fName.charAt(0).toUpperCase();
+            
+            (async () => {
+                const allUsers = await fetchAllUsersSafe();
+                const usersArray = Array.isArray(allUsers) ? allUsers : [];
+                if (usersArray.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; width: 100%; text-align: center;">Brak użytkowników w systemie.</div>';
+                    return;
                 }
                 
-                const name = document.createElement('span');
-                name.textContent = fName;
-                name.title = fName;
-                // Inline styles removed to rely on CSS class
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const currentUserId = currentUser ? (currentUser.id || currentUser.Id) : null;
+                const filteredUsers = usersArray.filter(u => (u.id || u.Id) != currentUserId);
 
-                const check = document.createElement('div');
-                check.className = 'check-icon';
-                check.textContent = '✓';
-                
-                tile.appendChild(avatar);
-                tile.appendChild(name);
-                tile.appendChild(check);
-                tile.onclick = () => {
-                    tile.classList.toggle('selected');
-                    if (tile.classList.contains('selected')) {
-                        selectedUsernames.add(fName);
-                    } else {
-                        selectedUsernames.delete(fName);
+                filteredUsers.forEach(friend => {
+                    const tile = document.createElement('div');
+                    tile.className = 'friend-tile';
+                    
+                    const fAvatarUrl = friend.avatarUrl || friend.AvatarUrl;
+                    const fName = friend.username || friend.Username;
+
+                    if (selectedUsernames.has(fName)) {
+                        tile.classList.add('selected');
                     }
-                    hiddenInput.value = Array.from(selectedUsernames).join(',');
-                };
-                container.appendChild(tile);
+                    const avatar = document.createElement('div');
+                    avatar.className = 'avatar';
+                    
+                    if (fAvatarUrl) {
+                        avatar.style.backgroundImage = `url('${resolveUrl(fAvatarUrl)}')`;
+                        avatar.textContent = '';
+                    } else {
+                        avatar.textContent = fName ? fName.charAt(0).toUpperCase() : '?';
+                    }
+                    
+                    const name = document.createElement('span');
+                    name.textContent = fName;
+                    name.title = fName;
+
+                    const check = document.createElement('div');
+                    check.className = 'check-icon';
+                    check.textContent = '✓';
+                    
+                    tile.appendChild(avatar);
+                    tile.appendChild(name);
+                    tile.appendChild(check);
+                    tile.onclick = () => {
+                        tile.classList.toggle('selected');
+                        if (tile.classList.contains('selected')) {
+                            selectedUsernames.add(fName);
+                        } else {
+                            selectedUsernames.delete(fName);
+                        }
+                        hiddenInput.value = Array.from(selectedUsernames).join(',');
+                    };
+                    container.appendChild(tile);
+                });
+            })().catch(() => {
+                container.innerHTML = '<div style="color: var(--error-color); font-size: 0.8rem; width: 100%; text-align: center;">Błąd ładowania użytkowników.</div>';
             });
         }
         tabButtons.forEach(button => {
@@ -2724,7 +2792,7 @@ _____                     _   _   _           _
                     return;
                 }
                 try {
-                    const response = await fetch(`${API_URL}/friends/add`, {
+                    const response = await fetch(`${currentApiUrl}/friends/add`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2777,7 +2845,7 @@ _____                     _   _   _           _
                 }
 
                 try {
-                    const response = await fetch(`${API_URL}/groups`, {
+                    const response = await fetch(`${currentApiUrl}/groups`, {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
@@ -2796,7 +2864,7 @@ _____                     _   _   _           _
                                 formData.append('avatar', groupAvatarInput.files[0]);
                             }
                             try {
-                                await fetch(`${API_URL}/groups/${groupId}/avatar`, {
+                                await fetch(`${currentApiUrl}/groups/${groupId}/avatar`, {
                                     method: 'POST',
                                     headers: { 'Authorization': `Bearer ${token}` },
                                     body: formData
@@ -3046,7 +3114,7 @@ _____                     _   _   _           _
             const formData = new FormData();
             formData.append('file', blob);
             try {
-                const response = await fetch(`${API_URL}/users/avatar`, {
+                const response = await fetch(`${currentApiUrl}/users/avatar`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -3117,7 +3185,7 @@ _____                     _   _   _           _
                 const oldEmail = currentUser ? (currentUser.email || currentUser.Email) : null;
 
                 try {
-                    const response = await fetch(`${API_URL}/users/profile`, {
+                    const response = await fetch(`${currentApiUrl}/users/profile`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -3267,10 +3335,7 @@ _____                     _   _   _           _
                 const token = localStorage.getItem('token');
                 if (!token) return;
                 
-                // Use window.API_URL which is defined in the scope or fallback
-                const apiUrl = window.API_URL || ((window.SERVER_BASE || window.location.origin) + '/api');
-
-                const response = await fetch(`${apiUrl}/users/profile`, {
+                const response = await fetch(`${currentApiUrl}/users/profile`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -3490,7 +3555,7 @@ _____                     _   _   _           _
                         newFriendBtn.addEventListener('click', async () => {
                             if (!confirm(`Czy na pewno usunąć ${username} ze znajomych?`)) return;
                             try {
-                                const res = await fetch(`${API_URL}/friends/${userId}`, {
+                                const res = await fetch(`${currentApiUrl}/friends/${userId}`, {
                                     method: 'DELETE',
                                     headers: { 'Authorization': `Bearer ${token}` }
                                 });
@@ -3514,7 +3579,7 @@ _____                     _   _   _           _
                         
                         newFriendBtn.addEventListener('click', async () => {
                              try {
-                                const res = await fetch(`${API_URL}/friends/add`, {
+                                const res = await fetch(`${currentApiUrl}/friends/add`, {
                                     method: 'POST',
                                     headers: { 
                                         'Authorization': `Bearer ${token}`,
@@ -3551,7 +3616,7 @@ _____                     _   _   _           _
                     deleteUserBtn.onclick = async () => {
                         if (!confirm(`Czy na pewno usunąć konto użytkownika ${username}?`)) return;
                         try {
-                            const res = await fetch(`${API_URL}/admin/users/${userId}`, {
+                            const res = await fetch(`${currentApiUrl}/admin/users/${userId}`, {
                                 method: 'DELETE',
                                 headers: { 'Authorization': `Bearer ${token}` }
                             });
@@ -3576,7 +3641,7 @@ _____                     _   _   _           _
                         if (minutesStr === null) return;
                         const minutes = parseInt(minutesStr) || 60;
                         try {
-                            const res = await fetch(`${API_URL}/admin/ban/${userId}`, {
+                            const res = await fetch(`${currentApiUrl}/admin/ban/${userId}`, {
                                 method: 'POST',
                                 headers: { 
                                     'Authorization': `Bearer ${token}`,
@@ -3602,7 +3667,7 @@ _____                     _   _   _           _
                 mutualsList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
                 serversList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
                 try {
-                    const res = await fetch(`${API_URL}/friends/mutual/${userId}`, {
+                    const res = await fetch(`${currentApiUrl}/friends/mutual/${userId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (res.ok) {
@@ -3616,7 +3681,7 @@ _____                     _   _   _           _
                     mutualsList.innerHTML = '<div style="color:var(--error-color)">Błąd ładowania</div>';
                 }
                 try {
-                    const res = await fetch(`${API_URL}/groups/common/${userId}`, {
+                    const res = await fetch(`${currentApiUrl}/groups/common/${userId}`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (res.ok) {
@@ -3763,7 +3828,7 @@ _____                     _   _   _           _
                                 e.stopPropagation();
                                 if (!confirm(`Czy na pewno usunąć użytkownika ${name} z grupy?`)) return;
                                 try {
-                                    const response = await fetch(`${API_URL}/groups/${groupId}/members/${memberId}`, {
+                                    const response = await fetch(`${currentApiUrl}/groups/${groupId}/members/${memberId}`, {
                                         method: 'DELETE',
                                         headers: { 'Authorization': `Bearer ${token}` }
                                     });
@@ -3810,26 +3875,28 @@ _____                     _   _   _           _
             modal.classList.add('show');
             
             try {
-                // Fetch friends and current members in parallel
-                const [friendsRes, membersRes] = await Promise.all([
-                    fetch(`${API_URL}/friends`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch(`${API_URL}/groups/${groupId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
+                const [allUsersList, membersRes] = await Promise.all([
+                    fetchAllUsersSafe(),
+                    fetch(`${currentApiUrl}/groups/${groupId}/members`, { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
                 
-                if (friendsRes.ok && membersRes.ok) {
-                    const friendsList = await friendsRes.json();
+                if (membersRes.ok) {
+                    const usersArray = Array.isArray(allUsersList) ? allUsersList : [];
                     const membersList = await membersRes.json();
                     
                     const memberIds = new Set(membersList.map(m => String(m.userId || m.UserId)));
-                    const availableFriends = friendsList.filter(f => !memberIds.has(String(f.id || f.Id)));
+                    // Filter out existing members and current user
+                    const currentUser = JSON.parse(localStorage.getItem('user'));
+                    const currentUserId = currentUser ? (currentUser.id || currentUser.Id) : null;
+                    const availableUsers = usersArray.filter(u => !memberIds.has(String(u.id || u.Id)) && (u.id || u.Id) != currentUserId);
                     
                     list.innerHTML = '';
-                    if (availableFriends.length === 0) {
-                        list.innerHTML = '<div style="padding:10px;text-align:center;color:var(--text-muted)">Brak znajomych do dodania.</div>';
+                    if (availableUsers.length === 0) {
+                        list.innerHTML = '<div style="padding:10px;text-align:center;color:var(--text-muted)">Brak użytkowników do dodania.</div>';
                         return;
                     }
                     
-                    availableFriends.forEach(friend => {
+                    availableUsers.forEach(friend => {
                         const tile = document.createElement('div');
                         tile.className = 'friend-tile';
                         // Inline styles removed to rely on CSS class
@@ -3886,7 +3953,7 @@ _____                     _   _   _           _
                         }
                         
                         try {
-                            const res = await fetch(`${API_URL}/groups/${groupId}/members`, {
+                            const res = await fetch(`${currentApiUrl}/groups/${groupId}/members`, {
                                 method: 'POST',
                                 headers: {
                                     'Content-Type': 'application/json',
@@ -3904,7 +3971,6 @@ _____                     _   _   _           _
                                 await handleApiError(res, 'Nie udało się dodać użytkowników');
                             }
                         } catch (e) {
-                            console.error(e);
                             showNotification('Błąd podczas dodawania.', 'error');
                         }
                     };
@@ -3913,7 +3979,6 @@ _____                     _   _   _           _
                     list.innerHTML = '<div style="color:var(--error-color)">Błąd ładowania danych.</div>';
                 }
             } catch (e) {
-                console.error(e);
                 list.innerHTML = '<div style="color:var(--error-color)">Błąd połączenia.</div>';
             }
         }
@@ -3931,7 +3996,7 @@ _____                     _   _   _           _
                     formData.append('avatar', input.files[0]);
                     try {
                         showNotification('Wysyłanie ikony...', 'info');
-                        const response = await fetch(`${API_URL}/groups/${groupId}/avatar`, {
+                        const response = await fetch(`${currentApiUrl}/groups/${groupId}/avatar`, {
                             method: 'POST',
                             headers: { 'Authorization': `Bearer ${token}` },
                             body: formData
@@ -3962,7 +4027,7 @@ _____                     _   _   _           _
         async function deleteGroup(groupId) {
             if (!confirm('Czy na pewno chcesz usunąć tę grupę? Tej operacji nie można cofnąć.')) return;
             try {
-                const response = await fetch(`${API_URL}/groups/${groupId}`, {
+                const response = await fetch(`${currentApiUrl}/groups/${groupId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -3990,7 +4055,7 @@ _____                     _   _   _           _
             }
             if (!confirm('Czy na pewno chcesz opuścić grupę?')) return;
             try {
-        const response = await fetch(`${API_URL}/groups/${groupId}/members/me`, {
+        const response = await fetch(`${currentApiUrl}/groups/${groupId}/members/me`, {
             method: 'DELETE',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -4041,14 +4106,16 @@ _____                     _   _   _           _
             if (imagesContainer) imagesContainer.innerHTML = '';
 
             if (currentChatType === 'global') {
-                if(titleEl) titleEl.textContent = 'Czat ogólny';
-                nameEl.textContent = 'Kanał ogólny';
-                avatarEl.style.backgroundImage = "url('logo.png')";
-                avatarEl.style.backgroundSize = 'cover';
-                avatarEl.style.backgroundPosition = 'center';
-                avatarEl.textContent = ''; 
-                avatarEl.style.backgroundColor = 'transparent';
-                statusEl.textContent = '';
+                if (titleEl) titleEl.textContent = 'Czat ogólny';
+                if (nameEl) nameEl.textContent = 'Kanał ogólny';
+                if (avatarEl) {
+                    avatarEl.style.backgroundImage = "url('logo.png')";
+                    avatarEl.style.backgroundSize = 'cover';
+                    avatarEl.style.backgroundPosition = 'center';
+                    avatarEl.textContent = '';
+                    avatarEl.style.backgroundColor = 'transparent';
+                }
+                if (statusEl) statusEl.textContent = '';
                 
                 if (mutualsSection) mutualsSection.style.display = 'none';
                 if (groupsSection) groupsSection.style.display = 'none';
@@ -4057,29 +4124,19 @@ _____                     _   _   _           _
                 if (membersContainer) {
                     membersContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Ładowanie użytkowników...</div>';
                     try {
-                        const res = await fetch(`${currentApiUrl}/Users`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
-                        console.log(`Fetch /api/Users status: ${res.status}`);
-                        if (res.ok) {
-                            const allUsers = await res.json();
-                            const usersArray = Array.isArray(allUsers) ? allUsers : [];
-                            
-                            // Map to expected format for renderProfileList
+                        const usersArray = (await fetchAllUsersSafe()) || null;
+                        if (usersArray) {
                             const mappedUsers = usersArray.map(u => ({
                                 id: u.id || u.Id,
                                 username: u.username || u.Username,
                                 avatarUrl: u.avatarUrl || u.AvatarUrl,
                                 status: u.status || u.Status
                             }));
-
                             renderProfileList(membersContainer, mappedUsers, 'Brak dostępnych użytkowników.');
                         } else {
-                            console.warn(`Failed to fetch all users: ${res.status} ${res.statusText}`);
                             renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
                         }
                     } catch (e) {
-                        console.error("Error fetching all users:", e);
                         renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
                     }
                 }
@@ -4099,23 +4156,25 @@ _____                     _   _   _           _
             } else if (currentChatType === 'private' && currentChatId) {
                 if (avatarEl) avatarEl.style.backgroundColor = '';
                 const friend = friends.find(f => f.id == currentChatId || f.Id == currentChatId);
-                titleEl.textContent = 'Rozmowa prywatna';
+                if (titleEl) titleEl.textContent = 'Rozmowa prywatna';
                 const username = friend ? (friend.username || friend.Username || 'Użytkownik') : 'Użytkownik';
                 const avatarUrl = friend ? (friend.avatarUrl || friend.AvatarUrl) : null;
-                nameEl.textContent = username;
-                if (avatarUrl) {
-                    const url = resolveUrl(avatarUrl);
-                    avatarEl.style.backgroundImage = `url('${url}')`;
-                    avatarEl.textContent = '';
-                } else {
-                    avatarEl.style.backgroundImage = '';
-                    avatarEl.textContent = username.charAt(0).toUpperCase();
+                if (nameEl) nameEl.textContent = username;
+                if (avatarEl) {
+                    if (avatarUrl) {
+                        const url = resolveUrl(avatarUrl);
+                        avatarEl.style.backgroundImage = `url('${url}')`;
+                        avatarEl.textContent = '';
+                    } else {
+                        avatarEl.style.backgroundImage = '';
+                        avatarEl.textContent = username.charAt(0).toUpperCase();
+                    }
                 }
                 let status = 'Niedostępny';
                 if (friend && (friend.isOnline || friend.IsOnline)) {
                     status = 'Dostępny';
                 }
-                statusEl.textContent = status;
+                if (statusEl) statusEl.textContent = status;
                 if (mutualsSection) mutualsSection.style.display = 'block';
                 if (groupsSection) {
                     groupsSection.style.display = 'block';
@@ -4128,19 +4187,21 @@ _____                     _   _   _           _
             } else if (currentChatType === 'group' && currentChatId) {
                 if (avatarEl) avatarEl.style.backgroundColor = '';
                 const group = groups.find(g => g.id == currentChatId || g.Id == currentChatId);
-                if(titleEl) titleEl.textContent = 'Grupa';
+                if (titleEl) titleEl.textContent = 'Grupa';
                 const groupName = group ? (group.name || group.Name || 'Grupa') : 'Grupa';
                 const avatarUrl = group ? (group.avatarUrl || group.AvatarUrl) : null;
-                nameEl.textContent = groupName;
-                if (avatarUrl) {
-                    const url = resolveUrl(avatarUrl);
-                    avatarEl.style.backgroundImage = `url('${url}')`;
-                    avatarEl.textContent = '';
-                } else {
-                    avatarEl.style.backgroundImage = '';
-                    avatarEl.textContent = groupName.charAt(0).toUpperCase();
+                if (nameEl) nameEl.textContent = groupName;
+                if (avatarEl) {
+                    if (avatarUrl) {
+                        const url = resolveUrl(avatarUrl);
+                        avatarEl.style.backgroundImage = `url('${url}')`;
+                        avatarEl.textContent = '';
+                    } else {
+                        avatarEl.style.backgroundImage = '';
+                        avatarEl.textContent = groupName.charAt(0).toUpperCase();
+                    }
                 }
-                statusEl.textContent = '';
+                if (statusEl) statusEl.textContent = '';
                 if (mutualsSection) mutualsSection.style.display = 'none';
                 if (groupsSection) groupsSection.style.display = 'none';
                 if (membersSection) membersSection.style.display = 'block';
@@ -4238,7 +4299,7 @@ _____                     _   _   _           _
             const groupsContainer = document.getElementById('conversationSidebarGroups');
             if (!mutualsContainer || !groupsContainer) return;
             try {
-                const res = await fetch(`${API_URL}/friends/mutual/${userId}`, {
+                const res = await fetch(`${currentApiUrl}/friends/mutual/${userId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -4256,7 +4317,7 @@ _____                     _   _   _           _
                 mutualsContainer.innerHTML = '<div style="color: var(--error-color); font-size: 0.85rem;">Błąd ładowania</div>';
             }
             try {
-                const res = await fetch(`${API_URL}/groups/common/${userId}`, {
+                const res = await fetch(`${currentApiUrl}/groups/common/${userId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (res.ok) {
@@ -4398,7 +4459,7 @@ _____                     _   _   _           _
                 }
                 
                 try {
-                    const res = await fetch(`${API_URL}/groups/${currentEditingGroupId}`, {
+                    const res = await fetch(`${currentApiUrl}/groups/${currentEditingGroupId}`, {
                         method: 'PUT',
                         headers: {
                             'Content-Type': 'application/json',
@@ -4493,7 +4554,7 @@ _____                     _   _   _           _
                         showNotification('Brak tokenu autoryzacji. Zaloguj się ponownie.', 'error');
                         return;
                     }
-                    const response = await fetch(`${API_URL}/messages/${messageId}`, {
+                    const response = await fetch(`${currentApiUrl}/messages/${messageId}`, {
                         method: 'DELETE',
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -4529,7 +4590,7 @@ _____                     _   _   _           _
 
         window.clearGlobalChat = async function() {
             try {
-                const res = await fetch(`${API_URL}/admin/messages/global`, {
+                const res = await fetch(`${currentApiUrl}/admin/messages/global`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });

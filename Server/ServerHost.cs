@@ -37,9 +37,11 @@ namespace ParrotnestServer
                 });
                 builder.Services.AddSingleton<IUserTracker, UserTracker>();
                 var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db");
-                var connectionString = $"Data Source={dbPath}";
+                var connectionString = $"Data Source={dbPath};Cache=Shared";
                 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-                    options.UseSqlite(connectionString));
+                {
+                    options.UseSqlite(connectionString);
+                });
                 var jwtKey = builder.Configuration["Jwt:Key"] ?? "SuperSecretKeyForParrotnestApplication123!";
                 builder.Services.AddAuthentication(options =>
                 {
@@ -84,6 +86,10 @@ namespace ParrotnestServer
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
                     dbContext.Database.EnsureCreated();
+                    
+                    // Enable WAL mode for better multi-user concurrency
+                    dbContext.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+                    
                     try {
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN Status INTEGER DEFAULT 1;");
                     } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] Status: {ex.Message}"); }

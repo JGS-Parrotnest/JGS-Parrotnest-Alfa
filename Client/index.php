@@ -31,8 +31,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Parrotnest</title>
     <link rel="icon" href="logo.png" type="image/png">
-    <link rel="stylesheet" href="style.css?v=13">
-    <link rel="stylesheet" href="mobile.css?v=2" media="(max-width: 768px)">
+    <link rel="stylesheet" href="style.css?v=14">
+    <link rel="stylesheet" href="mobile.css?v=3" media="(max-width: 768px)">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
     <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
@@ -208,16 +208,14 @@
     </div>
     <div class="conversation-sidebar" id="conversationSidebar">
         <div class="conversation-sidebar-header">
-            <h3 id="conversationSidebarTitle" style="display:none;">Informacje</h3>
             <button class="btn-icon" id="closeConversationSidebarButton" title="Zamknij panel"><span class="material-symbols-outlined">close</span></button>
-        </div>
-        <div class="conversation-sidebar-body" id="conversationSidebarBody">
             <div class="info-card">
                 <div class="avatar-large" id="conversationSidebarAvatar"></div>
                 <h2 id="conversationSidebarName">Nazwa</h2>
                 <div class="status-text" id="conversationSidebarStatus">Status</div>
             </div>
-
+        </div>
+        <div class="conversation-sidebar-body" id="conversationSidebarBody">
             <div class="sidebar-section" id="conversationSidebarMembersSection" style="display: none;">
                 <h4>Uczestnicy</h4>
                 <div class="conversation-sidebar-list" id="conversationSidebarMembers"></div>
@@ -601,7 +599,7 @@
                  <div class="settings-section" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
                     <h4>JGS Team</h4>
                     <div id="debugInfo" style="background: #111; padding: 15px; border-radius: 8px; color: #0f0; font-family: monospace; margin-top: 10px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #333;">
-                        <div><strong>System:</strong> Parrotnest v7.0</div>
+                        <div><strong>System:</strong> Parrotnest v8.2</div>
                         <div><strong>Copyright:</strong> &copy; 2026 Parrotnest</div>
                         <div><strong>Made by:</strong> JGS team</div>
                     </div>
@@ -684,6 +682,6 @@
         <div id="caption"></div>
     </div>
     <script src="auth.js?v=6"></script>
-    <script src="app.js?v=30"></script>
+    <script src="app.js?v=32"></script>
 </body>
 </html>
