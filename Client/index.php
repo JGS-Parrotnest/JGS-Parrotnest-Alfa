@@ -173,6 +173,9 @@
                     </div>
                     <div class="user-actions">
                         <button class="btn-icon" id="settingsButton" title="Ustawienia">⚙️</button>
+                    <button class="btn-icon" id="openAdminSidebarButton" title="Administracja" style="display:none;">
+                        <span class="material-symbols-outlined">workspace_premium</span>
+                    </button>
                     </div>
                 </div>
             </div>
@@ -207,6 +210,61 @@
             <div id="emojiPicker" class="emoji-picker"></div>
         </main>
     </div>
+    <div class="conversation-sidebar" id="adminSidebar" style="display:none;">
+        <div class="conversation-sidebar-header">
+            <button class="btn-icon" id="closeAdminSidebarButton" title="Zamknij panel" style="position: fixed; top: 12px; right: 12px; z-index: 1000;"><span class="material-symbols-outlined">close</span></button>
+            <div class="info-card">
+                <div class="avatar-large"><span class="material-symbols-outlined">workspace_premium</span></div>
+                <h2>Administracja</h2>
+                <div class="status-text">Panel administratora</div>
+            </div>
+        </div>
+        <div class="conversation-sidebar-body" id="adminSidebarBody">
+            <div class="sidebar-section" id="adminPanel" style="display: none;">
+                <h4>Panel administracyjny</h4>
+                <div id="adminAccessWarning" style="display:none;color:var(--error-color);font-size:0.9rem;margin-bottom:10px;">Brak uprawnień administratora.</div>
+                <div class="input-group">
+                    <label for="adminUserSearch">Wyszukaj użytkowników</label>
+                    <input type="text" id="adminUserSearch" placeholder="Filtruj po nazwie lub e-mailu">
+                </div>
+                <div class="input-group">
+                    <label>Lista użytkowników</label>
+                    <div id="adminUsersList" class="conversation-sidebar-list" style="max-height:250px;overflow-y:auto;"></div>
+                </div>
+                <div class="input-group">
+                    <label>Akcje</label>
+                    <div id="adminActionsArea" style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;gap:8px;">
+                            <select id="adminActionSelect" style="flex:1;">
+                                <option value="mute">Wycisz</option>
+                                <option value="unmute">Odcisz</option>
+                                <option value="ban">Zbanuj</option>
+                                <option value="unban">Odbanuj</option>
+                                <option value="delete">Usuń konto</option>
+                            </select>
+                            <input type="number" id="adminDurationMinutes" placeholder="Czas (min)" min="1" style="width:120px;">
+                        </div>
+                        <textarea id="adminReason" placeholder="Powód (opcjonalnie)" rows="2" style="resize:vertical;"></textarea>
+                        <button class="btn-primary" id="adminExecuteActionBtn">Wykonaj akcję</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Narzędzia (zaznaczeni użytkownicy)</label>
+                    <div id="adminSelectionTools" style="display:flex;flex-wrap:wrap;gap:8px;">
+                        <button id="profileMuteBtn" class="btn-secondary" disabled><span class="material-symbols-outlined">volume_off</span> Wycisz</button>
+                        <button id="profileUnmuteBtn" class="btn-secondary" disabled><span class="material-symbols-outlined">volume_up</span> Odcisz</button>
+                        <button id="profileBanBtn" class="btn-secondary danger" disabled><span class="material-symbols-outlined">block</span> Zbanuj</button>
+                        <button id="profileUnbanBtn" class="btn-secondary" disabled><span class="material-symbols-outlined">block</span> Odbanuj</button>
+                        <button id="profileDeleteBtn" class="btn-secondary danger" disabled><span class="material-symbols-outlined">delete</span> Usuń konto</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Logi aktywności administracyjnej</label>
+                    <div id="adminLogsList" style="max-height:250px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;padding:8px;font-family:monospace;font-size:0.85rem;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="conversation-sidebar" id="conversationSidebar">
         <div class="conversation-sidebar-header">
             <button class="btn-icon" id="closeConversationSidebarButton" title="Zamknij panel"><span class="material-symbols-outlined">close</span></button>
@@ -237,39 +295,7 @@
                 <div class="conversation-sidebar-images" id="conversationSidebarImages"></div>
             </div>
             
-            <div class="sidebar-section" id="adminPanel" style="display: none;">
-                <h4>Panel administracyjny</h4>
-                <div id="adminAccessWarning" style="display:none;color:var(--error-color);font-size:0.9rem;margin-bottom:10px;">Brak uprawnień administratora.</div>
-                <div class="input-group">
-                    <label for="adminUserSearch">Wyszukaj użytkowników</label>
-                    <input type="text" id="adminUserSearch" placeholder="Filtruj po nazwie lub e-mailu">
-                </div>
-                <div class="input-group">
-                    <label>Lista użytkowników</label>
-                    <div id="adminUsersList" class="conversation-sidebar-list" style="max-height:250px;overflow-y:auto;"></div>
-                </div>
-                <div class="input-group">
-                    <label>Akcje</label>
-                    <div id="adminActionsArea" style="display:flex;flex-direction:column;gap:8px;">
-                        <div style="display:flex;gap:8px;">
-                            <select id="adminActionSelect" style="flex:1;">
-                                <option value="mute">Wycisz</option>
-                                <option value="unmute">Odcisz</option>
-                                <option value="ban">Zbanuj</option>
-                                <option value="unban">Odbanuj</option>
-                                <option value="delete">Usuń konto</option>
-                            </select>
-                            <input type="number" id="adminDurationMinutes" placeholder="Czas (min)" min="1" style="width:120px;">
-                        </div>
-                        <textarea id="adminReason" placeholder="Powód (opcjonalnie)" rows="2" style="resize:vertical;"></textarea>
-                        <button class="btn-primary" id="adminExecuteActionBtn">Wykonaj akcję</button>
-                    </div>
-                </div>
-                <div class="input-group">
-                    <label>Logi aktywności administracyjnej</label>
-                    <div id="adminLogsList" style="max-height:250px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;padding:8px;font-family:monospace;font-size:0.85rem;"></div>
-                </div>
-            </div>
+            
         </div>
     </div>
     <div id="addModal" class="modal">
@@ -561,6 +587,7 @@
                         <button id="profileMessageBtn" class="btn-primary" style="flex: 1; max-width: 150px;">Wiadomość</button>
                         <button id="profileFriendBtn" class="btn-primary" style="flex: 1; max-width: 150px;">Dodaj do znajomych</button>
                     </div>
+                    
                 </div>
                 <div id="profileMutualsSection" style="display: none; width: 100%;">
                     <div class="input-group">
@@ -579,12 +606,14 @@
     </div>
     <!-- Confirmation Modal -->
     <div class="modal" id="confirmationModal">
-        <div class="modal-content small">
-            <h3 style="margin-bottom: 15px; text-align: center;">Potwierdzenie</h3>
-            <p id="confirmationMessage" style="text-align: center; margin-bottom: 25px; color: var(--text-muted);">Czy na pewno?</p>
-            <div class="modal-actions" style="justify-content: center; gap: 15px;">
-                <button class="btn-secondary" id="cancelConfirmBtn" style="min-width: 100px;">Anuluj</button>
-                <button class="btn-primary" id="confirmActionBtn" style="min-width: 100px; background: var(--error-color); border-color: var(--error-color);">Usuń</button>
+        <div class="modal-content small" style="position: fixed; top: 12px; right: 12px; margin: 0; width: 340px;">
+            <div class="modal-header" style="display:flex; align-items:center; justify-content: space-between;">
+                <h3 style="margin-bottom: 0;">Potwierdzenie</h3>
+                <button class="modal-close" id="closeConfirmationModal" aria-label="Zamknij">&times;</button>
+            </div>
+            <p id="confirmationMessage" style="text-align: left; margin: 15px 0 20px; color: var(--text-muted);">Czy na pewno?</p>
+            <div class="modal-actions" style="justify-content: flex-end; gap: 10px;">
+                <button class="btn-primary" id="confirmActionBtn" style="min-width: 110px; background: var(--error-color); border-color: var(--error-color);">Potwierdź</button>
             </div>
         </div>
     </div>
@@ -632,7 +661,7 @@
                  <div class="settings-section" style="background: rgba(0,0,0,0.2); padding: 15px; border-radius: 8px;">
                     <h4>JGS Team</h4>
                     <div id="debugInfo" style="background: #111; padding: 15px; border-radius: 8px; color: #0f0; font-family: monospace; margin-top: 10px; font-size: 0.9rem; line-height: 1.6; border: 1px solid #333;">
-                        <div><strong>System:</strong> Parrotnest v8.2</div>
+                        <div><strong>System:</strong> Parrotnest v8.6</div>
                         <div><strong>Copyright:</strong> &copy; 2026 Parrotnest</div>
                         <div><strong>Made by:</strong> JGS team</div>
                     </div>
@@ -640,17 +669,17 @@
                         <div class="team-card" style="flex: 0 1 180px; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; text-align: center;">
                             <img src="Igor.jpg" alt="Igor Kondraciuk" style="width: 100%; height: auto; display: block;">
                             <div style="padding: 10px; font-weight: 600;">Igor Kondraciuk</div>
-                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: TEAPOT] <br>Kod pisze w takim tempie, że klawiatura zaczyna tęsknić za spokojnym życiem w Excelu.  A gdy aplikacja nie chce połączyć się z bazą danych? (włącza z program z folderu debug).</div>
+                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: RIPDB]<br> Kurna baza nie działa (włącza z program z folderu debug).</div>
                         </div>
                         <div class="team-card team-card-center" style="flex: 0 1 210px; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; text-align: center; transform: scale(1.06);">
                             <img src="Adam.jpg" alt="Adam Hnatko" style="width: 100%; height: auto; display: block;">
                             <div style="padding: 10px; font-weight: 700;">Adam Hnatko</div>
-                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: UMNIEDZIAŁA]<br>Król StackOverflow i wierny wyznawca zasady: „u mnie działa”. Na świętach już się napracował, więc teraz czas, żeby reszta zespołu miała swoją chwilę chwały.</div>
+                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: URLOPIK]<br>Na świętach już się napracował, więc teraz czas, żeby reszta zespołu miała swoją chwilę chwały.</div>
                         </div>
                         <div class="team-card" style="flex: 0 1 180px; background: #111; border: 1px solid #333; border-radius: 8px; overflow: hidden; text-align: center;">
                             <img src="Jakub.jpg" alt="Jakub Fedorowicz" style="width: 100%; height: auto; display: block;">
                             <div style="padding: 10px; font-weight: 600;">Jakub Fedorowicz</div>
-                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: W_TRAKCIE]<br>Termin traktuje jak wskazówkę „jeszcze nie zdążyłem”. Narzeka, gdy zespół odblokowuje 25. godzinę i robi jego zadania, bo on miał to zrobić sam.</div>
+                            <div style="padding: 0 10px 10px; font-size: 0.8rem; color: #0f0; font-family: 'Courier New', monospace;">[STATUS: FUCKOFF]<br>"Nie moja wina że wy odblokowaliście 25 godzin w ciągu doby"</div>
                         </div>
                     </div>
                 </div>

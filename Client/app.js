@@ -3771,6 +3771,12 @@ _____                     _   _   _           _
             const serversList = document.getElementById('profileCommonServersList');
             
             const actionsDiv = document.getElementById('profileActions');
+            const adminActionsDiv = document.getElementById('profileAdminActions');
+            const profileMuteBtn = document.getElementById('profileMuteBtn');
+            const profileUnmuteBtn = document.getElementById('profileUnmuteBtn');
+            const profileBanBtn = document.getElementById('profileBanBtn');
+            const profileUnbanBtn = document.getElementById('profileUnbanBtn');
+            const profileDeleteBtn = document.getElementById('profileDeleteBtn');
             const msgBtn = document.getElementById('profileMessageBtn');
             const friendBtn = document.getElementById('profileFriendBtn');
 
@@ -3883,52 +3889,106 @@ _____                     _   _   _           _
                 // Admin actions
                 const currentUserAdminCheck = JSON.parse(localStorage.getItem('user'));
                 const isAdminProfileView = currentUserAdminCheck && (currentUserAdminCheck.isAdmin || currentUserAdminCheck.IsAdmin);
-                if (isAdminProfileView && actionsDiv) {
-                    const adminActions = document.createElement('div');
-                    adminActions.style.display = 'flex';
-                    adminActions.style.gap = '10px';
-                    adminActions.style.marginTop = '10px';
-                    const deleteUserBtn = document.createElement('button');
-                    deleteUserBtn.className = 'btn-secondary danger';
-                    deleteUserBtn.innerHTML = '<span class="material-symbols-outlined">delete</span> Usuń konto';
-                    deleteUserBtn.onclick = async () => {
-                        if (!confirm(`Czy na pewno usunąć konto użytkownika ${username}?`)) return;
-                        try {
-                            const res = await fetch(`${currentApiUrl}/admin/users/${userId}`, {
-                                method: 'DELETE',
-                                headers: { 'Authorization': `Bearer ${token}` }
+                if (adminActionsDiv) adminActionsDiv.style.display = isAdminProfileView ? 'flex' : 'none';
+                function showConfirm(message, confirmText, onConfirm) {
+                    const modal = document.getElementById('confirmationModal');
+                    const msgEl = document.getElementById('confirmationMessage');
+                    const confirmBtn = document.getElementById('confirmActionBtn');
+                    const cancelBtn = document.getElementById('cancelConfirmBtn');
+                    if (!modal || !msgEl || !confirmBtn || !cancelBtn) { if (confirm(message)) onConfirm(); return; }
+                    msgEl.textContent = message;
+                    confirmBtn.textContent = confirmText || 'Potwierdź';
+                    const newConfirmBtn = confirmBtn.cloneNode(true);
+                    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                    const newCancelBtn = cancelBtn.cloneNode(true);
+                    cancelBtn.parentNode.replaceChild(newCancelBtn, cancelBtn);
+                    newCancelBtn.onclick = () => { modal.classList.remove('show'); };
+                    newConfirmBtn.onclick = () => { modal.classList.remove('show'); onConfirm(); };
+                    modal.classList.add('show');
+                }
+                if (isAdminProfileView) {
+                    if (profileMuteBtn) {
+                        const btn = profileMuteBtn.cloneNode(true); profileMuteBtn.parentNode.replaceChild(btn, profileMuteBtn);
+                        btn.onclick = () => {
+                            showConfirm(`Wyciszyć użytkownika ${username} na 60 minut?`, 'Wycisz', async () => {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/mute/${userId}`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ minutes: 60, reason: 'Profil admin' }),
+                                        cache: 'no-store'
+                                    });
+                                    if (res.ok) { showNotification('Użytkownik wyciszony na 60 min.', 'success'); await loadAdminLogs(); }
+                                    else { await handleApiError(res, 'Nie udało się wyciszyć'); }
+                                } catch { showNotification('Błąd sieci.', 'error'); }
                             });
-                            if (res.ok) {
-                                const data = await res.json();
-                                showNotification(data.message || 'Użytkownik usunięty.', 'success');
-                                userProfileModal.classList.remove('show');
-                                updateConversationSidebar();
-                            } else {
-                                await handleApiError(res, 'Nie udało się usunąć użytkownika');
-                            }
-                        } catch (e) {
-                            console.error(e);
-                            showNotification('Błąd sieci.', 'error');
-                        }
-                    };
-                    const banUserBtn = document.createElement('button');
-                    banUserBtn.className = 'btn-secondary danger';
-                    banUserBtn.innerHTML = '<span class="material-symbols-outlined">block</span> Zbanuj';
-                    banUserBtn.onclick = () => {
-                        const p = document.getElementById('adminPanel');
-                        if (p) {
-                            p.style.display = 'block';
-                            const container = document.getElementById('conversationSidebarBody');
-                            if (container) container.scrollTop = container.scrollHeight;
-                            window.adminSelectedUserId = userId;
-                            const actionSel = document.getElementById('adminActionSelect');
-                            if (actionSel) actionSel.value = 'ban';
-                            showNotification('Ustawiono użytkownika i akcję w panelu administracyjnym.', 'info');
-                        }
-                    };
-                    adminActions.appendChild(deleteUserBtn);
-                    adminActions.appendChild(banUserBtn);
-                    actionsDiv.parentNode.appendChild(adminActions);
+                        };
+                    }
+                    if (profileUnmuteBtn) {
+                        const btn = profileUnmuteBtn.cloneNode(true); profileUnmuteBtn.parentNode.replaceChild(btn, profileUnmuteBtn);
+                        btn.onclick = () => {
+                            showConfirm(`Odciszyć użytkownika ${username}?`, 'Odcisz', async () => {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/unmute/${userId}`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` },
+                                        cache: 'no-store'
+                                    });
+                                    if (res.ok) { showNotification('Użytkownik odciszony.', 'success'); await loadAdminLogs(); }
+                                    else { await handleApiError(res, 'Nie udało się odciszyć'); }
+                                } catch { showNotification('Błąd sieci.', 'error'); }
+                            });
+                        };
+                    }
+                    if (profileBanBtn) {
+                        const btn = profileBanBtn.cloneNode(true); profileBanBtn.parentNode.replaceChild(btn, profileBanBtn);
+                        btn.onclick = () => {
+                            showConfirm(`Zbanować użytkownika ${username} na 60 minut?`, 'Zbanuj', async () => {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/ban/${userId}`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ minutes: 60, reason: 'Profil admin' }),
+                                        cache: 'no-store'
+                                    });
+                                    if (res.ok) { showNotification('Użytkownik zbanowany na 60 min.', 'success'); await loadAdminLogs(); }
+                                    else { await handleApiError(res, 'Nie udało się zbanować'); }
+                                } catch { showNotification('Błąd sieci.', 'error'); }
+                            });
+                        };
+                    }
+                    if (profileUnbanBtn) {
+                        const btn = profileUnbanBtn.cloneNode(true); profileUnbanBtn.parentNode.replaceChild(btn, profileUnbanBtn);
+                        btn.onclick = () => {
+                            showConfirm(`Odbanować użytkownika ${username}?`, 'Odbanuj', async () => {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/unban/${userId}`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}` },
+                                        cache: 'no-store'
+                                    });
+                                    if (res.ok) { showNotification('Użytkownik odbanowany.', 'success'); await loadAdminLogs(); }
+                                    else { await handleApiError(res, 'Nie udało się odbanować'); }
+                                } catch { showNotification('Błąd sieci.', 'error'); }
+                            });
+                        };
+                    }
+                    if (profileDeleteBtn) {
+                        const btn = profileDeleteBtn.cloneNode(true); profileDeleteBtn.parentNode.replaceChild(btn, profileDeleteBtn);
+                        btn.onclick = () => {
+                            showConfirm(`Czy na pewno usunąć konto użytkownika ${username}?`, 'Usuń', async () => {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/users/${userId}`, {
+                                        method: 'DELETE',
+                                        headers: { 'Authorization': `Bearer ${token}` },
+                                        cache: 'no-store'
+                                    });
+                                    if (res.ok) { showNotification('Konto użytkownika usunięte.', 'success'); userProfileModal.classList.remove('show'); await loadAdminLogs(); }
+                                    else { await handleApiError(res, 'Nie udało się usunąć konta'); }
+                                } catch { showNotification('Błąd sieci.', 'error'); }
+                            });
+                        };
+                    }
                 }
                 mutualsList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
                 serversList.innerHTML = '<div style="padding:10px;">Ładowanie...</div>';
@@ -4367,26 +4427,53 @@ _____                     _   _   _           _
             const adminLogsList = document.getElementById('adminLogsList');
             if (typeof window.adminSelectedUserId === 'undefined') window.adminSelectedUserId = null;
             let adminAllUsersCacheLocal = [];
+            const adminLogsState = { inFlight:false, controller:null, backoff:2000, cache:[] };
             async function loadAdminLogs() {
                 try {
-                    const res = await fetch(`${currentApiUrl}/admin/logs?limit=200`, { headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }, cache: 'no-store' });
+                    if (adminLogsState.inFlight) return;
+                    adminLogsState.inFlight = true;
+                    adminLogsState.controller = new AbortController();
+                    const res = await fetch(`${currentApiUrl}/admin/logs?limit=200`, { headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }, cache: 'no-store', signal: adminLogsState.controller.signal });
                     if (res.ok) {
                         const logs = await res.json();
-                        adminLogsList.innerHTML = '';
-                        logs.forEach(l => {
-                            const line = document.createElement('div');
-                            const when = new Date(l.timestamp);
-                            const actor = l.PerformedBy?.Username || `#${l.PerformedBy?.Id ?? '?'}`;
-                            const target = l.TargetUser ? (l.TargetUser.Username || `#${l.TargetUser.Id}`) : '-';
-                            const dur = l.DurationMinutes ? `${l.DurationMinutes}m` : '';
-                            const ok = l.success ? 'OK' : 'ERR';
-                            line.textContent = `[${when.toLocaleString()}] ${ok} ${l.ActionType} by ${actor} -> ${target} ${dur} ${l.Reason ? `| ${l.Reason}` : ''}`;
-                            adminLogsList.appendChild(line);
-                        });
+                        adminLogsState.cache = logs || [];
+                        renderAdminLogs(adminLogsState.cache);
+                        adminLogsState.backoff = 2000;
                     } else {
-                        adminLogsList.innerHTML = '<div style="color:var(--error-color)">Nie udało się pobrać logów.</div>';
+                        if (res.status === 401 || res.status === 403) {
+                            adminLogsList.innerHTML = '<div style="color:var(--error-color)">Brak uprawnień do pobrania logów.</div>';
+                        } else {
+                            adminLogsList.innerHTML = '<div style="color:var(--error-color)">Nie udało się pobrać logów.</div>';
+                        }
+                        scheduleAdminLogsRetry();
                     }
-                } catch { adminLogsList.innerHTML = '<div style="color:var(--error-color)">Błąd sieci.</div>'; }
+                } catch (e) {
+                    if (!(e && (e.name === 'AbortError' || String(e).includes('ERR_ABORTED')))) {
+                        adminLogsList.innerHTML = '<div style="color:var(--error-color)">Błąd sieci.</div>';
+                    }
+                    scheduleAdminLogsRetry();
+                } finally {
+                    adminLogsState.inFlight = false;
+                    adminLogsState.controller = null;
+                }
+            }
+            function renderAdminLogs(items) {
+                adminLogsList.innerHTML = '';
+                (items || []).forEach(l => {
+                    const line = document.createElement('div');
+                    const when = new Date(l.timestamp);
+                    const actor = l.PerformedBy?.Username || `#${l.PerformedBy?.Id ?? '?'}`;
+                    const target = l.TargetUser ? (l.TargetUser.Username || `#${l.TargetUser.Id}`) : '-';
+                    const dur = l.DurationMinutes ? `${l.DurationMinutes}m` : '';
+                    const ok = l.success ? 'OK' : 'ERR';
+                    line.textContent = `[${when.toLocaleString()}] ${ok} ${l.ActionType} by ${actor} -> ${target} ${dur} ${l.Reason ? `| ${l.Reason}` : ''}`;
+                    adminLogsList.appendChild(line);
+                });
+            }
+            function scheduleAdminLogsRetry() {
+                const next = Math.min(adminLogsState.backoff * 2, 30000);
+                adminLogsState.backoff = next;
+                setTimeout(() => { loadAdminLogs(); }, next);
             }
             function renderAdminUsersList(items) {
                 adminUsersList.innerHTML = '';
@@ -4394,6 +4481,7 @@ _____                     _   _   _           _
                     adminUsersList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">Brak dostępnych użytkowników.</div>';
                     return;
                 }
+                if (!window.adminSelectedUserIds) window.adminSelectedUserIds = new Set();
                 items.forEach(u => {
                     const row = document.createElement('div');
                     row.className = 'friend-tile';
@@ -4404,76 +4492,31 @@ _____                     _   _   _           _
                     if (url) { av.style.backgroundImage = `url('${resolveUrl(url)}')`; av.style.backgroundSize = 'cover'; av.style.backgroundPosition = 'center'; av.textContent = ''; }
                     else { av.textContent = name.charAt(0).toUpperCase(); }
                     const label = document.createElement('span'); label.textContent = `${name} (ID ${id})`;
+                    const checkIcon = document.createElement('span'); checkIcon.className = 'material-symbols-outlined check-icon'; checkIcon.textContent = 'check_circle';
                     row.appendChild(av); row.appendChild(label);
+                    row.appendChild(checkIcon);
                     row.style.cursor = 'pointer';
-                    row.onclick = () => { window.adminSelectedUserId = id; [...adminUsersList.children].forEach(c => c.style.background=''); row.style.background='var(--bg-primary)'; };
-                    // Actions inline: Profil, Wycisz, Ban, Usuń
-                    const actions = document.createElement('div');
-                    actions.style.marginLeft = 'auto';
-                    actions.style.display = 'flex';
-                    actions.style.gap = '6px';
-                    const profileBtn = document.createElement('button');
-                    profileBtn.className = 'btn-secondary btn-sidebar-action';
-                    profileBtn.style.padding = '6px 10px';
-                    profileBtn.textContent = 'Profil';
-                    profileBtn.onclick = (e) => { e.stopPropagation(); if (typeof window.openUserProfile === 'function') window.openUserProfile(id); };
-                    const muteBtn = document.createElement('button');
-                    muteBtn.className = 'btn-secondary btn-sidebar-action';
-                    muteBtn.style.padding = '6px 10px';
-                    muteBtn.textContent = 'Wycisz';
-                    muteBtn.onclick = async (e) => {
+                    row.onclick = (e) => {
                         e.stopPropagation();
-                        try {
-                            const res = await fetch(`${currentApiUrl}/admin/mute/${id}`, {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ minutes: 60, reason: 'Panel admin' }),
-                                cache: 'no-store'
-                            });
-                            if (res.ok) { showNotification('Użytkownik wyciszony na 60 min.', 'success'); await loadAdminLogs(); }
-                            else { await handleApiError(res, 'Nie udało się wyciszyć'); }
-                        } catch { showNotification('Błąd sieci.', 'error'); }
+                        const selected = window.adminSelectedUserIds.has(id);
+                        if (selected) {
+                            window.adminSelectedUserIds.delete(id);
+                            row.classList.remove('selected');
+                        } else {
+                            window.adminSelectedUserIds.add(id);
+                            row.classList.add('selected');
+                        }
+                        updateAdminSelectionToolsState();
                     };
-                    const banBtn = document.createElement('button');
-                    banBtn.className = 'btn-secondary btn-sidebar-action danger';
-                    banBtn.style.padding = '6px 10px';
-                    banBtn.textContent = 'Ban';
-                    banBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        try {
-                            const res = await fetch(`${currentApiUrl}/admin/ban/${id}`, {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ minutes: 60, reason: 'Panel admin' }),
-                                cache: 'no-store'
-                            });
-                            if (res.ok) { showNotification('Użytkownik zbanowany na 60 min.', 'success'); await loadAdminLogs(); }
-                            else { await handleApiError(res, 'Nie udało się zbanować'); }
-                        } catch { showNotification('Błąd sieci.', 'error'); }
-                    };
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.className = 'btn-secondary btn-sidebar-action danger';
-                    deleteBtn.style.padding = '6px 10px';
-                    deleteBtn.textContent = 'Usuń';
-                    deleteBtn.onclick = async (e) => {
-                        e.stopPropagation();
-                        if (!confirm('Usunąć konto tego użytkownika?')) return;
-                        try {
-                            const res = await fetch(`${currentApiUrl}/admin/users/${id}`, {
-                                method: 'DELETE',
-                                headers: { 'Authorization': `Bearer ${token}` },
-                                cache: 'no-store'
-                            });
-                            if (res.ok) { showNotification('Konto usunięte.', 'success'); await loadAdminLogs(); adminUsersList.removeChild(row); }
-                            else { await handleApiError(res, 'Nie udało się usunąć'); }
-                        } catch { showNotification('Błąd sieci.', 'error'); }
-                    };
-                    actions.appendChild(profileBtn);
-                    actions.appendChild(muteBtn);
-                    actions.appendChild(banBtn);
-                    actions.appendChild(deleteBtn);
-                    row.appendChild(actions);
+                    row.ondblclick = (e) => { e.stopPropagation(); if (typeof window.openUserProfile === 'function') window.openUserProfile(id); };
                     adminUsersList.appendChild(row);
+                });
+            }
+            function updateAdminSelectionToolsState() {
+                const hasSel = window.adminSelectedUserIds && window.adminSelectedUserIds.size > 0;
+                ['profileMuteBtn','profileUnmuteBtn','profileBanBtn','profileUnbanBtn','profileDeleteBtn'].forEach(id => {
+                    const btn = document.getElementById(id);
+                    if (btn) btn.disabled = !hasSel;
                 });
             }
             async function initAdminPanel() {
@@ -4504,6 +4547,113 @@ _____                     _   _   _           _
                         renderAdminUsersList(filtered);
                     };
                 }
+                function showConfirmGlobal(message, confirmText, onConfirm) {
+                    const modal = document.getElementById('confirmationModal');
+                    const msgEl = document.getElementById('confirmationMessage');
+                    const confirmBtn = document.getElementById('confirmActionBtn');
+                    const closeBtn = document.getElementById('closeConfirmationModal');
+                    if (!modal || !msgEl || !confirmBtn || !closeBtn) { if (confirm(message)) onConfirm(); return; }
+                    msgEl.textContent = message;
+                    confirmBtn.textContent = confirmText || 'Potwierdź';
+                    const newConfirmBtn = confirmBtn.cloneNode(true);
+                    confirmBtn.parentNode.replaceChild(newConfirmBtn, confirmBtn);
+                    const newCloseBtn = closeBtn.cloneNode(true);
+                    closeBtn.parentNode.replaceChild(newCloseBtn, closeBtn);
+                    newCloseBtn.onclick = () => { modal.classList.remove('show'); };
+                    newConfirmBtn.onclick = () => { modal.classList.remove('show'); onConfirm(); };
+                    modal.classList.add('show');
+                }
+                const muteSel = document.getElementById('profileMuteBtn');
+                const unmuteSel = document.getElementById('profileUnmuteBtn');
+                const banSel = document.getElementById('profileBanBtn');
+                const unbanSel = document.getElementById('profileUnbanBtn');
+                const deleteSel = document.getElementById('profileDeleteBtn');
+                if (muteSel) {
+                    muteSel.onclick = async () => {
+                        const ids = Array.from(window.adminSelectedUserIds || []);
+                        if (ids.length === 0) return;
+                        showConfirmGlobal(`Wyciszyć ${ids.length} użytkowników na 60 minut?`, 'Wycisz', async () => {
+                            for (const id of ids) {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/mute/${id}`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ minutes: 60, reason: 'Panel admin (bulk)' }),
+                                        cache: 'no-store'
+                                    });
+                                    if (!res.ok) await handleApiError(res, 'Nie udało się wyciszyć');
+                                } catch {}
+                            }
+                            showNotification('Operacja wyciszenia wykonana.', 'success'); await loadAdminLogs();
+                        });
+                    };
+                }
+                if (unmuteSel) {
+                    unmuteSel.onclick = async () => {
+                        const ids = Array.from(window.adminSelectedUserIds || []);
+                        if (ids.length === 0) return;
+                        showConfirmGlobal(`Odciszyć ${ids.length} użytkowników?`, 'Odcisz', async () => {
+                            for (const id of ids) {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/unmute/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' });
+                                    if (!res.ok) await handleApiError(res, 'Nie udało się odciszyć');
+                                } catch {}
+                            }
+                            showNotification('Operacja odciszenia wykonana.', 'success'); await loadAdminLogs();
+                        });
+                    };
+                }
+                if (banSel) {
+                    banSel.onclick = async () => {
+                        const ids = Array.from(window.adminSelectedUserIds || []);
+                        if (ids.length === 0) return;
+                        showConfirmGlobal(`Zbanować ${ids.length} użytkowników na 60 minut?`, 'Zbanuj', async () => {
+                            for (const id of ids) {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/ban/${id}`, {
+                                        method: 'POST',
+                                        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({ minutes: 60, reason: 'Panel admin (bulk)' }),
+                                        cache: 'no-store'
+                                    });
+                                    if (!res.ok) await handleApiError(res, 'Nie udało się zbanować');
+                                } catch {}
+                            }
+                            showNotification('Operacja banowania wykonana.', 'success'); await loadAdminLogs();
+                        });
+                    };
+                }
+                if (unbanSel) {
+                    unbanSel.onclick = async () => {
+                        const ids = Array.from(window.adminSelectedUserIds || []);
+                        if (ids.length === 0) return;
+                        showConfirmGlobal(`Odbanować ${ids.length} użytkowników?`, 'Odbanuj', async () => {
+                            for (const id of ids) {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/unban/${id}`, { method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' });
+                                    if (!res.ok) await handleApiError(res, 'Nie udało się odbanować');
+                                } catch {}
+                            }
+                            showNotification('Operacja odbanowania wykonana.', 'success'); await loadAdminLogs();
+                        });
+                    };
+                }
+                if (deleteSel) {
+                    deleteSel.onclick = async () => {
+                        const ids = Array.from(window.adminSelectedUserIds || []);
+                        if (ids.length === 0) return;
+                        showConfirmGlobal(`Usunąć konta ${ids.length} użytkowników? Tej operacji nie można cofnąć.`, 'Usuń', async () => {
+                            for (const id of ids) {
+                                try {
+                                    const res = await fetch(`${currentApiUrl}/admin/users/${id}`, { method: 'DELETE', headers: { 'Authorization': `Bearer ${token}` }, cache: 'no-store' });
+                                    if (!res.ok) await handleApiError(res, 'Nie udało się usunąć konta');
+                                } catch {}
+                            }
+                            showNotification('Usunięto konta wybranych użytkowników.', 'success'); await loadAdminLogs();
+                        });
+                    };
+                }
+                updateAdminSelectionToolsState();
                 if (adminExecuteActionBtn) {
                     adminExecuteActionBtn.onclick = async () => {
                         if (!window.adminSelectedUserId) { showNotification('Wybierz użytkownika z listy.', 'warning'); return; }
@@ -4670,8 +4820,7 @@ _____                     _   _   _           _
                                 avatarUrl: u.avatarUrl || u.AvatarUrl,
                                 status: u.status || u.Status
                             }));
-                        if (isAdminGlobal) renderAdminUsers(membersContainer, mappedUsers);
-                        else renderProfileList(membersContainer, mappedUsers, 'Brak dostępnych użytkowników.');
+                        renderProfileList(membersContainer, mappedUsers, 'Brak dostępnych użytkowników.');
                         } else {
                             renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
                         }
@@ -4679,44 +4828,7 @@ _____                     _   _   _           _
                         renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
                     }
                 }
-                if (isAdminGlobal) {
-                    if (adminControls) adminControls.innerHTML = '';
-                    adminControls.style.display = 'flex';
-                    adminControls.style.flexDirection = 'column';
-                    adminControls.style.gap = '10px';
-                    adminControls.style.padding = '10px';
-                    const renameBtn = document.getElementById('adminRenameGeneralBtn') || document.createElement('button');
-                    renameBtn.id = 'adminRenameGeneralBtn';
-                    renameBtn.className = 'btn-secondary btn-sidebar-action';
-                    renameBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Zmień nazwę kanału ogólnego';
-                    renameBtn.onclick = async () => {
-                        const newName = prompt('Nowa nazwa kanału ogólnego:', generalChannel.name || 'Ogólny');
-                        if (!newName) return;
-                        try {
-                            const res = await fetch(`${currentApiUrl}/general`, {
-                                method: 'PUT',
-                                headers: {
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ name: newName })
-                            });
-                            if (res.ok) {
-                                const data = await res.json();
-                                generalChannel.name = data.name || generalChannel.name;
-                                applyGeneralChannelToGlobalItem();
-                                selectChat(null, generalChannel.name, generalChannel.avatarUrl, 'global');
-                            }
-                        } catch (e) {}
-                    };
-                    adminControls.appendChild(renameBtn);
-                    const clearBtn = document.getElementById('adminClearGeneralBtn') || document.createElement('button');
-                    clearBtn.id = 'adminClearGeneralBtn';
-                    clearBtn.className = 'btn-secondary btn-sidebar-action danger';
-                    clearBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span> Wyczyść kanał ogólny';
-                    clearBtn.onclick = () => window.clearGlobalChat && window.clearGlobalChat();
-                    adminControls.appendChild(clearBtn);
-                }
+                if (adminControls && !adminControls.closest('#adminSidebar')) { adminControls.innerHTML = ''; adminControls.style.display = 'none'; }
             } else if (currentChatType === 'private' && currentChatId) {
                 if (avatarEl) avatarEl.style.backgroundColor = '';
                 const friend = friends.find(f => f.id == currentChatId || f.Id == currentChatId);
@@ -4777,12 +4889,7 @@ _____                     _   _   _           _
                 
                 const isAdmin = group && currentUserId && groupOwnerId && (String(groupOwnerId) === String(currentUserId));
                 
-                if (adminControls) {
-                    adminControls.style.display = 'flex';
-                    adminControls.style.flexDirection = 'column';
-                    adminControls.style.gap = '10px';
-                    adminControls.style.padding = '10px';
-                }
+                if (adminControls) { adminControls.innerHTML=''; adminControls.style.display='none'; }
 
                 if (isAdmin) {
                     if (adminControls) adminControls.innerHTML = '';
@@ -4791,35 +4898,35 @@ _____                     _   _   _           _
                     addBtn.className = 'btn-secondary btn-sidebar-action';
                     addBtn.innerHTML = '<span class="material-symbols-outlined">person_add</span> Dodaj członków';
                     addBtn.onclick = () => openAddMemberModal(currentChatId);
-                    if (adminControls) adminControls.appendChild(addBtn);
+                    /* admin actions removed from chat info */
 
                     // Edit Group Button
                     const editBtn = document.createElement('button');
                     editBtn.className = 'btn-secondary btn-sidebar-action';
                     editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Edytuj grupę';
                     editBtn.onclick = () => openEditGroupModal(currentChatId, group.name || group.Name);
-                    if (adminControls) adminControls.appendChild(editBtn);
+                    /* admin actions removed from chat info */
                     
                     // Change Photo Button
                     const photoBtn = document.createElement('button');
                     photoBtn.className = 'btn-secondary btn-sidebar-action';
                     photoBtn.innerHTML = '<span class="material-symbols-outlined">image</span> Zmień zdjęcie grupy';
                     photoBtn.onclick = () => changeGroupPhoto(currentChatId);
-                    if (adminControls) adminControls.appendChild(photoBtn);
+                    /* admin actions removed from chat info */
                     
                     // Delete Group Button
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'btn-secondary btn-sidebar-action danger';
                     deleteBtn.innerHTML = '<span class="material-symbols-outlined">delete</span> Usuń grupę';
                     deleteBtn.onclick = () => deleteGroup(currentChatId);
-                    if (adminControls) adminControls.appendChild(deleteBtn);
+                    /* admin actions removed from chat info */
                 } else {
                     // Leave Group Button
                     const leaveBtn = document.createElement('button');
                     leaveBtn.className = 'btn-secondary btn-sidebar-action danger';
                     leaveBtn.innerHTML = '<span class="material-symbols-outlined">logout</span> Opuść grupę';
                     leaveBtn.onclick = () => leaveGroup(currentChatId);
-                    if (adminControls) adminControls.appendChild(leaveBtn);
+                    /* admin actions removed from chat info */
                 }
 
                 if (membersContainer) {
@@ -4987,6 +5094,37 @@ _____                     _   _   _           _
             closeConversationSidebarButton.addEventListener('click', () => {
                 conversationSidebar.classList.remove('open');
                 if (dashboardContainer) dashboardContainer.classList.remove('sidebar-open');
+            });
+        }
+
+        const openAdminSidebarButtonEl = document.getElementById('openAdminSidebarButton');
+        const adminSidebarEl = document.getElementById('adminSidebar');
+        const adminSidebarBodyEl = document.getElementById('adminSidebarBody');
+        const closeAdminSidebarButtonEl = document.getElementById('closeAdminSidebarButton');
+        if (openAdminSidebarButtonEl) {
+            try {
+                const u = JSON.parse(localStorage.getItem('user'));
+                const isAdminUser = u && (u.isAdmin || u.IsAdmin);
+                openAdminSidebarButtonEl.style.display = isAdminUser ? 'inline-flex' : 'none';
+            } catch {}
+            openAdminSidebarButtonEl.addEventListener('click', () => {
+                try {
+                    if (adminSidebarEl) {
+                        adminSidebarEl.style.display = 'block';
+                        adminSidebarEl.classList.add('open');
+                        if (typeof window.initAdminPanel === 'function') window.initAdminPanel();
+                    }
+                } catch (e) { console.error(e); }
+            });
+        }
+        if (closeAdminSidebarButtonEl) {
+            closeAdminSidebarButtonEl.addEventListener('click', () => {
+                try {
+                    if (adminSidebarEl) {
+                        adminSidebarEl.classList.remove('open');
+                        adminSidebarEl.style.display = 'none';
+                    }
+                } catch (e) { console.error(e); }
             });
         }
 

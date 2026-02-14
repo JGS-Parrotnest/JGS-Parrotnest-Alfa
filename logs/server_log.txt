@@ -1,0 +1,128 @@
+14.02.2026 20:03:31: SendMessage called. User param: AdamH, Msg: halo, Img: , Rec: , Grp: , Rep: 
+14.02.2026 20:03:31: Adding message to DB. Content length: 4
+14.02.2026 20:03:31: Message saved. ID: 5
+14.02.2026 20:03:31: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 20:03:31: Message broadcast completed.
+14.02.2026 20:05:05: SendMessage called. User param: admin, Msg: hej, Img: , Rec: , Grp: , Rep: 
+14.02.2026 20:05:05: Adding message to DB. Content length: 3
+14.02.2026 20:05:05: Message saved. ID: 6
+14.02.2026 20:05:05: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 20:05:05: Message broadcast completed.
+14.02.2026 20:09:11: SendMessage called. User param: admin, Msg: heja, Img: , Rec: 2, Grp: , Rep: 
+14.02.2026 20:09:11: Adding message to DB. Content length: 4
+14.02.2026 20:09:11: Message saved. ID: 7
+14.02.2026 20:09:11: Broadcasting message. GroupId: , ReceiverId: 2
+14.02.2026 20:09:11: Message broadcast completed.
+14.02.2026 20:09:16: SendMessage called. User param: AdamH, Msg: no hej, Img: , Rec: 1, Grp: , Rep: 
+14.02.2026 20:09:16: Adding message to DB. Content length: 6
+14.02.2026 20:09:16: Message saved. ID: 8
+14.02.2026 20:09:16: Broadcasting message. GroupId: , ReceiverId: 1
+14.02.2026 20:09:16: Message broadcast completed.
+14.02.2026 20:09:39: SendMessage called. User param: admin, Msg: fajne profilowe ziomek, Img: , Rec: 2, Grp: , Rep: 
+14.02.2026 20:09:39: Adding message to DB. Content length: 22
+14.02.2026 20:09:39: Message saved. ID: 9
+14.02.2026 20:09:39: Broadcasting message. GroupId: , ReceiverId: 2
+14.02.2026 20:09:39: Message broadcast completed.
+14.02.2026 20:09:46: SendMessage called. User param: AdamH, Msg: dzięki koleś, Img: , Rec: 1, Grp: , Rep: 
+14.02.2026 20:09:46: Adding message to DB. Content length: 12
+14.02.2026 20:09:46: Message saved. ID: 10
+14.02.2026 20:09:46: Broadcasting message. GroupId: , ReceiverId: 1
+14.02.2026 20:09:46: Message broadcast completed.
+14.02.2026 20:11:34: SendMessage called. User param: Hnato, Msg: cześć, Img: , Rec: , Grp: , Rep: 
+14.02.2026 20:11:34: Adding message to DB. Content length: 5
+14.02.2026 20:11:34: Message saved. ID: 11
+14.02.2026 20:11:34: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 20:11:34: Message broadcast completed.
+14.02.2026 20:16:17: SendMessage called. User param: Hnato, Msg: , Img: /uploads/73c43b86-7ef5-42ad-82ba-0a9d3b4c6280.gif, Rec: , Grp: , Rep: 
+14.02.2026 20:16:17: Adding message to DB. Content length: 0
+14.02.2026 20:16:17: Message saved. ID: 12
+14.02.2026 20:16:17: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 20:16:17: Message broadcast completed.
+14.02.2026 20:19:08: SendMessage called. User param: AdamH, Msg: heja, Img: , Rec: , Grp: 1, Rep: 
+14.02.2026 20:19:08: Adding message to DB. Content length: 4
+14.02.2026 20:19:08: Message saved. ID: 13
+14.02.2026 20:19:08: Broadcasting message. GroupId: 1, ReceiverId: 
+14.02.2026 20:19:08: Message broadcast completed.
+14.02.2026 20:19:12: SendMessage called. User param: AdamH, Msg: hej, Img: , Rec: , Grp: 1, Rep: 
+14.02.2026 20:19:12: Adding message to DB. Content length: 3
+14.02.2026 20:19:12: Message saved. ID: 14
+14.02.2026 20:19:12: Broadcasting message. GroupId: 1, ReceiverId: 
+14.02.2026 20:19:12: Message broadcast completed.
+14.02.2026 20:19:22: SendMessage called. User param: AdamH, Msg: hejka, Img: , Rec: , Grp: 1, Rep: 
+14.02.2026 20:19:22: Adding message to DB. Content length: 5
+14.02.2026 20:19:22: Message saved. ID: 15
+14.02.2026 20:19:22: Broadcasting message. GroupId: 1, ReceiverId: 
+14.02.2026 20:19:22: Message broadcast completed.
+14.02.2026 20:19:41: SendMessage called. User param: AdamH, Msg: hej, Img: , Rec: , Grp: 1, Rep: 
+14.02.2026 20:19:41: Adding message to DB. Content length: 3
+14.02.2026 20:19:41: Message saved. ID: 16
+14.02.2026 20:19:41: Broadcasting message. GroupId: 1, ReceiverId: 
+14.02.2026 20:19:41: Message broadcast completed.
+14.02.2026 20:20:03: SendMessage called. User param: AdamH, Msg: , Img: /uploads/fe229a48-8edb-46c8-b017-c75a6c0bb11d.jpg, Rec: , Grp: , Rep: 
+14.02.2026 20:20:03: Adding message to DB. Content length: 0
+14.02.2026 20:20:03: Message saved. ID: 17
+14.02.2026 20:20:03: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 20:20:03: Message broadcast completed.
+14.02.2026 20:22:09: SendMessage called. User param: Hnato, Msg: hej, Img: , Rec: 2, Grp: , Rep: 
+14.02.2026 20:22:09: Adding message to DB. Content length: 3
+14.02.2026 20:22:09: Message saved. ID: 18
+14.02.2026 20:22:09: Broadcasting message. GroupId: , ReceiverId: 2
+14.02.2026 20:22:09: Message broadcast completed.
+14.02.2026 20:22:15: ReactToMessage called. MsgId: 18, Emoji: 🙂
+14.02.2026 20:22:15: ReactToMessage completed.
+14.02.2026 20:22:23: SendMessage called. User param: Hnato, Msg: no heja, Img: , Rec: 1, Grp: , Rep: 
+14.02.2026 20:22:23: Adding message to DB. Content length: 7
+14.02.2026 20:22:23: Message saved. ID: 19
+14.02.2026 20:22:23: Broadcasting message. GroupId: , ReceiverId: 1
+14.02.2026 20:22:23: Message broadcast completed.
+14.02.2026 20:22:34: ReactToMessage called. MsgId: 19, Emoji: 😀
+14.02.2026 20:22:34: ReactToMessage completed.
+14.02.2026 20:22:38: ReactToMessage called. MsgId: 19, Emoji: 😀
+14.02.2026 20:22:38: ReactToMessage completed.
+14.02.2026 20:27:10: SendMessage called. User param: admin, Msg: spoko, Img: , Rec: 2, Grp: , Rep: 
+14.02.2026 20:27:10: Adding message to DB. Content length: 5
+14.02.2026 20:27:10: Message saved. ID: 20
+14.02.2026 20:27:10: Broadcasting message. GroupId: , ReceiverId: 2
+14.02.2026 20:27:10: Message broadcast completed.
+14.02.2026 20:27:31: SendMessage called. User param: admin, Msg: , Img: /uploads/f5a8779a-9648-41a0-9957-e1724fd6362c.gif, Rec: , Grp: , Rep: 
+14.02.2026 20:27:31: Adding message to DB. Content length: 0
+14.02.2026 20:27:31: Message saved. ID: 21
+14.02.2026 20:27:31: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 20:27:31: Message broadcast completed.
+14.02.2026 20:55:52: ReactToMessage called. MsgId: 17, Emoji: 😁
+14.02.2026 20:55:52: ReactToMessage completed.
+14.02.2026 21:11:53: SendMessage called. User param: AdamH, Msg: halo, Img: , Rec: , Grp: , Rep: 
+14.02.2026 21:12:05: SendMessage called. User param: AdamH, Msg: halo, Img: , Rec: , Grp: 1, Rep: 
+14.02.2026 21:12:07: SendMessage called. User param: AdamH, Msg: halo, Img: , Rec: 4, Grp: , Rep: 
+14.02.2026 21:12:16: ReactToMessage called. MsgId: 1, Emoji: 😊
+14.02.2026 21:12:22: SendMessage called. User param: Hnato, Msg: hejka, Img: , Rec: , Grp: , Rep: 
+14.02.2026 21:12:22: Adding message to DB. Content length: 5
+14.02.2026 21:12:22: Message saved. ID: 22
+14.02.2026 21:12:22: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 21:12:22: Message broadcast completed.
+14.02.2026 21:12:26: ReactToMessage called. MsgId: 22, Emoji: 🙀
+14.02.2026 21:12:26: ReactToMessage completed.
+14.02.2026 21:12:28: ReactToMessage called. MsgId: 22, Emoji: 🙀
+14.02.2026 21:12:28: ReactToMessage completed.
+14.02.2026 21:12:32: ReactToMessage called. MsgId: 22, Emoji: 😿
+14.02.2026 21:12:32: ReactToMessage completed.
+14.02.2026 21:12:36: ReactToMessage called. MsgId: 22, Emoji: 🙀
+14.02.2026 21:12:36: ReactToMessage completed.
+14.02.2026 21:12:43: ReactToMessage called. MsgId: 22, Emoji: 🙀
+14.02.2026 21:12:43: ReactToMessage called. MsgId: 22, Emoji: 😿
+14.02.2026 21:12:51: ReactToMessage called. MsgId: 22, Emoji: 😿
+14.02.2026 21:12:51: ReactToMessage completed.
+14.02.2026 21:12:51: ReactToMessage called. MsgId: 22, Emoji: 🙀
+14.02.2026 21:12:51: ReactToMessage completed.
+14.02.2026 21:13:56: SendMessage called. User param: test, Msg: halo, Img: , Rec: , Grp: , Rep: 
+14.02.2026 21:13:56: Adding message to DB. Content length: 4
+14.02.2026 21:13:56: Message saved. ID: 23
+14.02.2026 21:13:56: Broadcasting message. GroupId: , ReceiverId: 
+14.02.2026 21:13:56: Message broadcast completed.
+14.02.2026 21:14:33: SendMessage called. User param: test, Msg: halo, Img: , Rec: , Grp: , Rep: 
+14.02.2026 21:14:33: SendMessage failed: User with ID 5 not found in DB.
+14.02.2026 21:14:57: ReactToMessage called. MsgId: 22, Emoji: 😿
+14.02.2026 21:22:58: ReactToMessage called. MsgId: 23, Emoji: 🤚
+14.02.2026 21:22:58: ReactToMessage failed: Message 23 not found.
+14.02.2026 21:23:11: ReactToMessage called. MsgId: 17, Emoji: 😁
+14.02.2026 21:23:11: ReactToMessage completed.
