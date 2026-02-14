@@ -888,14 +888,26 @@ _____                     _   _   _           _
                     if (attachmentPreview) {
                         const url = URL.createObjectURL(selectedImageFile);
                         const sizeKb = Math.max(1, Math.round(selectedImageFile.size / 1024));
+                        const ext = (selectedImageFile.name.split('.').pop() || '').toLowerCase();
                         attachmentPreview.className = 'attachment-preview visible';
-                        attachmentPreview.innerHTML = `
+                        let previewInner = `
                             <div class="attachment-preview-close" title="Usuń">×</div>
-                            <img src="${url}" alt="Podgląd">
-                            <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-align: center;">
+                            <div style="display:flex;align-items:center;gap:8px;">
+                        `;
+                        if (['png','jpg','jpeg','gif','webp','bmp'].includes(ext)) {
+                            previewInner += `<img src="${url}" alt="Podgląd" style="max-height:64px;border-radius:6px;">`;
+                        } else if (['mp4','avi','webm','mov'].includes(ext)) {
+                            previewInner += `<video src="${url}" style="max-height:64px;border-radius:6px;" muted></video>`;
+                        } else {
+                            previewInner += `<span class="material-symbols-outlined">description</span>`;
+                        }
+                        previewInner += `
+                            <div style="font-size: 0.8rem; color: var(--text-muted);">
                                 ${selectedImageFile.name} (${sizeKb} KB)
                             </div>
+                            </div>
                         `;
+                        attachmentPreview.innerHTML = previewInner;
                         attachmentPreview.style.display = 'block';
 
                         const removeBtn = attachmentPreview.querySelector('.attachment-preview-close');
@@ -920,31 +932,78 @@ _____                     _   _   _           _
                 const message = input.value.trim();
                 let imageUrl = null;
                 if (selectedImageFile) {
-                    const formData = new FormData();
-                    formData.append('file', selectedImageFile);
                     try {
-                        const response = await fetch(`${currentApiUrl}/messages/upload`, {
-                            method: 'POST',
-                            headers: {
-                                'Authorization': `Bearer ${token}`
-                            },
-                            body: formData
-                        });
-                        if (response.ok) {
-                            const data = await response.json();
-                            imageUrl = data.url;
-                            // Clean up preview
-                            selectedImageFile = null;
-                            imageInput.value = '';
-                            if (attachmentPreview) {
-                                attachmentPreview.className = 'attachment-preview';
-                                attachmentPreview.style.display = 'none';
-                                attachmentPreview.innerHTML = '';
-                            }
-                        } else {
-                            console.error('Upload failed');
-                            showNotification('Nie udało się wysłać obrazka.', 'error');
+                        const maxSize = 100 * 1024 * 1024;
+                        if (selectedImageFile.size > maxSize) {
+                            showNotification('Plik przekracza limit 100MB.', 'error');
                             return;
+                        }
+                        let uploadUrl = null;
+                        if (selectedImageFile.size > (5 * 1024 * 1024)) {
+                            const initRes = await fetch(`${currentApiUrl}/files/initiate`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ 
+                                    fileName: selectedImageFile.name, 
+                                    size: selectedImageFile.size, 
+                                    mimeType: selectedImageFile.type || null 
+                                })
+                            });
+                            if (!initRes.ok) {
+                                await handleApiError(initRes, 'Nie udało się zainicjować przesyłania');
+                                return;
+                            }
+                            const initData = await initRes.json();
+                            const uploadId = initData.uploadId;
+                            const chunkSize = initData.chunkSize || (2 * 1024 * 1024);
+                            let offset = 0;
+                            while (offset < selectedImageFile.size) {
+                                const slice = selectedImageFile.slice(offset, Math.min(offset + chunkSize, selectedImageFile.size));
+                                const chunkBuf = await slice.arrayBuffer();
+                                const chunkRes = await fetch(`${currentApiUrl}/files/chunk/${uploadId}?offset=${offset}`, {
+                                    method: 'PUT',
+                                    headers: { 'Authorization': `Bearer ${token}` },
+                                    body: chunkBuf
+                                });
+                                if (!chunkRes.ok) {
+                                    await handleApiError(chunkRes, 'Błąd przesyłania fragmentu');
+                                    return;
+                                }
+                                const jr = await chunkRes.json();
+                                offset = jr.nextOffset || (offset + chunkSize);
+                            }
+                            const completeRes = await fetch(`${currentApiUrl}/files/complete/${uploadId}`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (!completeRes.ok) {
+                                await handleApiError(completeRes, 'Nie udało się zakończyć przesyłania');
+                                return;
+                            }
+                            const comp = await completeRes.json();
+                            uploadUrl = comp.url;
+                        } else {
+                            const formData = new FormData();
+                            formData.append('file', selectedImageFile);
+                            const response = await fetch(`${currentApiUrl}/messages/upload`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                body: formData
+                            });
+                            if (!response.ok) {
+                                await handleApiError(response, 'Upload nie powiódł się');
+                                return;
+                            }
+                            const data = await response.json();
+                            uploadUrl = data.url;
+                        }
+                        imageUrl = uploadUrl;
+                        selectedImageFile = null;
+                        imageInput.value = '';
+                        if (attachmentPreview) {
+                            attachmentPreview.className = 'attachment-preview';
+                            attachmentPreview.style.display = 'none';
+                            attachmentPreview.innerHTML = '';
                         }
                     } catch (err) {
                         console.error('Error uploading file:', err);
@@ -1218,6 +1277,20 @@ _____                     _   _   _           _
                             }, 1000);
                         }
                     }
+                    // Mark unread on chat list if message not in active view
+                    try {
+                        if (groupId) {
+                            markUnreadBadge('group', groupId);
+                        } else if (receiverId) {
+                            // If it's a private message and not our own, mark the other participant
+                            const currentUser = JSON.parse(localStorage.getItem('user'));
+                            const currentUserId = currentUser.id || currentUser.Id;
+                            const peerId = (parseInt(senderId) === parseInt(currentUserId)) ? receiverId : senderId;
+                            markUnreadBadge('private', peerId);
+                        } else {
+                            markUnreadBadge('global', null);
+                        }
+                    } catch {}
                 }
             }
             if (!shouldShow) return;
@@ -1561,7 +1634,8 @@ _____                     _   _   _           _
                 try {
                     if (debugNetwork) console.info('[diag] Users/all fetch start');
                     const res = await fetch(`${currentApiUrl}/Users/all`, {
-                        headers: { 'Authorization': `Bearer ${token}` },
+                        headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                        cache: 'no-store'
                     });
                     if (debugNetwork) console.info(`[diag] Users/all fetch response status=${res.status} ms=${Math.round(((performance && performance.now ? performance.now() : Date.now()) - start))}`);
                     if (res.status === 404) {
@@ -1594,12 +1668,51 @@ _____                     _   _   _           _
 
             return allUsersInFlight;
         }
+
+        function markUnreadBadge(type, id) {
+            try {
+                let item = null;
+                if (type === 'group' && id != null) {
+                    item = document.querySelector(`.chat-item[data-group-id="${id}"]`);
+                } else if (type === 'private' && id != null) {
+                    item = document.querySelector(`.chat-item[data-friend-id="${id}"]`);
+                } else if (type === 'global') {
+                    item = document.getElementById('globalChatItem');
+                }
+                if (!item) return;
+                let badge = item.querySelector('.chat-unread-badge');
+                if (!badge) {
+                    badge = document.createElement('span');
+                    badge.className = 'chat-unread-badge';
+                    badge.textContent = '1';
+                    item.appendChild(badge);
+                } else {
+                    const n = parseInt(badge.textContent || '0') || 0;
+                    badge.textContent = String(n + 1);
+                }
+            } catch {}
+        }
+
+        function clearUnreadBadge(type, id) {
+            try {
+                let item = null;
+                if (type === 'group' && id != null) {
+                    item = document.querySelector(`.chat-item[data-group-id="${id}"]`);
+                } else if (type === 'private' && id != null) {
+                    item = document.querySelector(`.chat-item[data-friend-id="${id}"]`);
+                } else if (type === 'global') {
+                    item = document.getElementById('globalChatItem');
+                }
+                if (!item) return;
+                const badge = item.querySelector('.chat-unread-badge');
+                if (badge) badge.remove();
+            } catch {}
+        }
         async function loadFriends() {
             try {
                 const response = await fetch(`${currentApiUrl}/friends`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                    cache: 'no-store'
                 });
                 if (response.ok) {
                     friends = await response.json();
@@ -1620,9 +1733,8 @@ _____                     _   _   _           _
         async function loadGroups() {
             try {
                 const response = await fetch(`${currentApiUrl}/groups`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                    cache: 'no-store'
                 });
                 if (response.ok) {
                     groups = await response.json();
@@ -1638,7 +1750,8 @@ _____                     _   _   _           _
         async function loadProductionContent() {
             try {
                 const res = await fetch(`${currentApiUrl}/production/current`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                    cache: 'no-store'
                 });
                 if (!res.ok) return;
                 const data = await res.json();
@@ -1663,9 +1776,8 @@ _____                     _   _   _           _
         async function loadPendingRequests() {
             try {
                 const response = await fetch(`${currentApiUrl}/friends/pending`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
+                    headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                    cache: 'no-store'
                 });
                 if (response.ok) {
                     try {
@@ -2309,6 +2421,8 @@ _____                     _   _   _           _
                         input.click();
                     };
                 }
+                // Clear unread badge for selected chat
+                clearUnreadBadge(type, chatId);
                 if (type === 'group' && chatId) {
                     const group = groups.find(g => g.id == chatId);
                     if (group && currentUser && (group.ownerId == currentUser.id || group.OwnerId == currentUser.id)) {
@@ -4255,7 +4369,7 @@ _____                     _   _   _           _
             let adminAllUsersCacheLocal = [];
             async function loadAdminLogs() {
                 try {
-                    const res = await fetch(`${currentApiUrl}/admin/logs?limit=200`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    const res = await fetch(`${currentApiUrl}/admin/logs?limit=200`, { headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' }, cache: 'no-store' });
                     if (res.ok) {
                         const logs = await res.json();
                         adminLogsList.innerHTML = '';
@@ -4293,6 +4407,72 @@ _____                     _   _   _           _
                     row.appendChild(av); row.appendChild(label);
                     row.style.cursor = 'pointer';
                     row.onclick = () => { window.adminSelectedUserId = id; [...adminUsersList.children].forEach(c => c.style.background=''); row.style.background='var(--bg-primary)'; };
+                    // Actions inline: Profil, Wycisz, Ban, Usuń
+                    const actions = document.createElement('div');
+                    actions.style.marginLeft = 'auto';
+                    actions.style.display = 'flex';
+                    actions.style.gap = '6px';
+                    const profileBtn = document.createElement('button');
+                    profileBtn.className = 'btn-secondary btn-sidebar-action';
+                    profileBtn.style.padding = '6px 10px';
+                    profileBtn.textContent = 'Profil';
+                    profileBtn.onclick = (e) => { e.stopPropagation(); if (typeof window.openUserProfile === 'function') window.openUserProfile(id); };
+                    const muteBtn = document.createElement('button');
+                    muteBtn.className = 'btn-secondary btn-sidebar-action';
+                    muteBtn.style.padding = '6px 10px';
+                    muteBtn.textContent = 'Wycisz';
+                    muteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        try {
+                            const res = await fetch(`${currentApiUrl}/admin/mute/${id}`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ minutes: 60, reason: 'Panel admin' }),
+                                cache: 'no-store'
+                            });
+                            if (res.ok) { showNotification('Użytkownik wyciszony na 60 min.', 'success'); await loadAdminLogs(); }
+                            else { await handleApiError(res, 'Nie udało się wyciszyć'); }
+                        } catch { showNotification('Błąd sieci.', 'error'); }
+                    };
+                    const banBtn = document.createElement('button');
+                    banBtn.className = 'btn-secondary btn-sidebar-action danger';
+                    banBtn.style.padding = '6px 10px';
+                    banBtn.textContent = 'Ban';
+                    banBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        try {
+                            const res = await fetch(`${currentApiUrl}/admin/ban/${id}`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ minutes: 60, reason: 'Panel admin' }),
+                                cache: 'no-store'
+                            });
+                            if (res.ok) { showNotification('Użytkownik zbanowany na 60 min.', 'success'); await loadAdminLogs(); }
+                            else { await handleApiError(res, 'Nie udało się zbanować'); }
+                        } catch { showNotification('Błąd sieci.', 'error'); }
+                    };
+                    const deleteBtn = document.createElement('button');
+                    deleteBtn.className = 'btn-secondary btn-sidebar-action danger';
+                    deleteBtn.style.padding = '6px 10px';
+                    deleteBtn.textContent = 'Usuń';
+                    deleteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!confirm('Usunąć konto tego użytkownika?')) return;
+                        try {
+                            const res = await fetch(`${currentApiUrl}/admin/users/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` },
+                                cache: 'no-store'
+                            });
+                            if (res.ok) { showNotification('Konto usunięte.', 'success'); await loadAdminLogs(); adminUsersList.removeChild(row); }
+                            else { await handleApiError(res, 'Nie udało się usunąć'); }
+                        } catch { showNotification('Błąd sieci.', 'error'); }
+                    };
+                    actions.appendChild(profileBtn);
+                    actions.appendChild(muteBtn);
+                    actions.appendChild(banBtn);
+                    actions.appendChild(deleteBtn);
+                    row.appendChild(actions);
                     adminUsersList.appendChild(row);
                 });
             }
@@ -4500,11 +4680,13 @@ _____                     _   _   _           _
                     }
                 }
                 if (isAdminGlobal) {
+                    if (adminControls) adminControls.innerHTML = '';
                     adminControls.style.display = 'flex';
                     adminControls.style.flexDirection = 'column';
                     adminControls.style.gap = '10px';
                     adminControls.style.padding = '10px';
-                    const renameBtn = document.createElement('button');
+                    const renameBtn = document.getElementById('adminRenameGeneralBtn') || document.createElement('button');
+                    renameBtn.id = 'adminRenameGeneralBtn';
                     renameBtn.className = 'btn-secondary btn-sidebar-action';
                     renameBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Zmień nazwę kanału ogólnego';
                     renameBtn.onclick = async () => {
@@ -4528,7 +4710,8 @@ _____                     _   _   _           _
                         } catch (e) {}
                     };
                     adminControls.appendChild(renameBtn);
-                    const clearBtn = document.createElement('button');
+                    const clearBtn = document.getElementById('adminClearGeneralBtn') || document.createElement('button');
+                    clearBtn.id = 'adminClearGeneralBtn';
                     clearBtn.className = 'btn-secondary btn-sidebar-action danger';
                     clearBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span> Wyczyść kanał ogólny';
                     clearBtn.onclick = () => window.clearGlobalChat && window.clearGlobalChat();
@@ -4602,6 +4785,7 @@ _____                     _   _   _           _
                 }
 
                 if (isAdmin) {
+                    if (adminControls) adminControls.innerHTML = '';
                     // Add Member Button
                     const addBtn = document.createElement('button');
                     addBtn.className = 'btn-secondary btn-sidebar-action';
@@ -4977,7 +5161,8 @@ _____                     _   _   _           _
             try {
                 const res = await fetch(`${currentApiUrl}/admin/messages/global`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
+                    headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+                    cache: 'no-store'
                 });
                 if (res.ok) {
                     const data = await res.json();
@@ -5169,3 +5354,43 @@ _____                     _   _   _           _
     })();
     }
 });
+
+// Global user profile open helper
+window.openUserProfile = async function(userId) {
+    try {
+        const token = localStorage.getItem('token');
+        if (!token) { showNotification('Zaloguj się ponownie.', 'error'); return; }
+        const res = await fetch(`${currentApiUrl}/Users/${userId}`, {
+            headers: { 'Authorization': `Bearer ${token}`, 'Cache-Control': 'no-cache', 'Pragma': 'no-cache' },
+            cache: 'no-store'
+        });
+        if (!res.ok) { await handleApiError(res, 'Nie udało się pobrać profilu'); return; }
+        const data = await res.json();
+        const modal = document.getElementById('userProfileModal');
+        if (!modal) return;
+        const avatar = document.getElementById('profileAvatar');
+        const usernameEl = document.getElementById('profileUsername');
+        const statusEl = document.getElementById('profileStatus');
+        if (avatar) {
+            const url = data.avatarUrl || data.AvatarUrl;
+            if (url) { avatar.style.backgroundImage = `url('${resolveUrl(url)}')`; avatar.textContent = ''; }
+            else { avatar.style.backgroundImage = ''; avatar.textContent = (data.username || data.Username || 'U').charAt(0).toUpperCase(); }
+        }
+        if (usernameEl) usernameEl.textContent = data.username || data.Username || 'Użytkownik';
+        if (statusEl) statusEl.textContent = (data.status || data.Status || 0) > 0 ? 'Dostępny' : 'Niedostępny';
+        modal.style.display = 'block';
+        // force reflow and show
+        void modal.offsetWidth;
+        modal.classList.add('show');
+        const closeBtn = document.getElementById('closeUserProfileModal');
+        if (closeBtn) {
+            closeBtn.onclick = () => {
+                modal.classList.remove('show');
+                setTimeout(() => { modal.style.display = 'none'; }, 250);
+            };
+        }
+    } catch (e) {
+        console.error(e);
+        showNotification('Błąd sieci profilu.', 'error');
+    }
+};

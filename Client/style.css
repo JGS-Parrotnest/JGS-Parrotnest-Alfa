@@ -2106,3 +2106,85 @@ body {
     box-shadow: 0 8px 20px rgba(239, 68, 68, 0.5);
     filter: brightness(1.1);
 }
+
+/* Chat unread badge on list items */
+.chat-unread-badge {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    background: var(--error-color);
+    color: #fff;
+    border-radius: 12px;
+    padding: 2px 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+}
+
+/* Reply preview bar above input */
+.reply-preview {
+    position: absolute;
+    bottom: 101px;
+    left: 20px;
+    right: 20px;
+    display: none;
+    align-items: center;
+    gap: 10px;
+    background: var(--bg-card);
+    border: 1px solid var(---border-color);
+    border-radius: 10px;
+    padding: 10px 12px;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.35);
+    z-index: 900;
+}
+.reply-preview.visible {
+    display: flex;
+}
+.reply-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    color: var(--text-muted);
+    flex: 1;
+    min-width: 0;
+}
+.reply-info .reply-label {
+    color: var(--text-main);
+    font-weight: 700;
+}
+.reply-info .reply-content-preview {
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-muted);
+}
+.btn-close-reply {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-muted);
+    border-radius: 8px;
+    padding: 6px 10px;
+    cursor: pointer;
+}
+.btn-close-reply:hover {
+    background: var(--bg-primary);
+    color: var(--text-main);
+}
+
+/* Reply quote inside message bubble */
+.message-reply-quote {
+    background: var(--bg-primary);
+    border-left: 3px solid var(--accent-green);
+    padding: 6px 10px;
+    margin: 4px 0 8px 0;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    display: inline-flex;
+    gap: 6px;
+    align-items: baseline;
+}
+.message-reply-quote strong {
+    color: var(--text-main);
+}

@@ -433,6 +433,12 @@ namespace ParrotnestServer
                     var provider = new FileExtensionContentTypeProvider();
                     provider.Mappings[".php"] = "text/html; charset=utf-8";
                     provider.Mappings[".mp3"] = "audio/mpeg";
+                    provider.Mappings[".mp4"] = "video/mp4";
+                    provider.Mappings[".avi"] = "video/x-msvideo";
+                    provider.Mappings[".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+                    provider.Mappings[".exe"] = "application/octet-stream";
+                    provider.Mappings[".cpp"] = "text/plain";
+                    provider.Mappings[".bin"] = "application/octet-stream";
                     _app.UseStaticFiles(new StaticFileOptions
                     {
                         FileProvider = fileProvider,

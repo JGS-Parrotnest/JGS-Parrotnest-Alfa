@@ -197,7 +197,7 @@
             </div>
             <div id="reply-preview"></div>
             <form class="chat-input-area" id="messageForm">
-                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                <input type="file" id="imageInput" accept="*/*" style="display: none;">
                 <button type="button" class="btn-icon" id="attachButton" title="Załącz plik"><span class="material-symbols-outlined">attach_file</span></button>
                 <button type="button" class="btn-icon" id="emojiButton" title="Emoji"><span class="material-symbols-outlined">mood</span></button>
                 <div id="attachmentPreview" style="display: none; margin-right: 10px; color: var(--accent-green);"></div>
