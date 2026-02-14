@@ -207,11 +207,18 @@ namespace ParrotnestServer
                 using (var scope = _app.Services.CreateScope())
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-                    dbContext.Database.EnsureCreated();
+                    try
+                    {
+                        dbContext.Database.EnsureCreated();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logAction($"[DB Error] EnsureCreated failed: {ex.Message}");
+                    }
                     
                     // Enable WAL mode for better multi-user concurrency
-                    dbContext.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
-                    dbContext.Database.ExecuteSqlRaw("PRAGMA foreign_keys=ON;");
+                    try { dbContext.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;"); } catch (Exception ex) { _logAction($"[DB Warning] WAL: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("PRAGMA foreign_keys=ON;"); } catch (Exception ex) { _logAction($"[DB Warning] FK: {ex.Message}"); }
                     try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Messages_Timestamp ON Messages(Timestamp);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Messages_Timestamp: {ex.Message}"); }
                     try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Messages_SenderId ON Messages(SenderId);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Messages_SenderId: {ex.Message}"); }
                     try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Messages_ReceiverId ON Messages(ReceiverId);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Messages_ReceiverId: {ex.Message}"); }
@@ -232,6 +239,43 @@ namespace ParrotnestServer
                     catch (Exception ex)
                     {
                         _logAction($"[DB Warning] ProductionContents: {ex.Message}");
+                    }
+
+                    try
+                    {
+                        dbContext.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS GeneralChannelSettings (
+    Id INTEGER NOT NULL CONSTRAINT PK_GeneralChannelSettings PRIMARY KEY,
+    OwnerId INTEGER NOT NULL,
+    Name TEXT NOT NULL,
+    AvatarUrl TEXT NULL,
+    UpdatedAt TEXT NOT NULL,
+    CONSTRAINT FK_GeneralChannelSettings_Users_OwnerId FOREIGN KEY (OwnerId) REFERENCES Users(Id) ON DELETE RESTRICT
+);");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logAction($"[DB Warning] GeneralChannelSettings: {ex.Message}");
+                    }
+
+                    try
+                    {
+                        dbContext.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS AdminActionLogs (
+    Id INTEGER NOT NULL CONSTRAINT PK_AdminActionLogs PRIMARY KEY AUTOINCREMENT,
+    PerformedByUserId INTEGER NOT NULL,
+    TargetUserId INTEGER NULL,
+    ActionType TEXT NOT NULL,
+    Reason TEXT NULL,
+    DurationMinutes INTEGER NULL,
+    Timestamp TEXT NOT NULL,
+    Details TEXT NULL,
+    Success INTEGER NOT NULL DEFAULT 1,
+    CONSTRAINT FK_AdminActionLogs_PerformedBy FOREIGN KEY (PerformedByUserId) REFERENCES Users(Id) ON DELETE RESTRICT,
+    CONSTRAINT FK_AdminActionLogs_Target FOREIGN KEY (TargetUserId) REFERENCES Users(Id) ON DELETE CASCADE
+);");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logAction($"[DB Warning] AdminActionLogs: {ex.Message}");
                     }
                     
                     try {

@@ -60,10 +60,32 @@ namespace ParrotnestServer.Controllers
             if (requester == null) return false;
             return requester.IsAdmin;
         }
+        private async Task LogAdminActionAsync(string type, int performedById, int? targetUserId, string? reason, int? durationMinutes, bool success, string? details = null)
+        {
+            try
+            {
+                _context.AdminActionLogs.Add(new AdminActionLog
+                {
+                    PerformedByUserId = performedById,
+                    TargetUserId = targetUserId,
+                    ActionType = type,
+                    Reason = reason,
+                    DurationMinutes = durationMinutes,
+                    Success = success,
+                    Details = details,
+                    Timestamp = DateTime.UtcNow
+                });
+                await _context.SaveChangesAsync();
+            }
+            catch
+            {
+            }
+        }
         [HttpPost("ban/{id:int}")]
         public async Task<IActionResult> BanUser(int id, [FromBody] BanUserDto dto)
         {
-            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var requester = await GetRequesterAsync();
+            if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound("Użytkownik nie istnieje.");
             if (user.IsAdmin) return Forbid("Nie można banować administratora.");
@@ -78,24 +100,44 @@ namespace ParrotnestServer.Controllers
                 until = DateTime.UtcNow.AddMinutes(minutes);
             }
             user.BanUntil = until;
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+                await LogAdminActionAsync("ban", requester.Id, id, dto.Reason, dto.Minutes > 0 ? dto.Minutes : null, true, $"until={until:O}");
+            }
+            catch (Exception ex)
+            {
+                await LogAdminActionAsync("ban", requester.Id, id, dto.Reason, dto.Minutes > 0 ? dto.Minutes : null, false, ex.Message);
+                throw;
+            }
             return Ok(new { message = $"Użytkownik zbanowany do {until.ToLocalTime():yyyy-MM-dd HH:mm}." });
         }
         [HttpPost("unban/{id:int}")]
         public async Task<IActionResult> UnbanUser(int id)
         {
-            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var requester = await GetRequesterAsync();
+            if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound("Użytkownik nie istnieje.");
             if (user.IsAdmin) return Forbid("Nie można odbanować administratora tą metodą.");
             user.BanUntil = null;
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+                await LogAdminActionAsync("unban", requester.Id, id, null, null, true);
+            }
+            catch (Exception ex)
+            {
+                await LogAdminActionAsync("unban", requester.Id, id, null, null, false, ex.Message);
+                throw;
+            }
             return Ok(new { message = "Użytkownik odbanowany." });
         }
         [HttpPost("mute/{id:int}")]
         public async Task<IActionResult> MuteUser(int id, [FromBody] BanUserDto dto)
         {
-            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var requester = await GetRequesterAsync();
+            if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound("Użytkownik nie istnieje.");
             if (user.IsAdmin) return Forbid("Nie można wyciszać administratora.");
@@ -110,28 +152,47 @@ namespace ParrotnestServer.Controllers
                 until = DateTime.UtcNow.AddMinutes(minutes);
             }
             user.MutedUntil = until;
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+                await LogAdminActionAsync("mute", requester.Id, id, dto.Reason, dto.Minutes > 0 ? dto.Minutes : null, true, $"until={until:O}");
+            }
+            catch (Exception ex)
+            {
+                await LogAdminActionAsync("mute", requester.Id, id, dto.Reason, dto.Minutes > 0 ? dto.Minutes : null, false, ex.Message);
+                throw;
+            }
             return Ok(new { message = $"Użytkownik wyciszony do {until.ToLocalTime():yyyy-MM-dd HH:mm}." });
         }
         [HttpPost("unmute/{id:int}")]
         public async Task<IActionResult> UnmuteUser(int id)
         {
-            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var requester = await GetRequesterAsync();
+            if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound("Użytkownik nie istnieje.");
             if (user.IsAdmin) return Forbid("Nie można odciszyć administratora tą metodą.");
             user.MutedUntil = null;
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+                await LogAdminActionAsync("unmute", requester.Id, id, null, null, true);
+            }
+            catch (Exception ex)
+            {
+                await LogAdminActionAsync("unmute", requester.Id, id, null, null, false, ex.Message);
+                throw;
+            }
             return Ok(new { message = "Użytkownik odciszony." });
         }
         [HttpDelete("users/{id:int}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
-            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var requester = await GetRequesterAsync();
+            if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound("Użytkownik nie istnieje.");
             if (user.IsAdmin) return Forbid("Nie można usunąć administratora.");
-            var requester = await GetRequesterAsync();
             if (requester != null && requester.Id == id) return Forbid("Nie możesz usunąć samego siebie.");
             var groupsOwned = await _context.Groups.Where(g => g.OwnerId == id).ToListAsync();
             if (groupsOwned.Any())
@@ -154,13 +215,23 @@ namespace ParrotnestServer.Controllers
                 _context.Messages.RemoveRange(directMessages);
             }
             _context.Users.Remove(user);
-            await _context.SaveChangesAsync();
+            try
+            {
+                await _context.SaveChangesAsync();
+                await LogAdminActionAsync("delete_user", requester.Id, id, null, null, true);
+            }
+            catch (Exception ex)
+            {
+                await LogAdminActionAsync("delete_user", requester.Id, id, null, null, false, ex.Message);
+                throw;
+            }
             return Ok(new { message = "Użytkownik usunięty." });
         }
         [HttpDelete("messages/global")]
         public async Task<IActionResult> ClearGlobalMessages()
         {
-            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var requester = await GetRequesterAsync();
+            if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
             var globalMessages = await _context.Messages.Where(m => m.GroupId == null && m.ReceiverId == null).ToListAsync();
             var count = globalMessages.Count;
             if (count > 0)
@@ -168,13 +239,40 @@ namespace ParrotnestServer.Controllers
                 _context.Messages.RemoveRange(globalMessages);
                 await _context.SaveChangesAsync();
             }
+            await LogAdminActionAsync("clear_global", requester.Id, null, null, null, true, $"deleted={count}");
             return Ok(new { message = $"Usunięto {count} wiadomości z kanału ogólnego." });
+        }
+        [HttpGet("logs")]
+        public async Task<IActionResult> GetAdminLogs([FromQuery] int limit = 200)
+        {
+            var requester = await GetRequesterAsync();
+            if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
+            limit = Math.Clamp(limit, 1, 1000);
+            var logs = await _context.AdminActionLogs
+                .Include(l => l.PerformedByUser)
+                .Include(l => l.TargetUser)
+                .OrderByDescending(l => l.Timestamp)
+                .Take(limit)
+                .Select(l => new {
+                    l.Id,
+                    l.ActionType,
+                    l.Reason,
+                    l.DurationMinutes,
+                    l.Timestamp,
+                    l.Success,
+                    l.Details,
+                    PerformedBy = new { Id = l.PerformedByUserId, Username = l.PerformedByUser != null ? l.PerformedByUser.Username : null },
+                    TargetUser = l.TargetUserId.HasValue ? new { Id = l.TargetUserId, Username = l.TargetUser != null ? l.TargetUser.Username : null } : null
+                })
+                .ToListAsync();
+            return Ok(logs);
         }
     }
     public class BanUserDto
     {
         public int Minutes { get; set; } = 0;
         public DateTime? Until { get; set; }
+        public string? Reason { get; set; }
     }
     public class ResetAdminDto
     {

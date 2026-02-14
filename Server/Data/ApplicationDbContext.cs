@@ -15,6 +15,7 @@ namespace ParrotnestServer.Data
         public DbSet<GroupMember> GroupMembers { get; set; } = null!;
         public DbSet<ProductionContent> ProductionContents { get; set; } = null!;
         public DbSet<GeneralChannelSettings> GeneralChannelSettings { get; set; } = null!;
+        public DbSet<AdminActionLog> AdminActionLogs { get; set; } = null!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -88,6 +89,19 @@ namespace ParrotnestServer.Data
                 .WithMany()
                 .HasForeignKey(s => s.OwnerId)
                 .OnDelete(DeleteBehavior.Restrict);
+
+            modelBuilder.Entity<AdminActionLog>()
+                .HasOne(l => l.TargetUser)
+                .WithMany()
+                .HasForeignKey(l => l.TargetUserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<AdminActionLog>()
+                .HasOne(l => l.PerformedByUser)
+                .WithMany()
+                .HasForeignKey(l => l.PerformedByUserId)
+                .OnDelete(DeleteBehavior.Restrict);
+            modelBuilder.Entity<AdminActionLog>()
+                .HasIndex(l => l.Timestamp);
         }
     }
 }

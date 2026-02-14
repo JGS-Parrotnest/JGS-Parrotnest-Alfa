@@ -122,6 +122,7 @@
                     <img src="logo.png" alt="Logo" class="header-logo">
                     <h2>Parrotnest</h2>
                 </div>
+                
             </div>
             <div class="chat-list">
                 <div class="channel-folder" id="globalFolder">
@@ -236,7 +237,39 @@
                 <div class="conversation-sidebar-images" id="conversationSidebarImages"></div>
             </div>
             
-            <!-- Admin controls will be injected here -->
+            <div class="sidebar-section" id="adminPanel" style="display: none;">
+                <h4>Panel administracyjny</h4>
+                <div id="adminAccessWarning" style="display:none;color:var(--error-color);font-size:0.9rem;margin-bottom:10px;">Brak uprawnień administratora.</div>
+                <div class="input-group">
+                    <label for="adminUserSearch">Wyszukaj użytkowników</label>
+                    <input type="text" id="adminUserSearch" placeholder="Filtruj po nazwie lub e-mailu">
+                </div>
+                <div class="input-group">
+                    <label>Lista użytkowników</label>
+                    <div id="adminUsersList" class="conversation-sidebar-list" style="max-height:250px;overflow-y:auto;"></div>
+                </div>
+                <div class="input-group">
+                    <label>Akcje</label>
+                    <div id="adminActionsArea" style="display:flex;flex-direction:column;gap:8px;">
+                        <div style="display:flex;gap:8px;">
+                            <select id="adminActionSelect" style="flex:1;">
+                                <option value="mute">Wycisz</option>
+                                <option value="unmute">Odcisz</option>
+                                <option value="ban">Zbanuj</option>
+                                <option value="unban">Odbanuj</option>
+                                <option value="delete">Usuń konto</option>
+                            </select>
+                            <input type="number" id="adminDurationMinutes" placeholder="Czas (min)" min="1" style="width:120px;">
+                        </div>
+                        <textarea id="adminReason" placeholder="Powód (opcjonalnie)" rows="2" style="resize:vertical;"></textarea>
+                        <button class="btn-primary" id="adminExecuteActionBtn">Wykonaj akcję</button>
+                    </div>
+                </div>
+                <div class="input-group">
+                    <label>Logi aktywności administracyjnej</label>
+                    <div id="adminLogsList" style="max-height:250px;overflow-y:auto;border:1px solid var(--border-color);border-radius:8px;padding:8px;font-family:monospace;font-size:0.85rem;"></div>
+                </div>
+            </div>
         </div>
     </div>
     <div id="addModal" class="modal">
@@ -682,6 +715,6 @@
         <div id="caption"></div>
     </div>
     <script src="auth.js?v=9"></script>
-    <script src="app.js?v=39"></script>
+    <script type="module" src="app.js?v=39"></script>
 </body>
 </html>

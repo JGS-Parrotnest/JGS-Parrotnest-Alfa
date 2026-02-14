@@ -1,9 +1,6 @@
-// Determine base URL
 const SERVER_URL = window.SERVER_BASE || (window.location.protocol === 'file:' ? 'http://localhost:6069' : window.location.origin);
 const HUB_URL = `${SERVER_URL}/chatHub`;
-// API_URL is defined in auth.js, using window.API_URL fallback
 const apiBase = window.API_URL || `${SERVER_URL}/api`;
-// Global API_URL is provided by auth.js. Using it here.
 const currentApiUrl = typeof API_URL !== 'undefined' ? API_URL : apiBase;
 window.API_URL = currentApiUrl;
 window.APP_JS_VERSION = '34';
@@ -1422,8 +1419,6 @@ _____                     _   _   _           _
                             badge.onclick = (ev) => { ev.stopPropagation(); window.reactToMessage(msgId, e); };
                             rDiv.appendChild(badge);
                         });
-                        
-                        // Add "Add Reaction" button at the end
                         const addBtn = document.createElement("div");
                         addBtn.className = "reaction-badge add-reaction-btn";
                         addBtn.innerHTML = `<span class="material-symbols-outlined" style="font-size: 1.1rem;">add_reaction</span>`;
@@ -1475,7 +1470,7 @@ _____                     _   _   _           _
                 if (!rDiv) {
                     rDiv = document.createElement("div");
                     rDiv.className = "message-reactions";
-                    // Append before timestamp if exists, otherwise at end
+
                     const timestamp = msgDiv.querySelector('.message-time');
                     if (timestamp) {
                         msgDiv.insertBefore(rDiv, timestamp);
@@ -2229,7 +2224,7 @@ _____                     _   _   _           _
             if (!hasId) return 'global';
             return 'private';
         }
-        function selectChat(chatId, chatName, chatAvatar, type = 'private') {
+        async function selectChat(chatId, chatName, chatAvatar, type = 'private') {
             // Mobile: Open chat view
             document.body.classList.add('chat-open');
 
@@ -2272,6 +2267,9 @@ _____                     _   _   _           _
                 }
                 const currentUser = JSON.parse(localStorage.getItem('user'));
                 const isAdminGlobal = currentUser && (currentUser.isAdmin || currentUser.IsAdmin);
+                if (typeof window.initAdminPanel === 'function') {
+                    await window.initAdminPanel();
+                }
                 if (type === 'global' && isAdminGlobal) {
                     newAvatar.style.cursor = 'pointer';
                     newAvatar.title = 'Kliknij, aby zmienić ikonę kanału ogólnego';
@@ -3802,28 +3800,16 @@ _____                     _   _   _           _
                     const banUserBtn = document.createElement('button');
                     banUserBtn.className = 'btn-secondary danger';
                     banUserBtn.innerHTML = '<span class="material-symbols-outlined">block</span> Zbanuj';
-                    banUserBtn.onclick = async () => {
-                        const minutesStr = prompt('Na ile minut zbanować użytkownika?', '60');
-                        if (minutesStr === null) return;
-                        const minutes = parseInt(minutesStr) || 60;
-                        try {
-                            const res = await fetch(`${currentApiUrl}/admin/ban/${userId}`, {
-                                method: 'POST',
-                                headers: { 
-                                    'Authorization': `Bearer ${token}`,
-                                    'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ minutes })
-                            });
-                            if (res.ok) {
-                                const data = await res.json();
-                                showNotification(data.message || 'Użytkownik zbanowany.', 'success');
-                            } else {
-                                await handleApiError(res, 'Nie udało się zbanować użytkownika');
-                            }
-                        } catch (e) {
-                            console.error(e);
-                            showNotification('Błąd sieci.', 'error');
+                    banUserBtn.onclick = () => {
+                        const p = document.getElementById('adminPanel');
+                        if (p) {
+                            p.style.display = 'block';
+                            const container = document.getElementById('conversationSidebarBody');
+                            if (container) container.scrollTop = container.scrollHeight;
+                            window.adminSelectedUserId = userId;
+                            const actionSel = document.getElementById('adminActionSelect');
+                            if (actionSel) actionSel.value = 'ban';
+                            showNotification('Ustawiono użytkownika i akcję w panelu administracyjnym.', 'info');
                         }
                     };
                     adminActions.appendChild(deleteUserBtn);
@@ -4254,17 +4240,119 @@ _____                     _   _   _           _
             const membersContainer = document.getElementById('conversationSidebarMembers');
             const imagesContainer = document.getElementById('conversationSidebarImages');
             
-            // Find or create admin controls container
-            let adminControls = document.getElementById('sidebarAdminControls');
-            if (!adminControls) {
-                adminControls = document.createElement('div');
-                adminControls.id = 'sidebarAdminControls';
-                adminControls.className = 'admin-controls';
-                const sidebarBody = document.getElementById('conversationSidebarBody');
-                if (sidebarBody) sidebarBody.appendChild(adminControls);
+            // Admin panel container
+            const adminPanel = document.getElementById('adminPanel');
+            const adminControls = document.getElementById('adminActionsArea');
+            const adminUsersList = document.getElementById('adminUsersList');
+            const adminUserSearch = document.getElementById('adminUserSearch');
+            const adminAccessWarning = document.getElementById('adminAccessWarning');
+            const adminActionSelect = document.getElementById('adminActionSelect');
+            const adminDurationMinutes = document.getElementById('adminDurationMinutes');
+            const adminReason = document.getElementById('adminReason');
+            const adminExecuteActionBtn = document.getElementById('adminExecuteActionBtn');
+            const adminLogsList = document.getElementById('adminLogsList');
+            if (typeof window.adminSelectedUserId === 'undefined') window.adminSelectedUserId = null;
+            let adminAllUsersCacheLocal = [];
+            async function loadAdminLogs() {
+                try {
+                    const res = await fetch(`${currentApiUrl}/admin/logs?limit=200`, { headers: { 'Authorization': `Bearer ${token}` } });
+                    if (res.ok) {
+                        const logs = await res.json();
+                        adminLogsList.innerHTML = '';
+                        logs.forEach(l => {
+                            const line = document.createElement('div');
+                            const when = new Date(l.timestamp);
+                            const actor = l.PerformedBy?.Username || `#${l.PerformedBy?.Id ?? '?'}`;
+                            const target = l.TargetUser ? (l.TargetUser.Username || `#${l.TargetUser.Id}`) : '-';
+                            const dur = l.DurationMinutes ? `${l.DurationMinutes}m` : '';
+                            const ok = l.success ? 'OK' : 'ERR';
+                            line.textContent = `[${when.toLocaleString()}] ${ok} ${l.ActionType} by ${actor} -> ${target} ${dur} ${l.Reason ? `| ${l.Reason}` : ''}`;
+                            adminLogsList.appendChild(line);
+                        });
+                    } else {
+                        adminLogsList.innerHTML = '<div style="color:var(--error-color)">Nie udało się pobrać logów.</div>';
+                    }
+                } catch { adminLogsList.innerHTML = '<div style="color:var(--error-color)">Błąd sieci.</div>'; }
             }
-            adminControls.innerHTML = ''; 
-            adminControls.style.display = 'none';
+            function renderAdminUsersList(items) {
+                adminUsersList.innerHTML = '';
+                if (!items || items.length === 0) {
+                    adminUsersList.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">Brak dostępnych użytkowników.</div>';
+                    return;
+                }
+                items.forEach(u => {
+                    const row = document.createElement('div');
+                    row.className = 'friend-tile';
+                    const av = document.createElement('div'); av.className = 'avatar';
+                    const url = u.avatarUrl || u.AvatarUrl;
+                    const name = u.username || u.Username || 'Użytkownik';
+                    const id = u.id || u.Id;
+                    if (url) { av.style.backgroundImage = `url('${resolveUrl(url)}')`; av.style.backgroundSize = 'cover'; av.style.backgroundPosition = 'center'; av.textContent = ''; }
+                    else { av.textContent = name.charAt(0).toUpperCase(); }
+                    const label = document.createElement('span'); label.textContent = `${name} (ID ${id})`;
+                    row.appendChild(av); row.appendChild(label);
+                    row.style.cursor = 'pointer';
+                    row.onclick = () => { window.adminSelectedUserId = id; [...adminUsersList.children].forEach(c => c.style.background=''); row.style.background='var(--bg-primary)'; };
+                    adminUsersList.appendChild(row);
+                });
+            }
+            async function initAdminPanel() {
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const isAdmin = currentUser && (currentUser.isAdmin || currentUser.IsAdmin);
+                if (!adminPanel) return;
+                adminPanel.style.display = isAdmin ? 'block' : 'none';
+                if (!isAdmin) { if (adminAccessWarning) adminAccessWarning.style.display = 'block'; return; }
+                if (adminAccessWarning) adminAccessWarning.style.display = 'none';
+                try {
+                    const usersArray = (await fetchAllUsersSafe()) || null;
+                    adminAllUsersCacheLocal = (usersArray || []).map(u => ({
+                        id: u.id || u.Id,
+                        username: u.username || u.Username,
+                        email: u.email || u.Email,
+                        avatarUrl: u.avatarUrl || u.AvatarUrl
+                    }));
+                    renderAdminUsersList(adminAllUsersCacheLocal);
+                } catch { renderAdminUsersList([]); }
+                if (adminUserSearch) {
+                    adminUserSearch.oninput = () => {
+                        const q = adminUserSearch.value.trim().toLowerCase();
+                        const filtered = adminAllUsersCacheLocal.filter(u =>
+                            (u.username && u.username.toLowerCase().includes(q)) ||
+                            (u.email && u.email.toLowerCase().includes(q)) ||
+                            (String(u.id).includes(q))
+                        );
+                        renderAdminUsersList(filtered);
+                    };
+                }
+                if (adminExecuteActionBtn) {
+                    adminExecuteActionBtn.onclick = async () => {
+                        if (!window.adminSelectedUserId) { showNotification('Wybierz użytkownika z listy.', 'warning'); return; }
+                        const action = adminActionSelect ? adminActionSelect.value : 'mute';
+                        const minutesVal = adminDurationMinutes && adminDurationMinutes.value ? parseInt(adminDurationMinutes.value, 10) : null;
+                        const reasonVal = adminReason ? adminReason.value.trim() : null;
+                        try {
+                            let url = ''; let method = 'POST'; let body = null;
+                            if (action === 'mute') { url = `${currentApiUrl}/admin/mute/${window.adminSelectedUserId}`; body = { minutes: minutesVal || 60, reason: reasonVal }; }
+                            else if (action === 'unmute') { url = `${currentApiUrl}/admin/unmute/${window.adminSelectedUserId}`; }
+                            else if (action === 'ban') { url = `${currentApiUrl}/admin/ban/${window.adminSelectedUserId}`; body = { minutes: minutesVal || 60, reason: reasonVal }; }
+                            else if (action === 'unban') { url = `${currentApiUrl}/admin/unban/${window.adminSelectedUserId}`; }
+                            else if (action === 'delete') { url = `${currentApiUrl}/admin/users/${window.adminSelectedUserId}`; method = 'DELETE'; }
+                            const headers = { 'Authorization': `Bearer ${token}` };
+                            if (body) headers['Content-Type'] = 'application/json';
+                            const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+                            if (res.ok) {
+                                const data = await res.json().catch(() => ({}));
+                                showNotification(data.message || 'Operacja wykonana.', 'success');
+                                await loadAdminLogs();
+                            } else {
+                                await handleApiError(res, 'Operacja nie powiodła się');
+                            }
+                        } catch (e) { showNotification('Błąd sieci.', 'error'); }
+                    };
+                }
+                await loadAdminLogs();
+            }
+            window.initAdminPanel = initAdminPanel;
 
             if (mutualsContainer) mutualsContainer.innerHTML = '';
             if (groupsContainer) groupsContainer.innerHTML = '';
@@ -4327,21 +4415,15 @@ _____                     _   _   _           _
                     muteBtn.className = 'btn-secondary btn-sidebar-action';
                     muteBtn.style.padding = '6px 10px';
                     muteBtn.textContent = 'Wycisz';
-                    muteBtn.onclick = async (e) => {
+                    muteBtn.onclick = (e) => {
                         e.stopPropagation();
-                        const minutesStr = prompt('Wycisz na ile minut? (0 = 60)', '60');
-                        if (minutesStr === null) return;
-                        const minutes = parseInt(minutesStr || '60', 10);
-                        try {
-                            const res = await fetch(`${currentApiUrl}/admin/mute/${id}`, {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ minutes: isNaN(minutes) ? 60 : minutes })
-                            });
-                            if (res.ok) showNotification('Użytkownik wyciszony.', 'success');
-                            else await handleApiError(res, 'Nie udało się wyciszyć użytkownika');
-                        } catch (err) {
-                            showNotification('Błąd połączenia.', 'error');
+                        const p = document.getElementById('adminPanel');
+                        if (p) {
+                            adminSelectedUserId = id;
+                            conversationSidebar.classList.add('open');
+                            const container = document.getElementById('conversationSidebarBody');
+                            if (container) container.scrollTop = container.scrollHeight;
+                            showNotification('Wybrano użytkownika w panelu administracyjnym.', 'info');
                         }
                     };
 
@@ -4349,21 +4431,15 @@ _____                     _   _   _           _
                     banBtn.className = 'btn-secondary btn-sidebar-action danger';
                     banBtn.style.padding = '6px 10px';
                     banBtn.textContent = 'Ban';
-                    banBtn.onclick = async (e) => {
+                    banBtn.onclick = (e) => {
                         e.stopPropagation();
-                        const minutesStr = prompt('Zablokować konto na ile minut? (0 = 60)', '60');
-                        if (minutesStr === null) return;
-                        const minutes = parseInt(minutesStr || '60', 10);
-                        try {
-                            const res = await fetch(`${currentApiUrl}/admin/ban/${id}`, {
-                                method: 'POST',
-                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                body: JSON.stringify({ minutes: isNaN(minutes) ? 60 : minutes })
-                            });
-                            if (res.ok) showNotification('Użytkownik zbanowany.', 'success');
-                            else await handleApiError(res, 'Nie udało się zbanować użytkownika');
-                        } catch (err) {
-                            showNotification('Błąd połączenia.', 'error');
+                        const p = document.getElementById('adminPanel');
+                        if (p) {
+                            adminSelectedUserId = id;
+                            conversationSidebar.classList.add('open');
+                            const container = document.getElementById('conversationSidebarBody');
+                            if (container) container.scrollTop = container.scrollHeight;
+                            showNotification('Wybrano użytkownika w panelu administracyjnym.', 'info');
                         }
                     };
 
@@ -4518,10 +4594,12 @@ _____                     _   _   _           _
                 
                 const isAdmin = group && currentUserId && groupOwnerId && (String(groupOwnerId) === String(currentUserId));
                 
-                adminControls.style.display = 'flex';
-                adminControls.style.flexDirection = 'column';
-                adminControls.style.gap = '10px';
-                adminControls.style.padding = '10px';
+                if (adminControls) {
+                    adminControls.style.display = 'flex';
+                    adminControls.style.flexDirection = 'column';
+                    adminControls.style.gap = '10px';
+                    adminControls.style.padding = '10px';
+                }
 
                 if (isAdmin) {
                     // Add Member Button
@@ -4529,35 +4607,35 @@ _____                     _   _   _           _
                     addBtn.className = 'btn-secondary btn-sidebar-action';
                     addBtn.innerHTML = '<span class="material-symbols-outlined">person_add</span> Dodaj członków';
                     addBtn.onclick = () => openAddMemberModal(currentChatId);
-                    adminControls.appendChild(addBtn);
+                    if (adminControls) adminControls.appendChild(addBtn);
 
                     // Edit Group Button
                     const editBtn = document.createElement('button');
                     editBtn.className = 'btn-secondary btn-sidebar-action';
                     editBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Edytuj grupę';
                     editBtn.onclick = () => openEditGroupModal(currentChatId, group.name || group.Name);
-                    adminControls.appendChild(editBtn);
+                    if (adminControls) adminControls.appendChild(editBtn);
                     
                     // Change Photo Button
                     const photoBtn = document.createElement('button');
                     photoBtn.className = 'btn-secondary btn-sidebar-action';
                     photoBtn.innerHTML = '<span class="material-symbols-outlined">image</span> Zmień zdjęcie grupy';
                     photoBtn.onclick = () => changeGroupPhoto(currentChatId);
-                    adminControls.appendChild(photoBtn);
+                    if (adminControls) adminControls.appendChild(photoBtn);
                     
                     // Delete Group Button
                     const deleteBtn = document.createElement('button');
                     deleteBtn.className = 'btn-secondary btn-sidebar-action danger';
                     deleteBtn.innerHTML = '<span class="material-symbols-outlined">delete</span> Usuń grupę';
                     deleteBtn.onclick = () => deleteGroup(currentChatId);
-                    adminControls.appendChild(deleteBtn);
+                    if (adminControls) adminControls.appendChild(deleteBtn);
                 } else {
                     // Leave Group Button
                     const leaveBtn = document.createElement('button');
                     leaveBtn.className = 'btn-secondary btn-sidebar-action danger';
                     leaveBtn.innerHTML = '<span class="material-symbols-outlined">logout</span> Opuść grupę';
                     leaveBtn.onclick = () => leaveGroup(currentChatId);
-                    adminControls.appendChild(leaveBtn);
+                    if (adminControls) adminControls.appendChild(leaveBtn);
                 }
 
                 if (membersContainer) {
@@ -5063,12 +5141,10 @@ _____                     _   _   _           _
         loadGroups();
         loadPendingRequests();
         
-        // Non-blocking connection start (we await it but it's at the end so UI is ready)
-        try {
-             await startConnection();
-        } catch (e) {
-             console.error("Initial connection failed:", e);
-        }
+        // Non-blocking connection start (bez await, aby uniknąć błędu składni)
+        startConnection().catch((e) => {
+            console.error("Initial connection failed:", e);
+        });
 
         setInterval(() => {
             loadPendingRequests();
