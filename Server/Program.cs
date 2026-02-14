@@ -10,13 +10,13 @@ namespace ParrotnestServer
         [STAThread]
         static void Main(string[] args)
         {
-            using var mutex = new Mutex(true, "ParrotnestServerApp", out bool createdNew);
-            if (!createdNew) return;
             if (args.Contains("--server") || args.Contains("--nogui"))
             {
                 RunHeadlessServer().GetAwaiter().GetResult();
                 return;
             }
+            using var mutex = new Mutex(true, "ParrotnestServerApp", out bool createdNew);
+            if (!createdNew) return;
             ApplicationConfiguration.Initialize();
             Application.Run(new ServerControlForm());
         }

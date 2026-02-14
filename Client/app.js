@@ -6,6 +6,88 @@ const apiBase = window.API_URL || `${SERVER_URL}/api`;
 // Global API_URL is provided by auth.js. Using it here.
 const currentApiUrl = typeof API_URL !== 'undefined' ? API_URL : apiBase;
 window.API_URL = currentApiUrl;
+window.APP_JS_VERSION = '34';
+const debugNetwork = (() => {
+    try { return localStorage.getItem('debugNetwork') === '1'; } catch { return false; }
+})();
+if (debugNetwork) {
+    console.info(`[diag] app.js loaded v=${window.APP_JS_VERSION} api=${currentApiUrl}`);
+    window.addEventListener('load', () => console.info(`[diag] window load v=${window.APP_JS_VERSION}`), { once: true });
+}
+let productionBanner = null;
+function ensureProductionBanner() {
+    if (productionBanner && document.body.contains(productionBanner)) return productionBanner;
+    const chatArea = document.querySelector('.chat-area');
+    if (!chatArea) return null;
+    const header = chatArea.querySelector('.chat-header');
+    if (!header) return null;
+    let el = document.getElementById('productionBanner');
+    if (!el) {
+        el = document.createElement('div');
+        el.id = 'productionBanner';
+        el.className = 'production-banner';
+        header.insertAdjacentElement('afterend', el);
+    }
+    productionBanner = el;
+    return el;
+}
+function setProductionContent(content) {
+    const el = ensureProductionBanner();
+    if (!el) return;
+    const text = (content ?? '').toString().trim();
+    if (!text) {
+        el.textContent = '';
+        el.classList.remove('show');
+        return;
+    }
+    el.textContent = text;
+    el.classList.add('show');
+}
+
+let generalChannel = { name: 'Ogólny', avatarUrl: 'logo.png', updatedAt: null };
+function applyGeneralChannelToGlobalItem() {
+    const globalChatItem = document.getElementById('globalChatItem');
+    if (!globalChatItem) return;
+    const title = globalChatItem.querySelector('h4');
+    if (title) title.textContent = generalChannel.name || 'Ogólny';
+    const avatar = globalChatItem.querySelector('.avatar');
+    if (avatar) {
+        const av = generalChannel.avatarUrl;
+        if (av) {
+            avatar.style.backgroundImage = `url('${resolveUrl(av)}')`;
+            avatar.style.backgroundSize = 'cover';
+            avatar.style.backgroundPosition = 'center';
+            avatar.textContent = '';
+        } else {
+            avatar.style.backgroundImage = '';
+            avatar.textContent = (generalChannel.name || 'O').charAt(0).toUpperCase();
+        }
+    }
+}
+async function loadGeneralChannel() {
+    try {
+        const res = await fetch(`${currentApiUrl}/general`, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (!res.ok) return;
+        const data = await res.json();
+        generalChannel = {
+            name: data.name || data.Name || 'Ogólny',
+            avatarUrl: data.avatarUrl || data.AvatarUrl || 'logo.png',
+            updatedAt: data.updatedAt || data.UpdatedAt || null
+        };
+        applyGeneralChannelToGlobalItem();
+        if (currentChatType === 'global') {
+            const chatHeader = document.querySelector('.chat-header h3');
+            if (chatHeader) chatHeader.textContent = generalChannel.name || 'Ogólny';
+            const headerAvatar = document.querySelector('.chat-header .avatar');
+            if (headerAvatar) {
+                headerAvatar.style.backgroundImage = `url('${resolveUrl(generalChannel.avatarUrl)}')`;
+                headerAvatar.style.backgroundSize = 'cover';
+                headerAvatar.style.backgroundPosition = 'center';
+                headerAvatar.textContent = '';
+            }
+        }
+    } catch (e) {}
+}
 
 if (typeof window.resolveUrl === 'undefined') {
         window.resolveUrl = function(url) {
@@ -1447,23 +1529,46 @@ _____                     _   _   _           _
                 console.error("Error parsing signal:", e);
             }
         });
+        connection.on("ProductionContentUpdated", (payload) => {
+            try {
+                setProductionContent(payload?.content ?? '');
+            } catch (e) {}
+        });
+        connection.on("GeneralChannelUpdated", (payload) => {
+            try {
+                generalChannel = {
+                    name: payload?.name || generalChannel.name,
+                    avatarUrl: payload?.avatarUrl || generalChannel.avatarUrl,
+                    updatedAt: payload?.updatedAt || generalChannel.updatedAt
+                };
+                applyGeneralChannelToGlobalItem();
+                if (currentChatType === 'global') {
+                    selectChat(null, generalChannel.name, generalChannel.avatarUrl, 'global');
+                }
+            } catch (e) {}
+        });
         let allUsersEndpointAvailable = true;
         let allUsersInFlight = null;
         let allUsersCache = null;
         let allUsersCacheAt = 0;
+        let allUsersDisabledUntil = 0;
         const ALL_USERS_CACHE_MS = 15000;
         async function fetchAllUsersSafe() {
             if (!token) return null;
             if (!allUsersEndpointAvailable) return null;
             const now = Date.now();
+            if (now < allUsersDisabledUntil) return null;
             if (allUsersCache && (now - allUsersCacheAt) < ALL_USERS_CACHE_MS) return allUsersCache;
             if (allUsersInFlight) return allUsersInFlight;
 
             allUsersInFlight = (async () => {
+                const start = performance && performance.now ? performance.now() : Date.now();
                 try {
+                    if (debugNetwork) console.info('[diag] Users/all fetch start');
                     const res = await fetch(`${currentApiUrl}/Users/all`, {
                         headers: { 'Authorization': `Bearer ${token}` },
                     });
+                    if (debugNetwork) console.info(`[diag] Users/all fetch response status=${res.status} ms=${Math.round(((performance && performance.now ? performance.now() : Date.now()) - start))}`);
                     if (res.status === 404) {
                         allUsersEndpointAvailable = false;
                         return null;
@@ -1479,9 +1584,15 @@ _____                     _   _   _           _
                     allUsersCache = users;
                     allUsersCacheAt = Date.now();
                     return users;
-                } catch {
+                } catch (e) {
+                    if (e && (e.name === 'AbortError' || String(e).includes('ERR_ABORTED'))) {
+                        allUsersDisabledUntil = Date.now() + 10000;
+                        if (debugNetwork) console.warn('[diag] Users/all fetch aborted');
+                    }
+                    if (debugNetwork) console.warn('[diag] Users/all fetch failed', e);
                     return null;
                 } finally {
+                    if (debugNetwork) console.info('[diag] Users/all fetch end');
                     allUsersInFlight = null;
                 }
             })();
@@ -1528,6 +1639,16 @@ _____                     _   _   _           _
                 console.error('Error loading groups:', error);
                 showNotification('Brak połączenia z bazą lub serwerem (grupy).', 'error');
             }
+        }
+        async function loadProductionContent() {
+            try {
+                const res = await fetch(`${currentApiUrl}/production/current`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const data = await res.json();
+                setProductionContent(data?.content ?? '');
+            } catch (e) {}
         }
         function updateNotificationBadge() {
             const badge = document.getElementById('notificationBadge');
@@ -2149,9 +2270,49 @@ _____                     _   _   _           _
                     newAvatar.style.backgroundImage = '';
                     newAvatar.textContent = chatName ? chatName.charAt(0).toUpperCase() : 'O';
                 }
+                const currentUser = JSON.parse(localStorage.getItem('user'));
+                const isAdminGlobal = currentUser && (currentUser.isAdmin || currentUser.IsAdmin);
+                if (type === 'global' && isAdminGlobal) {
+                    newAvatar.style.cursor = 'pointer';
+                    newAvatar.title = 'Kliknij, aby zmienić ikonę kanału ogólnego';
+                    newAvatar.onclick = async () => {
+                        const input = document.createElement('input');
+                        input.type = 'file';
+                        input.accept = 'image/*';
+                        input.onchange = async (e) => {
+                            const file = e.target.files && e.target.files[0];
+                            if (!file) return;
+                            const formData = new FormData();
+                            formData.append('avatar', file);
+                            try {
+                                showNotification('Wysyłanie ikony...', 'info');
+                                const response = await fetch(`${currentApiUrl}/general/avatar`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${token}` },
+                                    body: formData
+                                });
+                                if (response.ok) {
+                                    const data = await response.json();
+                                    const newUrl = resolveUrl(data.url);
+                                    generalChannel.avatarUrl = data.url;
+                                    newAvatar.style.backgroundImage = `url('${newUrl}')`;
+                                    newAvatar.style.backgroundSize = 'cover';
+                                    newAvatar.style.backgroundPosition = 'center';
+                                    newAvatar.textContent = '';
+                                    applyGeneralChannelToGlobalItem();
+                                    showNotification('Ikona kanału ogólnego zaktualizowana.', 'success');
+                                } else {
+                                    await handleApiError(response, 'Nie udało się zmienić ikony kanału ogólnego');
+                                }
+                            } catch (err) {
+                                showNotification('Błąd połączenia podczas zmiany ikony.', 'error');
+                            }
+                        };
+                        input.click();
+                    };
+                }
                 if (type === 'group' && chatId) {
                     const group = groups.find(g => g.id == chatId);
-                    const currentUser = JSON.parse(localStorage.getItem('user'));
                     if (group && currentUser && (group.ownerId == currentUser.id || group.OwnerId == currentUser.id)) {
                         newAvatar.style.cursor = 'pointer';
                         newAvatar.title = 'Kliknij, aby zmienić ikonę grupy';
@@ -2710,6 +2871,11 @@ _____                     _   _   _           _
                 const currentUser = JSON.parse(localStorage.getItem('user'));
                 const currentUserId = currentUser ? (currentUser.id || currentUser.Id) : null;
                 const filteredUsers = usersArray.filter(u => (u.id || u.Id) != currentUserId);
+
+                if (filteredUsers.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.8rem; width: 100%; text-align: center;">Brak innych użytkowników w systemie.</div>';
+                    return;
+                }
 
                 filteredUsers.forEach(friend => {
                     const tile = document.createElement('div');
@@ -4107,9 +4273,9 @@ _____                     _   _   _           _
 
             if (currentChatType === 'global') {
                 if (titleEl) titleEl.textContent = 'Czat ogólny';
-                if (nameEl) nameEl.textContent = 'Kanał ogólny';
+                if (nameEl) nameEl.textContent = generalChannel.name || 'Kanał ogólny';
                 if (avatarEl) {
-                    avatarEl.style.backgroundImage = "url('logo.png')";
+                    avatarEl.style.backgroundImage = `url('${resolveUrl(generalChannel.avatarUrl || 'logo.png')}')`;
                     avatarEl.style.backgroundSize = 'cover';
                     avatarEl.style.backgroundPosition = 'center';
                     avatarEl.textContent = '';
@@ -4120,6 +4286,122 @@ _____                     _   _   _           _
                 if (mutualsSection) mutualsSection.style.display = 'none';
                 if (groupsSection) groupsSection.style.display = 'none';
                 if (membersSection) membersSection.style.display = 'block';
+
+            const currentUser = JSON.parse(localStorage.getItem('user'));
+            const isAdminGlobal = currentUser && (currentUser.isAdmin || currentUser.IsAdmin);
+
+            function renderAdminUsers(container, items) {
+                container.innerHTML = '';
+                if (!items || items.length === 0) {
+                    container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.9rem;">Brak dostępnych użytkowników.</div>';
+                    return;
+                }
+                items.forEach(item => {
+                    const tile = document.createElement('div');
+                    tile.className = 'friend-tile';
+
+                    const av = document.createElement('div');
+                    av.className = 'avatar';
+                    const url = item.avatarUrl || item.AvatarUrl;
+                    const name = item.username || item.Username || 'Użytkownik';
+                    const id = item.id || item.Id;
+
+                    if (url) {
+                        av.style.backgroundImage = `url('${resolveUrl(url)}')`;
+                        av.style.backgroundSize = 'cover';
+                        av.style.backgroundPosition = 'center';
+                        av.textContent = '';
+                    } else {
+                        av.textContent = name.charAt(0).toUpperCase();
+                    }
+
+                    const label = document.createElement('span');
+                    label.textContent = name;
+
+                    const actions = document.createElement('div');
+                    actions.style.marginLeft = 'auto';
+                    actions.style.display = 'flex';
+                    actions.style.gap = '6px';
+
+                    const muteBtn = document.createElement('button');
+                    muteBtn.className = 'btn-secondary btn-sidebar-action';
+                    muteBtn.style.padding = '6px 10px';
+                    muteBtn.textContent = 'Wycisz';
+                    muteBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const minutesStr = prompt('Wycisz na ile minut? (0 = 60)', '60');
+                        if (minutesStr === null) return;
+                        const minutes = parseInt(minutesStr || '60', 10);
+                        try {
+                            const res = await fetch(`${currentApiUrl}/admin/mute/${id}`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ minutes: isNaN(minutes) ? 60 : minutes })
+                            });
+                            if (res.ok) showNotification('Użytkownik wyciszony.', 'success');
+                            else await handleApiError(res, 'Nie udało się wyciszyć użytkownika');
+                        } catch (err) {
+                            showNotification('Błąd połączenia.', 'error');
+                        }
+                    };
+
+                    const banBtn = document.createElement('button');
+                    banBtn.className = 'btn-secondary btn-sidebar-action danger';
+                    banBtn.style.padding = '6px 10px';
+                    banBtn.textContent = 'Ban';
+                    banBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        const minutesStr = prompt('Zablokować konto na ile minut? (0 = 60)', '60');
+                        if (minutesStr === null) return;
+                        const minutes = parseInt(minutesStr || '60', 10);
+                        try {
+                            const res = await fetch(`${currentApiUrl}/admin/ban/${id}`, {
+                                method: 'POST',
+                                headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ minutes: isNaN(minutes) ? 60 : minutes })
+                            });
+                            if (res.ok) showNotification('Użytkownik zbanowany.', 'success');
+                            else await handleApiError(res, 'Nie udało się zbanować użytkownika');
+                        } catch (err) {
+                            showNotification('Błąd połączenia.', 'error');
+                        }
+                    };
+
+                    const delBtn = document.createElement('button');
+                    delBtn.className = 'btn-secondary btn-sidebar-action danger';
+                    delBtn.style.padding = '6px 10px';
+                    delBtn.textContent = 'Usuń';
+                    delBtn.onclick = async (e) => {
+                        e.stopPropagation();
+                        if (!confirm(`Usunąć użytkownika ${name}? Tej operacji nie można cofnąć.`)) return;
+                        try {
+                            const res = await fetch(`${currentApiUrl}/admin/users/${id}`, {
+                                method: 'DELETE',
+                                headers: { 'Authorization': `Bearer ${token}` }
+                            });
+                            if (res.ok) {
+                                showNotification('Użytkownik usunięty.', 'success');
+                                updateConversationSidebar();
+                            } else {
+                                await handleApiError(res, 'Nie udało się usunąć użytkownika');
+                            }
+                        } catch (err) {
+                            showNotification('Błąd połączenia.', 'error');
+                        }
+                    };
+
+                    actions.appendChild(muteBtn);
+                    actions.appendChild(banBtn);
+                    actions.appendChild(delBtn);
+
+                    tile.appendChild(av);
+                    tile.appendChild(label);
+                    tile.appendChild(actions);
+                    tile.style.cursor = 'default';
+
+                    container.appendChild(tile);
+                });
+            }
 
                 if (membersContainer) {
                     membersContainer.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Ładowanie użytkowników...</div>';
@@ -4132,7 +4414,8 @@ _____                     _   _   _           _
                                 avatarUrl: u.avatarUrl || u.AvatarUrl,
                                 status: u.status || u.Status
                             }));
-                            renderProfileList(membersContainer, mappedUsers, 'Brak dostępnych użytkowników.');
+                        if (isAdminGlobal) renderAdminUsers(membersContainer, mappedUsers);
+                        else renderProfileList(membersContainer, mappedUsers, 'Brak dostępnych użytkowników.');
                         } else {
                             renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
                         }
@@ -4140,13 +4423,35 @@ _____                     _   _   _           _
                         renderProfileList(membersContainer, friends || [], 'Brak dostępnych użytkowników.');
                     }
                 }
-                const currentUser = JSON.parse(localStorage.getItem('user'));
-                const isAdminGlobal = currentUser && (currentUser.isAdmin || currentUser.IsAdmin);
                 if (isAdminGlobal) {
                     adminControls.style.display = 'flex';
                     adminControls.style.flexDirection = 'column';
                     adminControls.style.gap = '10px';
                     adminControls.style.padding = '10px';
+                    const renameBtn = document.createElement('button');
+                    renameBtn.className = 'btn-secondary btn-sidebar-action';
+                    renameBtn.innerHTML = '<span class="material-symbols-outlined">edit</span> Zmień nazwę kanału ogólnego';
+                    renameBtn.onclick = async () => {
+                        const newName = prompt('Nowa nazwa kanału ogólnego:', generalChannel.name || 'Ogólny');
+                        if (!newName) return;
+                        try {
+                            const res = await fetch(`${currentApiUrl}/general`, {
+                                method: 'PUT',
+                                headers: {
+                                    'Authorization': `Bearer ${token}`,
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({ name: newName })
+                            });
+                            if (res.ok) {
+                                const data = await res.json();
+                                generalChannel.name = data.name || generalChannel.name;
+                                applyGeneralChannelToGlobalItem();
+                                selectChat(null, generalChannel.name, generalChannel.avatarUrl, 'global');
+                            }
+                        } catch (e) {}
+                    };
+                    adminControls.appendChild(renameBtn);
                     const clearBtn = document.createElement('button');
                     clearBtn.className = 'btn-secondary btn-sidebar-action danger';
                     clearBtn.innerHTML = '<span class="material-symbols-outlined">delete_forever</span> Wyczyść kanał ogólny';
@@ -4343,6 +4648,8 @@ _____                     _   _   _           _
                     console.log("SignalR Connected.");
                     loadFriends();
                     loadGroups();
+                    loadProductionContent();
+                    loadGeneralChannel();
                 }
             } catch (err) {
                 console.error("SignalR Connection Error: ", err);

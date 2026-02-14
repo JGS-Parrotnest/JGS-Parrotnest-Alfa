@@ -58,7 +58,7 @@
             </div>
         </div>
     </div>
-    <script src="auth.js?v=4"></script>
+    <script src="auth.js?v=9"></script>
     <script src="particles.js"></script>
 </body>
 </html>

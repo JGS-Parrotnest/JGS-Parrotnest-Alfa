@@ -66,6 +66,7 @@ namespace ParrotnestServer.Controllers
             if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound("Użytkownik nie istnieje.");
+            if (user.IsAdmin) return Forbid("Nie można banować administratora.");
             DateTime until;
             if (dto.Until.HasValue)
             {
@@ -80,12 +81,58 @@ namespace ParrotnestServer.Controllers
             await _context.SaveChangesAsync();
             return Ok(new { message = $"Użytkownik zbanowany do {until.ToLocalTime():yyyy-MM-dd HH:mm}." });
         }
+        [HttpPost("unban/{id:int}")]
+        public async Task<IActionResult> UnbanUser(int id)
+        {
+            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var user = await _context.Users.FindAsync(id);
+            if (user == null) return NotFound("Użytkownik nie istnieje.");
+            if (user.IsAdmin) return Forbid("Nie można odbanować administratora tą metodą.");
+            user.BanUntil = null;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Użytkownik odbanowany." });
+        }
+        [HttpPost("mute/{id:int}")]
+        public async Task<IActionResult> MuteUser(int id, [FromBody] BanUserDto dto)
+        {
+            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var user = await _context.Users.FindAsync(id);
+            if (user == null) return NotFound("Użytkownik nie istnieje.");
+            if (user.IsAdmin) return Forbid("Nie można wyciszać administratora.");
+            DateTime until;
+            if (dto.Until.HasValue)
+            {
+                until = dto.Until.Value.ToUniversalTime();
+            }
+            else
+            {
+                var minutes = dto.Minutes > 0 ? dto.Minutes : 60;
+                until = DateTime.UtcNow.AddMinutes(minutes);
+            }
+            user.MutedUntil = until;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = $"Użytkownik wyciszony do {until.ToLocalTime():yyyy-MM-dd HH:mm}." });
+        }
+        [HttpPost("unmute/{id:int}")]
+        public async Task<IActionResult> UnmuteUser(int id)
+        {
+            if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
+            var user = await _context.Users.FindAsync(id);
+            if (user == null) return NotFound("Użytkownik nie istnieje.");
+            if (user.IsAdmin) return Forbid("Nie można odciszyć administratora tą metodą.");
+            user.MutedUntil = null;
+            await _context.SaveChangesAsync();
+            return Ok(new { message = "Użytkownik odciszony." });
+        }
         [HttpDelete("users/{id:int}")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             if (!await EnsureAdminAsync()) return Forbid("Wymagane uprawnienia administratora.");
             var user = await _context.Users.FindAsync(id);
             if (user == null) return NotFound("Użytkownik nie istnieje.");
+            if (user.IsAdmin) return Forbid("Nie można usunąć administratora.");
+            var requester = await GetRequesterAsync();
+            if (requester != null && requester.Id == id) return Forbid("Nie możesz usunąć samego siebie.");
             var groupsOwned = await _context.Groups.Where(g => g.OwnerId == id).ToListAsync();
             if (groupsOwned.Any())
             {

@@ -53,6 +53,21 @@ namespace ParrotnestServer.Hubs
                 
                 await Clients.All.SendAsync("UserStatusChanged", userId.Value, status);
             }
+
+            try
+            {
+                var latest = await _context.ProductionContents
+                    .AsNoTracking()
+                    .OrderByDescending(p => p.UpdatedAt)
+                    .FirstOrDefaultAsync();
+                if (latest != null && !string.IsNullOrWhiteSpace(latest.Content))
+                {
+                    await Clients.Caller.SendAsync("ProductionContentUpdated", new { content = latest.Content, updatedAt = latest.UpdatedAt });
+                }
+            }
+            catch
+            {
+            }
             await base.OnConnectedAsync();
         }
         public override async Task OnDisconnectedAsync(Exception? exception)
@@ -88,7 +103,9 @@ namespace ParrotnestServer.Hubs
         {
             try
             {
-                var logPath = Path.Combine("c:\\Users\\user\\Music\\Komunikator JGS\\Alfa v5.0", "server_log.txt");
+                var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+                Directory.CreateDirectory(logDir);
+                var logPath = Path.Combine(logDir, "server_log.txt");
                 var logMsg = $"{DateTime.Now}: {message}\n";
                 System.IO.File.AppendAllText(logPath, logMsg);
                 Console.WriteLine(logMsg);
@@ -114,6 +131,10 @@ namespace ParrotnestServer.Hubs
             {
                 Log($"SendMessage failed: User with ID {userId.Value} not found in DB.");
                 throw new HubException($"Użytkownik o ID {userId.Value} nie istnieje w bazie danych.");
+            }
+            if (sender.MutedUntil.HasValue && sender.MutedUntil.Value > DateTime.UtcNow)
+            {
+                throw new HubException($"Jesteś wyciszony do {sender.MutedUntil.Value.ToLocalTime():yyyy-MM-dd HH:mm}.");
             }
             if (sender.BanUntil.HasValue && sender.BanUntil.Value > DateTime.UtcNow)
             {
@@ -212,6 +233,12 @@ namespace ParrotnestServer.Hubs
             {
                 Log($"ReactToMessage failed: Message {messageId} not found.");
                 throw new HubException("Wiadomość nie istnieje.");
+            }
+
+            var reactingUser = await _context.Users.FindAsync(userId.Value);
+            if (reactingUser != null && reactingUser.MutedUntil.HasValue && reactingUser.MutedUntil.Value > DateTime.UtcNow)
+            {
+                throw new HubException($"Jesteś wyciszony do {reactingUser.MutedUntil.Value.ToLocalTime():yyyy-MM-dd HH:mm}.");
             }
 
             try

@@ -63,7 +63,7 @@ session_destroy();
             </div>
         </div>
     </div>
-    <script src="auth.js?v=6"></script>
+    <script src="auth.js?v=9"></script>
     <script src="particles.js"></script>
 </body>
 </html>

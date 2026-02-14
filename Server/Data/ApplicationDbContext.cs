@@ -13,6 +13,8 @@ namespace ParrotnestServer.Data
         public DbSet<Group> Groups { get; set; } = null!;
         public DbSet<Friendship> Friendships { get; set; } = null!;
         public DbSet<GroupMember> GroupMembers { get; set; } = null!;
+        public DbSet<ProductionContent> ProductionContents { get; set; } = null!;
+        public DbSet<GeneralChannelSettings> GeneralChannelSettings { get; set; } = null!;
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
@@ -44,6 +46,16 @@ namespace ParrotnestServer.Data
                 .HasForeignKey(g => g.OwnerId)
                 .OnDelete(DeleteBehavior.Cascade);
             modelBuilder.Entity<GroupMember>()
+                .HasOne(gm => gm.Group)
+                .WithMany()
+                .HasForeignKey(gm => gm.GroupId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<GroupMember>()
+                .HasOne(gm => gm.User)
+                .WithMany()
+                .HasForeignKey(gm => gm.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<GroupMember>()
                 .HasIndex(gm => new { gm.GroupId, gm.UserId })
                 .IsUnique();
             modelBuilder.Entity<Message>()
@@ -61,6 +73,21 @@ namespace ParrotnestServer.Data
                 .WithMany()
                 .HasForeignKey(m => m.GroupId)
                 .OnDelete(DeleteBehavior.Cascade);
+            modelBuilder.Entity<Message>()
+                .HasOne(m => m.ReplyTo)
+                .WithMany()
+                .HasForeignKey(m => m.ReplyToId)
+                .OnDelete(DeleteBehavior.SetNull);
+
+            modelBuilder.Entity<ProductionContent>()
+                .Property(p => p.Content)
+                .IsRequired();
+
+            modelBuilder.Entity<GeneralChannelSettings>()
+                .HasOne(s => s.Owner)
+                .WithMany()
+                .HasForeignKey(s => s.OwnerId)
+                .OnDelete(DeleteBehavior.Restrict);
         }
     }
 }

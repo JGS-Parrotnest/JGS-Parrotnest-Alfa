@@ -15,11 +15,13 @@ namespace ParrotnestServer.Controllers
         private readonly ApplicationDbContext _context;
         private readonly IWebHostEnvironment _environment;
         private readonly IConfiguration _configuration;
-        public UsersController(ApplicationDbContext context, IWebHostEnvironment environment, IConfiguration configuration)
+        private readonly ILogger<UsersController> _logger;
+        public UsersController(ApplicationDbContext context, IWebHostEnvironment environment, IConfiguration configuration, ILogger<UsersController> logger)
         {
             _context = context;
             _environment = environment;
             _configuration = configuration;
+            _logger = logger;
         }
         [HttpGet("me")]
         public async Task<ActionResult<object>> GetCurrentUser()
@@ -51,7 +53,49 @@ namespace ParrotnestServer.Controllers
         [HttpGet("all")]
         public async Task<ActionResult<IEnumerable<object>>> GetAllUsers()
         {
-            return await _context.Users
+            var mode = (Environment.GetEnvironmentVariable("PARROTNEST_MODE") ?? "prod").Trim().ToLowerInvariant();
+            var allowFull = mode == "test" || mode == "testing";
+            var fullRequested = HttpContext.Request.Query.TryGetValue("full", out var full) && (full == "1" || full == "true");
+
+            if (fullRequested && !allowFull)
+            {
+                return Forbid();
+            }
+
+            if (fullRequested)
+            {
+                var secret = Environment.GetEnvironmentVariable("PARROTNEST_TEST_SECRET") ?? string.Empty;
+                var provided = HttpContext.Request.Headers.TryGetValue("X-Test-Secret", out var s) ? s.ToString() : string.Empty;
+                if (string.IsNullOrWhiteSpace(secret) || secret != provided)
+                {
+                    return Forbid();
+                }
+
+                var usersFull = await _context.Users
+                    .FromSqlRaw("SELECT * FROM Users")
+                    .AsNoTracking()
+                    .Select(u => new
+                    {
+                        u.Id,
+                        u.Username,
+                        u.Email,
+                        u.AvatarUrl,
+                        u.Status,
+                        u.Theme,
+                        u.TextSize,
+                        u.IsSimpleText,
+                        u.IsAdmin,
+                        u.BanUntil,
+                        u.CreatedAt
+                    })
+                    .ToListAsync();
+
+                _logger.LogWarning("Users/all FULL mode=test count={Count}", usersFull.Count);
+                return Ok(usersFull);
+            }
+
+            var usersSafe = await _context.Users
+                .AsNoTracking()
                 .Select(u => new
                 {
                     u.Id,
@@ -60,6 +104,9 @@ namespace ParrotnestServer.Controllers
                     u.Status
                 })
                 .ToListAsync();
+
+            _logger.LogInformation("Users/all SAFE mode={Mode} count={Count}", mode, usersSafe.Count);
+            return Ok(usersSafe);
         }
         [HttpPost("avatar")]
         public async Task<IActionResult> UploadAvatar(IFormFile file)

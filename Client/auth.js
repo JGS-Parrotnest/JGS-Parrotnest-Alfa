@@ -21,17 +21,34 @@ if (!isLocal) {
         storedBase = null;
     }
 } else if (storedBase) {
-    const port = '6069';
-    const expectedLocalPort = `:${port}`;
-    if (!storedBase.includes(expectedLocalPort)) {
+    try {
+        const u = new URL(storedBase);
+        const okHost = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname === '0.0.0.0';
+        if (!okHost) {
+            localStorage.removeItem('serverBase');
+            storedBase = null;
+        }
+    } catch {
         localStorage.removeItem('serverBase');
         storedBase = null;
     }
 }
 const SERVER_BASE = (storedBase || window.__SERVER_BASE_DEFAULT__).replace(/\/+$/,'');
 window.SERVER_BASE = SERVER_BASE;
-const API_URL = window.__API_URL_DEFAULT__ || `${SERVER_BASE}/api`;
+const API_URL = `${SERVER_BASE}/api`;
 window.API_URL = API_URL;
+
+if (isLocal && storedBase && storedBase.includes(':6070')) {
+    try {
+        const controller = new AbortController();
+        setTimeout(() => controller.abort(), 800);
+        fetch(`${API_URL}/diag/build`, { signal: controller.signal })
+            .catch(() => {
+                localStorage.removeItem('serverBase');
+                window.location.reload();
+            });
+    } catch (e) {}
+}
 
 function showNotification(message, type = 'success') {
     let container = document.getElementById('notification-container');

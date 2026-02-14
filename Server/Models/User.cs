@@ -20,6 +20,7 @@ namespace ParrotnestServer.Models
         public bool IsSimpleText { get; set; } = false;
         public bool IsAdmin { get; set; } = false;
         public DateTime? BanUntil { get; set; }
+        public DateTime? MutedUntil { get; set; }
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     }
 }

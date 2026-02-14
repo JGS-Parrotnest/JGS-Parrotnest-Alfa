@@ -10,7 +10,9 @@ using Microsoft.IdentityModel.Tokens;
 using ParrotnestServer.Data;
 using ParrotnestServer.Hubs;
 using ParrotnestServer.Services;
+using System.Diagnostics;
 using System.Text;
+using System.Linq;
 namespace ParrotnestServer
 {
     public class ServerHost
@@ -25,7 +27,11 @@ namespace ParrotnestServer
         {
             try
             {
-                var builder = WebApplication.CreateBuilder(new string[] { });
+                var builder = WebApplication.CreateBuilder(new WebApplicationOptions
+                {
+                    Args = Array.Empty<string>(),
+                    ApplicationName = typeof(ServerHost).Assembly.GetName().Name
+                });
                 builder.Logging.ClearProviders();
                 builder.Logging.AddProvider(new GuiLoggerProvider(_logAction));
                 builder.Services.AddControllers();
@@ -36,8 +42,76 @@ namespace ParrotnestServer
                     hubOptions.EnableDetailedErrors = true;
                 });
                 builder.Services.AddSingleton<IUserTracker, UserTracker>();
-                var dbPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db");
-                var connectionString = $"Data Source={dbPath};Cache=Shared";
+                string ResolveDbPath(string contentRootPath)
+                {
+                    var overridePath = Environment.GetEnvironmentVariable("PARROTNEST_DB_PATH");
+                    if (!string.IsNullOrWhiteSpace(overridePath)) return overridePath;
+
+                    var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ParrotnestServer");
+                    Directory.CreateDirectory(appDataDir);
+                    var preferred = Path.Combine(appDataDir, "parrotnest.db");
+                    var preferAppDataEnv = Environment.GetEnvironmentVariable("PARROTNEST_DB_PREFER_APPDATA");
+                    var preferAppData = preferAppDataEnv == "1" || string.Equals(preferAppDataEnv, "true", StringComparison.OrdinalIgnoreCase);
+
+                    var candidates = new List<string>
+                    {
+                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db"),
+                        Path.Combine(contentRootPath, "parrotnest.db"),
+                    };
+
+                    try
+                    {
+                        var probe = AppDomain.CurrentDomain.BaseDirectory;
+                        for (int i = 0; i < 8; i++)
+                        {
+                            candidates.Add(Path.Combine(probe, "Server", "bin", "Debug", "net10.0-windows", "parrotnest.db"));
+                            candidates.Add(Path.Combine(probe, "Server", "bin", "Release", "net10.0-windows", "parrotnest.db"));
+                            var parent = Directory.GetParent(probe);
+                            if (parent == null) break;
+                            probe = parent.FullName;
+                        }
+                    }
+                    catch
+                    {
+                    }
+
+                    var uniqueCandidates = candidates
+                        .Where(p => !string.IsNullOrWhiteSpace(p))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+
+                    var existing = new List<(string Path, long Size, DateTime LastWriteUtc)>();
+                    foreach (var p in uniqueCandidates)
+                    {
+                        try
+                        {
+                            if (!File.Exists(p)) continue;
+                            var info = new FileInfo(p);
+                            existing.Add((p, info.Length, info.LastWriteTimeUtc));
+                        }
+                        catch
+                        {
+                        }
+                    }
+
+                    if (preferAppData && File.Exists(preferred)) return preferred;
+                    if (existing.Count > 0)
+                    {
+                        var best = existing
+                            .OrderByDescending(e => e.Size)
+                            .ThenByDescending(e => e.LastWriteUtc)
+                            .First();
+                        return best.Path;
+                    }
+
+                    return preferAppData ? preferred : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db");
+                }
+
+                var dbPath = ResolveDbPath(builder.Environment.ContentRootPath);
+                builder.Configuration["DbPath"] = dbPath;
+                builder.Configuration["DbPreferredPath"] = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ParrotnestServer", "parrotnest.db");
+                builder.Configuration["DbBaseDirPath"] = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db");
+                var connectionString = $"Data Source={dbPath};Cache=Shared;Foreign Keys=True";
                 builder.Services.AddDbContext<ApplicationDbContext>(options =>
                 {
                     options.UseSqlite(connectionString);
@@ -82,6 +156,54 @@ namespace ParrotnestServer
                     });
                 });
                 _app = builder.Build();
+                var verboseEnv = Environment.GetEnvironmentVariable("PARROTNEST_VERBOSE");
+                var isVerbose = verboseEnv == "1" || string.Equals(verboseEnv, "true", StringComparison.OrdinalIgnoreCase);
+                var buildId = DateTime.UtcNow.ToString("yyyyMMdd-HHmmss");
+                var logsDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+                Directory.CreateDirectory(logsDir);
+                var httpLogPath = Path.Combine(logsDir, "http.log");
+                void AppendHttpLog(string line)
+                {
+                    try
+                    {
+                        File.AppendAllText(httpLogPath, line + Environment.NewLine, Encoding.UTF8);
+                    }
+                    catch
+                    {
+                    }
+                }
+                AppendHttpLog($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] server_start build={buildId} base={AppDomain.CurrentDomain.BaseDirectory}");
+                _app.Use(async (ctx, next) =>
+                {
+                    ctx.Response.Headers["X-Parrotnest-Build"] = buildId;
+                    ctx.Response.Headers["X-Parrotnest-Verbose"] = isVerbose ? "1" : "0";
+
+                    var sw = Stopwatch.StartNew();
+                    var path = ctx.Request.Path.Value ?? string.Empty;
+                    var method = ctx.Request.Method;
+                    var abortedBefore = ctx.RequestAborted.IsCancellationRequested;
+
+                    try
+                    {
+                        await next();
+                    }
+                    catch (Exception ex)
+                    {
+                        sw.Stop();
+                        AppendHttpLog($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {method} {path} status=500 ms={sw.ElapsedMilliseconds} aborted_before={abortedBefore} aborted_after={ctx.RequestAborted.IsCancellationRequested} ex={ex.GetType().Name} msg={ex.Message}");
+                        throw;
+                    }
+                    finally
+                    {
+                        sw.Stop();
+                        var status = ctx.Response?.StatusCode ?? 0;
+                        var abortedAfter = ctx.RequestAborted.IsCancellationRequested;
+                        if (isVerbose || path.StartsWith("/api/Users/all", StringComparison.OrdinalIgnoreCase))
+                        {
+                            AppendHttpLog($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff}] {method} {path} status={status} ms={sw.ElapsedMilliseconds} aborted_before={abortedBefore} aborted_after={abortedAfter}");
+                        }
+                    }
+                });
                 using (var scope = _app.Services.CreateScope())
                 {
                     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -89,10 +211,35 @@ namespace ParrotnestServer
                     
                     // Enable WAL mode for better multi-user concurrency
                     dbContext.Database.ExecuteSqlRaw("PRAGMA journal_mode=WAL;");
+                    dbContext.Database.ExecuteSqlRaw("PRAGMA foreign_keys=ON;");
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Messages_Timestamp ON Messages(Timestamp);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Messages_Timestamp: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Messages_SenderId ON Messages(SenderId);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Messages_SenderId: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Messages_ReceiverId ON Messages(ReceiverId);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Messages_ReceiverId: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Messages_GroupId ON Messages(GroupId);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Messages_GroupId: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Friendships_RequesterId_Status ON Friendships(RequesterId, Status);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Friendships_RequesterId_Status: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_Friendships_AddresseeId_Status ON Friendships(AddresseeId, Status);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_Friendships_AddresseeId_Status: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_GroupMembers_GroupId ON GroupMembers(GroupId);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_GroupMembers_GroupId: {ex.Message}"); }
+                    try { dbContext.Database.ExecuteSqlRaw("CREATE INDEX IF NOT EXISTS IX_GroupMembers_UserId ON GroupMembers(UserId);"); } catch (Exception ex) { _logAction($"[DB Warning] IX_GroupMembers_UserId: {ex.Message}"); }
+
+                    try
+                    {
+                        dbContext.Database.ExecuteSqlRaw(@"CREATE TABLE IF NOT EXISTS ProductionContents (
+    Id INTEGER NOT NULL CONSTRAINT PK_ProductionContents PRIMARY KEY AUTOINCREMENT,
+    Content TEXT NOT NULL,
+    UpdatedAt TEXT NOT NULL
+);");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logAction($"[DB Warning] ProductionContents: {ex.Message}");
+                    }
                     
                     try {
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN Status INTEGER DEFAULT 1;");
                     } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] Status: {ex.Message}"); }
+                    try {
+                        dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN MutedUntil TEXT NULL;");
+                    } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] MutedUntil: {ex.Message}"); }
                     try {
                         dbContext.Database.ExecuteSqlRaw("ALTER TABLE Users ADD COLUMN Theme TEXT DEFAULT 'original';");
                     } catch (Exception ex) { if (!ex.Message.Contains("duplicate column name")) _logAction($"[DB Warning] Theme: {ex.Message}"); }
@@ -170,9 +317,46 @@ namespace ParrotnestServer
                     {
                         _logAction($"[DB Warning] Admin seed: {ex.Message}");
                     }
+
+                    try
+                    {
+                        var admin = dbContext.Users.FirstOrDefault(u => u.IsAdmin);
+                        if (admin != null)
+                        {
+                            var settings = dbContext.GeneralChannelSettings.FirstOrDefault(s => s.Id == 1);
+                            if (settings == null)
+                            {
+                                dbContext.GeneralChannelSettings.Add(new ParrotnestServer.Models.GeneralChannelSettings
+                                {
+                                    Id = 1,
+                                    OwnerId = admin.Id,
+                                    Name = "Ogólny",
+                                    AvatarUrl = null,
+                                    UpdatedAt = DateTime.UtcNow
+                                });
+                                dbContext.SaveChanges();
+                            }
+                            else if (settings.OwnerId != admin.Id)
+                            {
+                                settings.OwnerId = admin.Id;
+                                settings.UpdatedAt = DateTime.UtcNow;
+                                dbContext.SaveChanges();
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logAction($"[DB Warning] General channel seed: {ex.Message}");
+                    }
+                }
+                var portEnv = Environment.GetEnvironmentVariable("PARROTNEST_PORT");
+                var port = 6069;
+                if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var parsedPort))
+                {
+                    port = parsedPort;
                 }
                 _app.Urls.Clear();
-                _app.Urls.Add("http://0.0.0.0:6069");
+                _app.Urls.Add($"http://0.0.0.0:{port}");
                 if (_app.Environment.IsDevelopment())
                 {
                     _app.UseSwagger();
@@ -208,7 +392,22 @@ namespace ParrotnestServer
                     _app.UseStaticFiles(new StaticFileOptions
                     {
                         FileProvider = fileProvider,
-                        ContentTypeProvider = provider
+                        ContentTypeProvider = provider,
+                        OnPrepareResponse = ctx =>
+                        {
+                            var path = ctx.Context.Request.Path.Value ?? string.Empty;
+                            var shouldNoStore =
+                                path.EndsWith(".php", StringComparison.OrdinalIgnoreCase) ||
+                                path.EndsWith(".js", StringComparison.OrdinalIgnoreCase) ||
+                                path.EndsWith(".css", StringComparison.OrdinalIgnoreCase);
+
+                            if (!shouldNoStore) return;
+
+                            var headers = ctx.Context.Response.Headers;
+                            headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0";
+                            headers["Pragma"] = "no-cache";
+                            headers["Expires"] = "0";
+                        }
                     });
                 }
                 else
@@ -259,14 +458,23 @@ namespace ParrotnestServer
             _logAction = logAction;
         }
         public IDisposable? BeginScope<TState>(TState state) where TState : notnull => null;
-        public bool IsEnabled(LogLevel logLevel) => logLevel >= LogLevel.Information;
+        public bool IsEnabled(LogLevel logLevel)
+        {
+            var verboseEnv = Environment.GetEnvironmentVariable("PARROTNEST_VERBOSE");
+            var isVerbose = verboseEnv == "1" || string.Equals(verboseEnv, "true", StringComparison.OrdinalIgnoreCase);
+            return isVerbose ? logLevel >= LogLevel.Debug : logLevel >= LogLevel.Information;
+        }
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
             var message = formatter(state, exception);
             if (!string.IsNullOrEmpty(message))
             {
-                if (_categoryName.StartsWith("Microsoft.AspNetCore.Hosting"))
+                var verboseEnv = Environment.GetEnvironmentVariable("PARROTNEST_VERBOSE");
+                var isVerbose = verboseEnv == "1" || string.Equals(verboseEnv, "true", StringComparison.OrdinalIgnoreCase);
+                if (isVerbose || _categoryName.StartsWith("Microsoft.AspNetCore.Hosting"))
+                {
                     _logAction($"[{DateTime.Now:HH:mm:ss}] {message}");
+                }
             }
         }
     }
