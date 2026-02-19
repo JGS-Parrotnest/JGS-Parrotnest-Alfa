@@ -953,6 +953,17 @@ body {
     border: 3px solid var(--accent-green);
     box-shadow: var(--shadow-sm);
 }
+.message-video {
+    display: block;
+    width: 100%;
+    max-width: 520px;
+    height: auto;
+    border-radius: 12px;
+    margin-top: 8px;
+    border: 3px solid var(--accent-green);
+    box-shadow: var(--shadow-sm);
+    background-color: black;
+}
 .message.sent {
     align-self: flex-start;
     background: transparent;

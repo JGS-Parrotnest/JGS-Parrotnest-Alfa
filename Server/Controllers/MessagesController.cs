@@ -77,20 +77,20 @@ namespace ParrotnestServer.Controllers
         {
             if (file == null || file.Length == 0)
                 return BadRequest("Nie wybrano pliku.");
-            var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp" };
-            var fileExtension = Path.GetExtension(file.FileName).ToLower();
-            if (!allowedExtensions.Contains(fileExtension))
-                return BadRequest("Dozwolone są tylko pliki obrazów (PNG, JPG, JPEG, GIF, WEBP, BMP).");
+
             var clientPath = _configuration["ClientPath"] ?? Path.Combine(_environment.ContentRootPath, "..", "Client");
             var uploadsFolder = Path.Combine(clientPath, "uploads");
             if (!Directory.Exists(uploadsFolder))
                 Directory.CreateDirectory(uploadsFolder);
+
+            var fileExtension = Path.GetExtension(file.FileName).ToLower();
             var fileName = Guid.NewGuid().ToString() + fileExtension;
             var filePath = Path.Combine(uploadsFolder, fileName);
             using (var stream = new FileStream(filePath, FileMode.Create))
             {
                 await file.CopyToAsync(stream);
             }
+
             var fileUrl = $"/uploads/{fileName}";
             return Ok(new { url = fileUrl });
         }

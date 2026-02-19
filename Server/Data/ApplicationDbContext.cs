@@ -19,6 +19,7 @@ namespace ParrotnestServer.Data
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+            modelBuilder.Entity<AdminActionLog>().ToTable("AdminActionLogs");
             modelBuilder.Entity<User>()
                 .HasIndex(u => u.Email)
                 .IsUnique();

@@ -1,0 +1,2 @@
+C:\Users\Użytkownik\Documents\trae_projects\Alfa v8\dist\win-x64\parrotnest.pdb
+C:\Users\Użytkownik\Documents\trae_projects\Alfa v8\dist\win-x64\parrotnest.exe

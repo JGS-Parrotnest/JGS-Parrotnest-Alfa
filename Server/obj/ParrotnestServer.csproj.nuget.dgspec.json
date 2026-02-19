@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v8\\Server\\ParrotnestServer.csproj": {}
+    "C:\\Users\\Użytkownik\\Documents\\trae_projects\\Alfa v8\\Server\\ParrotnestServer.csproj": {}
   },
   "projects": {
-    "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v8\\Server\\ParrotnestServer.csproj": {
+    "C:\\Users\\Użytkownik\\Documents\\trae_projects\\Alfa v8\\Server\\ParrotnestServer.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v8\\Server\\ParrotnestServer.csproj",
-        "projectName": "ParrotnestServer",
-        "projectPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v8\\Server\\ParrotnestServer.csproj",
-        "packagesPath": "C:\\Users\\user\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\user\\Music\\Komunikator JGS\\Alfa v8\\Server\\obj\\",
+        "projectUniqueName": "C:\\Users\\Użytkownik\\Documents\\trae_projects\\Alfa v8\\Server\\ParrotnestServer.csproj",
+        "projectName": "parrotnest",
+        "projectPath": "C:\\Users\\Użytkownik\\Documents\\trae_projects\\Alfa v8\\Server\\ParrotnestServer.csproj",
+        "packagesPath": "C:\\Users\\Użytkownik\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\Użytkownik\\Documents\\trae_projects\\Alfa v8\\Server\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\user\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\Użytkownik\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net10.0-windows"
@@ -60,6 +60,12 @@
               "target": "Package",
               "version": "[9.0.0, )"
             },
+            "Microsoft.NET.ILLink.Tasks": {
+              "suppressParent": "All",
+              "target": "Package",
+              "version": "[10.0.3, )",
+              "autoReferenced": true
+            },
             "Swashbuckle.AspNetCore": {
               "target": "Package",
               "version": "[6.5.0, )"
@@ -76,6 +82,20 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
+          "downloadDependencies": [
+            {
+              "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+              "version": "[10.0.3, 10.0.3]"
+            },
+            {
+              "name": "Microsoft.NETCore.App.Runtime.win-x64",
+              "version": "[10.0.3, 10.0.3]"
+            },
+            {
+              "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+              "version": "[10.0.3, 10.0.3]"
+            }
+          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
@@ -87,7 +107,7 @@
               "privateAssets": "none"
             }
           },
-          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.101/PortableRuntimeIdentifierGraph.json",
+          "runtimeIdentifierGraphPath": "C:\\Program Files\\dotnet\\sdk\\10.0.103/PortableRuntimeIdentifierGraph.json",
           "packagesToPrune": {
             "Microsoft.AspNetCore": "(,10.0.32767]",
             "Microsoft.AspNetCore.Antiforgery": "(,10.0.32767]",
@@ -516,6 +536,11 @@
             "System.Xml.XPath": "(,4.3.32767]",
             "System.Xml.XPath.XDocument": "(,5.0.32767]"
           }
+        }
+      },
+      "runtimes": {
+        "win-x64": {
+          "#import": []
         }
       }
     }

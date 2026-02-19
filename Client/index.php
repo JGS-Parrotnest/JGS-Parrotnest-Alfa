@@ -200,7 +200,7 @@
             </div>
             <div id="reply-preview"></div>
             <form class="chat-input-area" id="messageForm">
-                <input type="file" id="imageInput" accept="*/*" style="display: none;">
+                <input type="file" id="imageInput" accept="image/*,video/*" style="display: none;">
                 <button type="button" class="btn-icon" id="attachButton" title="Załącz plik"><span class="material-symbols-outlined">attach_file</span></button>
                 <button type="button" class="btn-icon" id="emojiButton" title="Emoji"><span class="material-symbols-outlined">mood</span></button>
                 <div id="attachmentPreview" style="display: none; margin-right: 10px; color: var(--accent-green);"></div>
@@ -655,6 +655,11 @@
                                 <span class="toggle-slider"></span>
                             </div>
                         </label>
+                        <div style="margin-top: 10px;">
+                            <button type="button" class="btn-secondary" id="secretLaunchFNAF1" style="width:100%;">
+                                Uruchom Five Nights at Freddy's 1
+                            </button>
+                        </div>
                     </div>
                 </div>
                 
@@ -709,6 +714,47 @@
             border: 2px solid #555;
         }
 
+        /* Game Overlay (80% ekranu, wycentrowany, nad wszystkim) */
+        .game-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 11000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2vh 2vw;
+        }
+        .game-overlay.show { display: flex; }
+        .game-overlay-inner {
+            position: relative;
+            width: 95vw;
+            height: 95vh;
+            max-width: 95vw;
+            max-height: 95vh;
+            background: #000;
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+        }
+        .game-overlay .modal-close {
+            position: absolute;
+            top: 8px;
+            right: 10px;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            font-size: 20px;
+            line-height: 32px;
+            cursor: pointer;
+            z-index: 10;
+        }
+        .game-overlay .modal-close:hover { background: rgba(255,255,255,0.2); }
+
         .toggle-slider:before {
             position: absolute;
             content: "";
@@ -737,6 +783,14 @@
         
         .team-grid .team-card-center { margin: 0 6px; }
     </style>
+
+    <!-- Game Overlay -->
+    <div id="gameOverlay" class="game-overlay">
+        <div class="game-overlay-inner">
+            <button class="modal-close" id="closeGameOverlay" title="Zamknij">×</button>
+            <iframe id="gameIframe" src="about:blank" allow="fullscreen; autoplay" allowfullscreen loading="eager" style="width:100%;height:100%;border:0;"></iframe>
+        </div>
+    </div>
 
     <div id="image-modal" class="image-modal">
         <span class="close-image-modal">&times;</span>

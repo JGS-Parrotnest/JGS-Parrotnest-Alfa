@@ -113,10 +113,14 @@ namespace ParrotnestServer.Controllers
         {
             if (file == null || file.Length == 0)
                 return BadRequest("Nie wybrano pliku.");
-            var allowedExtensions = new[] { ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp" };
+            var allowedExtensions = new[]
+            {
+                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".bmp",
+                ".mp4", ".webm", ".ogg", ".mov", ".avi", ".mkv", ".m4v", ".3gp", ".mpeg", ".mpg"
+            };
             var fileExtension = Path.GetExtension(file.FileName).ToLower();
             if (!allowedExtensions.Contains(fileExtension))
-                return BadRequest("Dozwolone są tylko pliki obrazów (PNG, JPG, JPEG, GIF, WEBP, BMP).");
+                return BadRequest("Dozwolone są tylko pliki obrazów lub wideo (PNG, JPG, JPEG, GIF, WEBP, BMP, MP4, WEBM, OGG, MOV, AVI, MKV, M4V, 3GP, MPEG, MPG).");
             var clientPath = _configuration["ClientPath"] ?? Path.Combine(_environment.ContentRootPath, "..", "Client");
             var uploadsFolder = Path.Combine(clientPath, "uploads", "avatars");
             if (!Directory.Exists(uploadsFolder))

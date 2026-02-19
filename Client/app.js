@@ -155,19 +155,30 @@ if (typeof window.showNotification === 'undefined') {
 
 if (typeof window.handleApiError === 'undefined') {
     window.handleApiError = async function(response, defaultMessage = 'Wystąpił błąd') {
-        const text = await response.text();
-        let message = text;
+        let text = '';
         try {
-            const json = JSON.parse(text);
-            message = json.message || json.error || json.title || defaultMessage;
-            if (json.errors) {
-                 const details = Object.values(json.errors).flat().join(', ');
-                 if (details) message += `: ${details}`;
-            }
+            text = await response.text();
         } catch (e) {
-            if (text.trim().startsWith('<')) {
-                message = `${defaultMessage} (Status: ${response.status})`;
+            text = '';
+        }
+
+        let message = defaultMessage;
+        if (text && text.trim().length > 0) {
+            message = text;
+            try {
+                const json = JSON.parse(text);
+                message = json.message || json.error || json.title || defaultMessage;
+                if (json.errors) {
+                    const details = Object.values(json.errors).flat().join(', ');
+                    if (details) message += `: ${details}`;
+                }
+            } catch (e) {
+                if (text.trim().startsWith('<')) {
+                    message = `${defaultMessage} (Status: ${response.status})`;
+                }
             }
+        } else {
+            message = `${defaultMessage} (Status: ${response.status})`;
         }
         showNotification(message, 'error');
     };
@@ -865,6 +876,36 @@ _____                     _   _   _           _
                                     }
                                 };
                             }
+
+                            // FNAF 1 Launcher
+                            const launchBtn = document.getElementById('secretLaunchFNAF1');
+                            const overlay = document.getElementById('gameOverlay');
+                            const iframe = document.getElementById('gameIframe');
+                            const closeBtn = document.getElementById('closeGameOverlay');
+
+                            function openGameOverlay(url) {
+                                if (!overlay || !iframe) return;
+                                const sm = document.getElementById('secretMenu');
+                                if (sm) sm.classList.remove('show');
+                                iframe.src = url;
+                                overlay.classList.add('show');
+                            }
+                            function closeGameOverlay() {
+                                if (!overlay || !iframe) return;
+                                iframe.src = 'about:blank';
+                                overlay.classList.remove('show');
+                            }
+                            if (launchBtn) {
+                                launchBtn.onclick = () => openGameOverlay('/UrUrUr/index.html');
+                            }
+                            if (closeBtn) {
+                                closeBtn.onclick = () => closeGameOverlay();
+                            }
+                            document.addEventListener('keydown', (e) => {
+                                if (e.key === 'Escape' && overlay && overlay.classList.contains('show')) {
+                                    closeGameOverlay();
+                                }
+                            });
                          }
                     }
                 }
@@ -896,7 +937,7 @@ _____                     _   _   _           _
                         `;
                         if (['png','jpg','jpeg','gif','webp','bmp'].includes(ext)) {
                             previewInner += `<img src="${url}" alt="Podgląd" style="max-height:64px;border-radius:6px;">`;
-                        } else if (['mp4','avi','webm','mov'].includes(ext)) {
+                        } else if (['mp4','avi','webm','mov','mkv','m4v','3gp','mpeg','mpg','ogg'].includes(ext)) {
                             previewInner += `<video src="${url}" style="max-height:64px;border-radius:6px;" muted></video>`;
                         } else {
                             previewInner += `<span class="material-symbols-outlined">description</span>`;
@@ -925,11 +966,45 @@ _____                     _   _   _           _
                 }
             });
         }
+
+        async function tryHandleChatCommand(text) {
+            if (!text || text[0] !== '/') return false;
+            const cmd = text.slice(1).trim().toLowerCase();
+            if (cmd === 'wilson') {
+                try {
+                    const url = resolveUrl ? resolveUrl('Wilson.mp3') : 'Wilson.mp3';
+                    const a = new Audio(url);
+                    a.volume = 1.0;
+                    await a.play();
+                    if (typeof showNotification === 'function') showNotification('Wilson!', 'success');
+                } catch (e) {
+                    if (typeof showNotification === 'function') showNotification('Nie udało się odtworzyć dźwięku.', 'error');
+                }
+                return true;
+            }
+            return false;
+        }
+
         if (messageForm) {
             messageForm.addEventListener('submit', async (e) => {
                 e.preventDefault();
                 const input = document.getElementById('messageInput');
                 const message = input.value.trim();
+
+                if (message && message[0] === '/') {
+                    const handled = await tryHandleChatCommand(message);
+                    if (handled) {
+                        input.value = '';
+                        selectedImageFile = null;
+                        if (imageInput) imageInput.value = '';
+                        if (attachmentPreview) {
+                            attachmentPreview.className = 'attachment-preview';
+                            attachmentPreview.style.display = 'none';
+                            attachmentPreview.innerHTML = '';
+                        }
+                        return;
+                    }
+                }
                 let imageUrl = null;
                 if (selectedImageFile) {
                     try {
@@ -991,11 +1066,53 @@ _____                     _   _   _           _
                                 body: formData
                             });
                             if (!response.ok) {
-                                await handleApiError(response, 'Upload nie powiódł się');
-                                return;
+                                // Uniwersalny fallback: jeśli /messages/upload nie zwróci OK, przełącz na upload kawałkami
+                                const initRes = await fetch(`${currentApiUrl}/files/initiate`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                        fileName: selectedImageFile.name,
+                                        size: selectedImageFile.size,
+                                        mimeType: selectedImageFile.type || null
+                                    })
+                                });
+                                if (!initRes.ok) {
+                                    await handleApiError(initRes, 'Nie udało się zainicjować przesyłania');
+                                    return;
+                                }
+                                const initData2 = await initRes.json();
+                                const uploadId2 = initData2.uploadId;
+                                const chunkSize2 = initData2.chunkSize || (2 * 1024 * 1024);
+                                let offset2 = 0;
+                                while (offset2 < selectedImageFile.size) {
+                                    const slice2 = selectedImageFile.slice(offset2, Math.min(offset2 + chunkSize2, selectedImageFile.size));
+                                    const chunkBuf2 = await slice2.arrayBuffer();
+                                    const chunkRes2 = await fetch(`${currentApiUrl}/files/chunk/${uploadId2}?offset=${offset2}`, {
+                                        method: 'PUT',
+                                        headers: { 'Authorization': `Bearer ${token}` },
+                                        body: chunkBuf2
+                                    });
+                                    if (!chunkRes2.ok) {
+                                        await handleApiError(chunkRes2, 'Błąd przesyłania fragmentu');
+                                        return;
+                                    }
+                                    const jr2 = await chunkRes2.json();
+                                    offset2 = jr2.nextOffset || (offset2 + chunkSize2);
+                                }
+                                const completeRes2 = await fetch(`${currentApiUrl}/files/complete/${uploadId2}`, {
+                                    method: 'POST',
+                                    headers: { 'Authorization': `Bearer ${token}` }
+                                });
+                                if (!completeRes2.ok) {
+                                    await handleApiError(completeRes2, 'Nie udało się zakończyć przesyłania');
+                                    return;
+                                }
+                                const comp2 = await completeRes2.json();
+                                uploadUrl = comp2.url;
+                            } else {
+                                const data = await response.json();
+                                uploadUrl = data.url;
                             }
-                            const data = await response.json();
-                            uploadUrl = data.url;
                         }
                         imageUrl = uploadUrl;
                         selectedImageFile = null;
@@ -1073,6 +1190,29 @@ _____                     _   _   _           _
                 }
             });
         }
+
+        connection.on("ForceLogout", (payload) => {
+            try {
+                localStorage.removeItem('token');
+                localStorage.removeItem('user');
+                localStorage.setItem('preferredTheme', 'original');
+                localStorage.setItem('preferredTextSize', 'medium');
+                localStorage.removeItem('preferredSimpleText');
+            } catch (e) {}
+            try { window.__forceLogout = true; } catch (e) {}
+            const msg = (payload && (payload.message || payload.reason))
+                ? (payload.message || payload.reason)
+                : 'Twoje konto zostało zbanowane.';
+            try {
+                showNotification(msg, 'error');
+            } catch (e) {}
+            try {
+                if (connection && connection.stop) {
+                    connection.stop();
+                }
+            } catch (e) {}
+            window.location.href = '/login.php';
+        });
 
         connection.on("UserStatusChanged", (userId, status) => {
             console.log(`User ${userId} status changed: ${status}`);
@@ -1409,11 +1549,23 @@ _____                     _   _   _           _
             }
 
             if (imageUrl) {
-                const img = document.createElement("img");
-                img.src = imageUrl;
-                img.className = "message-image";
-                img.onclick = () => openLightbox(imageUrl);
-                msgDiv.appendChild(img);
+                let mediaUrl = resolveUrl ? resolveUrl(imageUrl) : imageUrl;
+                const lower = mediaUrl.split('?')[0].toLowerCase();
+                const ext = lower.includes('.') ? lower.substring(lower.lastIndexOf('.') + 1) : '';
+                if (['mp4','webm','ogg','mov','avi','mkv','m4v','3gp','mpeg','mpg'].includes(ext)) {
+                    const video = document.createElement("video");
+                    video.src = mediaUrl;
+                    video.className = "message-video";
+                    video.controls = true;
+                    video.preload = "metadata";
+                    msgDiv.appendChild(video);
+                } else {
+                    const img = document.createElement("img");
+                    img.src = mediaUrl;
+                    img.className = "message-image";
+                    img.onclick = () => openLightbox(mediaUrl);
+                    msgDiv.appendChild(img);
+                }
             }
             if (message) {
                 const messageText = document.createElement("div");
@@ -2791,12 +2943,23 @@ _____                     _   _   _           _
 
                         const imgUrlRaw = msg.imageUrl || msg.ImageUrl;
                         if (imgUrlRaw) {
-                            let imgUrl = resolveUrl(imgUrlRaw);
-                            const img = document.createElement("img");
-                            img.src = imgUrl;
-                            img.className = "message-image";
-                            img.onclick = () => openLightbox(imgUrl);
-                            msgDiv.appendChild(img);
+                            let mediaUrl = resolveUrl(imgUrlRaw);
+                            const lower = mediaUrl.split('?')[0].toLowerCase();
+                            const ext = lower.includes('.') ? lower.substring(lower.lastIndexOf('.') + 1) : '';
+                            if (['mp4','webm','ogg','mov','avi','mkv','m4v','3gp','mpeg','mpg'].includes(ext)) {
+                                const video = document.createElement("video");
+                                video.src = mediaUrl;
+                                video.className = "message-video";
+                                video.controls = true;
+                                video.preload = "metadata";
+                                msgDiv.appendChild(video);
+                            } else {
+                                const img = document.createElement("img");
+                                img.src = mediaUrl;
+                                img.className = "message-image";
+                                img.onclick = () => openLightbox(mediaUrl);
+                                msgDiv.appendChild(img);
+                            }
                         }
                         const content = msg.content || msg.Content;
                         if (content && content.trim() !== '') {
@@ -4440,18 +4603,12 @@ _____                     _   _   _           _
                         renderAdminLogs(adminLogsState.cache);
                         adminLogsState.backoff = 2000;
                     } else {
-                        if (res.status === 401 || res.status === 403) {
-                            adminLogsList.innerHTML = '<div style="color:var(--error-color)">Brak uprawnień do pobrania logów.</div>';
-                        } else {
-                            adminLogsList.innerHTML = '<div style="color:var(--error-color)">Nie udało się pobrać logów.</div>';
-                        }
-                        scheduleAdminLogsRetry();
+                        adminLogsState.cache = [];
+                        renderAdminLogs([]);
                     }
                 } catch (e) {
-                    if (!(e && (e.name === 'AbortError' || String(e).includes('ERR_ABORTED')))) {
-                        adminLogsList.innerHTML = '<div style="color:var(--error-color)">Błąd sieci.</div>';
-                    }
-                    scheduleAdminLogsRetry();
+                    adminLogsState.cache = [];
+                    renderAdminLogs([]);
                 } finally {
                     adminLogsState.inFlight = false;
                     adminLogsState.controller = null;
@@ -4459,15 +4616,43 @@ _____                     _   _   _           _
             }
             function renderAdminLogs(items) {
                 adminLogsList.innerHTML = '';
-                (items || []).forEach(l => {
-                    const line = document.createElement('div');
-                    const when = new Date(l.timestamp);
-                    const actor = l.PerformedBy?.Username || `#${l.PerformedBy?.Id ?? '?'}`;
-                    const target = l.TargetUser ? (l.TargetUser.Username || `#${l.TargetUser.Id}`) : '-';
-                    const dur = l.DurationMinutes ? `${l.DurationMinutes}m` : '';
-                    const ok = l.success ? 'OK' : 'ERR';
-                    line.textContent = `[${when.toLocaleString()}] ${ok} ${l.ActionType} by ${actor} -> ${target} ${dur} ${l.Reason ? `| ${l.Reason}` : ''}`;
-                    adminLogsList.appendChild(line);
+                const arr = items || [];
+                if (!arr.length) {
+                    adminLogsList.innerHTML = '<div style="color:var(--text-muted)">Brak logów do wyświetlenia.</div>';
+                    return;
+                }
+                arr.forEach(l => {
+                    try {
+                        const ts = l.timestamp || l.Timestamp || null;
+                        const when = ts ? new Date(ts) : new Date();
+                        const ok = (typeof l.success !== 'undefined' ? l.success : l.Success) ? 'OK' : 'ERR';
+                        const actionType = l.actionType || l.ActionType || 'action';
+                        const reason = l.reason || l.Reason || '';
+                        const duration = l.durationMinutes ?? l.DurationMinutes ?? null;
+                        const durText = duration ? `${duration}m` : '';
+                        const performedBy = l.performedBy || l.PerformedBy || null;
+                        const actorName = performedBy ? (performedBy.username || performedBy.Username || `#${performedBy.id || performedBy.Id || '?'}`) : '-';
+                        const targetUser = l.targetUser || l.TargetUser || null;
+                        const targetName = targetUser ? (targetUser.username || targetUser.Username || `#${targetUser.id || targetUser.Id || '?'}`) : '-';
+                        const parts = [
+                            `[${when.toLocaleString()}]`,
+                            ok,
+                            actionType,
+                            'by',
+                            actorName,
+                            '->',
+                            targetName,
+                            durText
+                        ].filter(Boolean);
+                        const msg = parts.join(' ') + (reason ? ` | ${reason}` : '');
+                        const line = document.createElement('div');
+                        line.textContent = msg;
+                        adminLogsList.appendChild(line);
+                    } catch (e) {
+                        const line = document.createElement('div');
+                        line.textContent = '[log parse error]';
+                        adminLogsList.appendChild(line);
+                    }
                 });
             }
             function scheduleAdminLogsRetry() {
@@ -4607,13 +4792,21 @@ _____                     _   _   _           _
                     banSel.onclick = async () => {
                         const ids = Array.from(window.adminSelectedUserIds || []);
                         if (ids.length === 0) return;
-                        showConfirmGlobal(`Zbanować ${ids.length} użytkowników na 60 minut?`, 'Zbanuj', async () => {
+                        let minutesVal = null;
+                        if (adminDurationMinutes && adminDurationMinutes.value) {
+                            const parsed = parseInt(adminDurationMinutes.value, 10);
+                            if (!Number.isNaN(parsed) && parsed > 0) {
+                                minutesVal = parsed;
+                            }
+                        }
+                        const timePart = minutesVal ? ` na ${minutesVal} minut` : '';
+                        showConfirmGlobal(`Zbanować ${ids.length} użytkowników${timePart}?`, 'Zbanuj', async () => {
                             for (const id of ids) {
                                 try {
                                     const res = await fetch(`${currentApiUrl}/admin/ban/${id}`, {
                                         method: 'POST',
                                         headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ minutes: 60, reason: 'Panel admin (bulk)' }),
+                                        body: JSON.stringify({ minutes: minutesVal || 0, reason: 'Panel admin (bulk)' }),
                                         cache: 'no-store'
                                     });
                                     if (!res.ok) await handleApiError(res, 'Nie udało się zbanować');
@@ -4656,28 +4849,64 @@ _____                     _   _   _           _
                 updateAdminSelectionToolsState();
                 if (adminExecuteActionBtn) {
                     adminExecuteActionBtn.onclick = async () => {
-                        if (!window.adminSelectedUserId) { showNotification('Wybierz użytkownika z listy.', 'warning'); return; }
+                        const ids = Array.from(window.adminSelectedUserIds || []);
+                        if (ids.length === 0) { showNotification('Wybierz użytkowników z listy.', 'warning'); return; }
                         const action = adminActionSelect ? adminActionSelect.value : 'mute';
-                        const minutesVal = adminDurationMinutes && adminDurationMinutes.value ? parseInt(adminDurationMinutes.value, 10) : null;
-                        const reasonVal = adminReason ? adminReason.value.trim() : null;
-                        try {
-                            let url = ''; let method = 'POST'; let body = null;
-                            if (action === 'mute') { url = `${currentApiUrl}/admin/mute/${window.adminSelectedUserId}`; body = { minutes: minutesVal || 60, reason: reasonVal }; }
-                            else if (action === 'unmute') { url = `${currentApiUrl}/admin/unmute/${window.adminSelectedUserId}`; }
-                            else if (action === 'ban') { url = `${currentApiUrl}/admin/ban/${window.adminSelectedUserId}`; body = { minutes: minutesVal || 60, reason: reasonVal }; }
-                            else if (action === 'unban') { url = `${currentApiUrl}/admin/unban/${window.adminSelectedUserId}`; }
-                            else if (action === 'delete') { url = `${currentApiUrl}/admin/users/${window.adminSelectedUserId}`; method = 'DELETE'; }
-                            const headers = { 'Authorization': `Bearer ${token}` };
-                            if (body) headers['Content-Type'] = 'application/json';
-                            const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
-                            if (res.ok) {
-                                const data = await res.json().catch(() => ({}));
-                                showNotification(data.message || 'Operacja wykonana.', 'success');
-                                await loadAdminLogs();
-                            } else {
-                                await handleApiError(res, 'Operacja nie powiodła się');
+                        let minutesVal = null;
+                        if (adminDurationMinutes && adminDurationMinutes.value) {
+                            const parsed = parseInt(adminDurationMinutes.value, 10);
+                            if (!Number.isNaN(parsed) && parsed > 0) {
+                                minutesVal = parsed;
                             }
-                        } catch (e) { showNotification('Błąd sieci.', 'error'); }
+                        }
+                        const reasonVal = adminReason ? adminReason.value.trim() : null;
+                        let label = '';
+                        if (action === 'mute') label = 'wyciszyć';
+                        else if (action === 'unmute') label = 'odciszyć';
+                        else if (action === 'ban') label = 'zbanować';
+                        else if (action === 'unban') label = 'odbanować';
+                        else if (action === 'delete') label = 'usunąć';
+                        const confirmText = action === 'delete' ? 'Usuń' :
+                            action === 'mute' ? 'Wycisz' :
+                            action === 'unmute' ? 'Odcisz' :
+                            action === 'ban' ? 'Zbanuj' :
+                            action === 'unban' ? 'Odbanuj' : 'Potwierdź';
+                        const timePart = (action === 'mute' || action === 'ban')
+                            ? (minutesVal ? ` na ${minutesVal} minut` : '')
+                            : '';
+                        const message = action === 'delete'
+                            ? `Usunąć konta ${ids.length} użytkowników? Tej operacji nie można cofnąć.`
+                            : `Czy na pewno ${label} ${ids.length} użytkowników${timePart}?`;
+                        showConfirmGlobal(message, confirmText, async () => {
+                            for (const id of ids) {
+                                try {
+                                    let url = '';
+                                    let method = 'POST';
+                                    let body = null;
+                                    if (action === 'mute') {
+                                        url = `${currentApiUrl}/admin/mute/${id}`;
+                                        body = { minutes: minutesVal || 0, reason: reasonVal || 'Panel admin (bulk)' };
+                                    } else if (action === 'unmute') {
+                                        url = `${currentApiUrl}/admin/unmute/${id}`;
+                                    } else if (action === 'ban') {
+                                        url = `${currentApiUrl}/admin/ban/${id}`;
+                                        body = { minutes: minutesVal || 0, reason: reasonVal || 'Panel admin (bulk)' };
+                                    } else if (action === 'unban') {
+                                        url = `${currentApiUrl}/admin/unban/${id}`;
+                                    } else if (action === 'delete') {
+                                        url = `${currentApiUrl}/admin/users/${id}`;
+                                        method = 'DELETE';
+                                    }
+                                    if (!url) continue;
+                                    const headers = { 'Authorization': `Bearer ${token}` };
+                                    if (body) headers['Content-Type'] = 'application/json';
+                                    const res = await fetch(url, { method, headers, body: body ? JSON.stringify(body) : undefined });
+                                    if (!res.ok) await handleApiError(res, 'Operacja nie powiodła się');
+                                } catch (e) {}
+                            }
+                            showNotification('Operacja wykonana dla wybranych użytkowników.', 'success');
+                            await loadAdminLogs();
+                        });
                     };
                 }
                 await loadAdminLogs();
@@ -5027,6 +5256,7 @@ _____                     _   _   _           _
         }
         if (connection) {
             connection.onclose(async () => {
+                if (window.__forceLogout) return;
                 console.log("SignalR Connection Closed. Reconnecting...");
                 await startConnection();
             });
@@ -5107,12 +5337,19 @@ _____                     _   _   _           _
                 const isAdminUser = u && (u.isAdmin || u.IsAdmin);
                 openAdminSidebarButtonEl.style.display = isAdminUser ? 'inline-flex' : 'none';
             } catch {}
-            openAdminSidebarButtonEl.addEventListener('click', () => {
+            openAdminSidebarButtonEl.addEventListener('click', async () => {
                 try {
                     if (adminSidebarEl) {
                         adminSidebarEl.style.display = 'block';
                         adminSidebarEl.classList.add('open');
-                        if (typeof window.initAdminPanel === 'function') window.initAdminPanel();
+                        if (typeof window.initAdminPanel !== 'function') {
+                            if (typeof updateConversationSidebar === 'function') {
+                                await updateConversationSidebar();
+                            }
+                        }
+                        if (typeof window.initAdminPanel === 'function') {
+                            await window.initAdminPanel();
+                        }
                     }
                 } catch (e) { console.error(e); }
             });

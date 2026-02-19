@@ -47,67 +47,18 @@ namespace ParrotnestServer
                     var overridePath = Environment.GetEnvironmentVariable("PARROTNEST_DB_PATH");
                     if (!string.IsNullOrWhiteSpace(overridePath)) return overridePath;
 
+                    var baseDir = AppDomain.CurrentDomain.BaseDirectory;
+                    var baseDb = Path.Combine(baseDir, "parrotnest.db");
+                    if (File.Exists(baseDb)) return baseDb;
+
                     var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ParrotnestServer");
                     Directory.CreateDirectory(appDataDir);
                     var preferred = Path.Combine(appDataDir, "parrotnest.db");
-                    var preferAppDataEnv = Environment.GetEnvironmentVariable("PARROTNEST_DB_PREFER_APPDATA");
-                    var preferAppData = preferAppDataEnv == "1" || string.Equals(preferAppDataEnv, "true", StringComparison.OrdinalIgnoreCase);
-
-                    var candidates = new List<string>
-                    {
-                        Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db"),
-                        Path.Combine(contentRootPath, "parrotnest.db"),
-                    };
-
-                    try
-                    {
-                        var probe = AppDomain.CurrentDomain.BaseDirectory;
-                        for (int i = 0; i < 8; i++)
-                        {
-                            candidates.Add(Path.Combine(probe, "Server", "bin", "Debug", "net10.0-windows", "parrotnest.db"));
-                            candidates.Add(Path.Combine(probe, "Server", "bin", "Release", "net10.0-windows", "parrotnest.db"));
-                            var parent = Directory.GetParent(probe);
-                            if (parent == null) break;
-                            probe = parent.FullName;
-                        }
-                    }
-                    catch
-                    {
-                    }
-
-                    var uniqueCandidates = candidates
-                        .Where(p => !string.IsNullOrWhiteSpace(p))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToList();
-
-                    var existing = new List<(string Path, long Size, DateTime LastWriteUtc)>();
-                    foreach (var p in uniqueCandidates)
-                    {
-                        try
-                        {
-                            if (!File.Exists(p)) continue;
-                            var info = new FileInfo(p);
-                            existing.Add((p, info.Length, info.LastWriteTimeUtc));
-                        }
-                        catch
-                        {
-                        }
-                    }
-
-                    if (preferAppData && File.Exists(preferred)) return preferred;
-                    if (existing.Count > 0)
-                    {
-                        var best = existing
-                            .OrderByDescending(e => e.Size)
-                            .ThenByDescending(e => e.LastWriteUtc)
-                            .First();
-                        return best.Path;
-                    }
-
-                    return preferAppData ? preferred : Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db");
+                    return preferred;
                 }
 
                 var dbPath = ResolveDbPath(builder.Environment.ContentRootPath);
+                _logAction($"[DB Info] Using database file: {dbPath}");
                 builder.Configuration["DbPath"] = dbPath;
                 builder.Configuration["DbPreferredPath"] = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "ParrotnestServer", "parrotnest.db");
                 builder.Configuration["DbBaseDirPath"] = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "parrotnest.db");
@@ -275,7 +226,16 @@ namespace ParrotnestServer
                     }
                     catch (Exception ex)
                     {
-                        _logAction($"[DB Warning] AdminActionLogs: {ex.Message}");
+                        _logAction($"[DB Warning] AdminActionLogs (create): {ex.Message}");
+                    }
+                    try
+                    {
+                        dbContext.Database.ExecuteSqlRaw(@"CREATE VIEW IF NOT EXISTS AdminActionLog AS
+SELECT Id, PerformedByUserId, TargetUserId, ActionType, Reason, DurationMinutes, Timestamp, Details, Success FROM AdminActionLogs;");
+                    }
+                    catch (Exception ex)
+                    {
+                        _logAction($"[DB Warning] AdminActionLog (view): {ex.Message}");
                     }
                     
                     try {
@@ -434,7 +394,15 @@ namespace ParrotnestServer
                     provider.Mappings[".php"] = "text/html; charset=utf-8";
                     provider.Mappings[".mp3"] = "audio/mpeg";
                     provider.Mappings[".mp4"] = "video/mp4";
+                    provider.Mappings[".m4v"] = "video/mp4";
+                    provider.Mappings[".webm"] = "video/webm";
+                    provider.Mappings[".ogg"] = "video/ogg";
+                    provider.Mappings[".ogv"] = "video/ogg";
                     provider.Mappings[".avi"] = "video/x-msvideo";
+                    provider.Mappings[".mkv"] = "video/x-matroska";
+                    provider.Mappings[".3gp"] = "video/3gpp";
+                    provider.Mappings[".mpeg"] = "video/mpeg";
+                    provider.Mappings[".mpg"] = "video/mpeg";
                     provider.Mappings[".docx"] = "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
                     provider.Mappings[".exe"] = "application/octet-stream";
                     provider.Mappings[".cpp"] = "text/plain";

@@ -1,9 +1,14 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ParrotnestServer.Data;
-using ParrotnestServer.Models;
+using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
+using System.Data;
+using System.Data.Common;
 using System.Security.Claims;
+using ParrotnestServer.Data;
+using ParrotnestServer.Hubs;
+using ParrotnestServer.Models;
 namespace ParrotnestServer.Controllers
 {
     [Route("api/[controller]")]
@@ -12,9 +17,13 @@ namespace ParrotnestServer.Controllers
     public class AdminController : ControllerBase
     {
         private readonly ApplicationDbContext _context;
-        public AdminController(ApplicationDbContext context)
+        private readonly IHubContext<ChatHub> _hubContext;
+            private readonly ILogger<AdminController> _logger;
+            public AdminController(ApplicationDbContext context, IHubContext<ChatHub> hubContext, ILogger<AdminController> logger)
         {
             _context = context;
+            _hubContext = hubContext;
+                _logger = logger;
         }
         [AllowAnonymous]
         [HttpPost("reset-admin")]
@@ -64,21 +73,39 @@ namespace ParrotnestServer.Controllers
         {
             try
             {
-                _context.AdminActionLogs.Add(new AdminActionLog
-                {
-                    PerformedByUserId = performedById,
-                    TargetUserId = targetUserId,
-                    ActionType = type,
-                    Reason = reason,
-                    DurationMinutes = durationMinutes,
-                    Success = success,
-                    Details = details,
-                    Timestamp = DateTime.UtcNow
-                });
-                await _context.SaveChangesAsync();
+                await _context.Database.ExecuteSqlRawAsync(
+                    "INSERT INTO AdminActionLogs (PerformedByUserId, TargetUserId, ActionType, Reason, DurationMinutes, Timestamp, Details, Success) VALUES ({0},{1},{2},{3},{4},{5},{6},{7})",
+                    performedById,
+                    targetUserId,
+                    type,
+                    reason,
+                    durationMinutes,
+                    DateTime.UtcNow,
+                    details,
+                    success ? 1 : 0
+                );
             }
-            catch
+            catch (Exception ex)
             {
+                try
+                {
+                    await _context.Database.ExecuteSqlRawAsync(
+                        "INSERT INTO AdminActionLog (PerformedByUserId, TargetUserId, ActionType, Reason, DurationMinutes, Timestamp, Details, Success) VALUES ({0},{1},{2},{3},{4},{5},{6},{7})",
+                        performedById,
+                        targetUserId,
+                        type,
+                        reason,
+                        durationMinutes,
+                        DateTime.UtcNow,
+                        details,
+                        success ? 1 : 0
+                    );
+                }
+                catch (Exception ex2)
+                {
+                    _logger.LogError(ex, "Failed to log admin action {Type} for user {TargetUserId}", type, targetUserId);
+                    _logger.LogError(ex2, "Failed to log admin action fallback {Type} for user {TargetUserId}", type, targetUserId);
+                }
             }
         }
         [HttpPost("ban/{id:int}")]
@@ -96,14 +123,27 @@ namespace ParrotnestServer.Controllers
             }
             else
             {
-                var minutes = dto.Minutes > 0 ? dto.Minutes : 60;
-                until = DateTime.UtcNow.AddMinutes(minutes);
+                if (dto.Minutes > 0)
+                {
+                    until = DateTime.UtcNow.AddMinutes(dto.Minutes);
+                }
+                else
+                {
+                    until = DateTime.UtcNow.AddYears(1000);
+                }
             }
             user.BanUntil = until;
             try
             {
                 await _context.SaveChangesAsync();
                 await LogAdminActionAsync("ban", requester.Id, id, dto.Reason, dto.Minutes > 0 ? dto.Minutes : null, true, $"until={until:O}");
+                await _hubContext.Clients.Group($"User_{id}")
+                    .SendAsync("ForceLogout", new
+                    {
+                        reason = dto.Reason,
+                        until = until,
+                        message = $"Twoje konto zostało zbanowane do {until.ToLocalTime():yyyy-MM-dd HH:mm}."
+                    });
             }
             catch (Exception ex)
             {
@@ -243,29 +283,86 @@ namespace ParrotnestServer.Controllers
             return Ok(new { message = $"Usunięto {count} wiadomości z kanału ogólnego." });
         }
         [HttpGet("logs")]
-        public async Task<IActionResult> GetAdminLogs([FromQuery] int limit = 200)
+        public async Task<IActionResult> GetAdminLogs()
         {
             var requester = await GetRequesterAsync();
             if (requester == null || !requester.IsAdmin) return Forbid("Wymagane uprawnienia administratora.");
-            limit = Math.Clamp(limit, 1, 1000);
-            var logs = await _context.AdminActionLogs
-                .Include(l => l.PerformedByUser)
-                .Include(l => l.TargetUser)
-                .OrderByDescending(l => l.Timestamp)
-                .Take(limit)
-                .Select(l => new {
-                    l.Id,
-                    l.ActionType,
-                    l.Reason,
-                    l.DurationMinutes,
-                    l.Timestamp,
-                    l.Success,
-                    l.Details,
-                    PerformedBy = new { Id = l.PerformedByUserId, Username = l.PerformedByUser != null ? l.PerformedByUser.Username : null },
-                    TargetUser = l.TargetUserId.HasValue ? new { Id = l.TargetUserId, Username = l.TargetUser != null ? l.TargetUser.Username : null } : null
-                })
-                .ToListAsync();
-            return Ok(logs);
+
+            var result = new List<object>();
+            var conn = _context.Database.GetDbConnection();
+            try
+            {
+                if (conn.State != ConnectionState.Open) await conn.OpenAsync();
+                await using (var cmd = conn.CreateCommand())
+                {
+                    cmd.CommandText = $@"
+SELECT
+    l.Id,
+    l.PerformedByUserId,
+    l.TargetUserId,
+    l.ActionType,
+    l.Reason,
+    l.DurationMinutes,
+    l.Timestamp,
+    l.Details,
+    l.Success,
+    u1.Username AS PerformedByUsername,
+    u2.Username AS TargetUsername
+FROM AdminActionLogs l
+LEFT JOIN Users u1 ON u1.Id = l.PerformedByUserId
+LEFT JOIN Users u2 ON u2.Id = l.TargetUserId
+ORDER BY l.Timestamp DESC;";
+                    await using (var reader = await cmd.ExecuteReaderAsync())
+                    {
+                        while (await reader.ReadAsync())
+                        {
+                            var id = reader["Id"] is DBNull ? 0 : Convert.ToInt32(reader["Id"]);
+                            var performedById = reader["PerformedByUserId"] is DBNull ? 0 : Convert.ToInt32(reader["PerformedByUserId"]);
+                            int? targetId = reader["TargetUserId"] is DBNull ? (int?)null : Convert.ToInt32(reader["TargetUserId"]);
+                            var actionType = reader["ActionType"] is DBNull ? string.Empty : Convert.ToString(reader["ActionType"]) ?? string.Empty;
+                            string? reason = reader["Reason"] is DBNull ? null : Convert.ToString(reader["Reason"]);
+                            int? duration = reader["DurationMinutes"] is DBNull ? (int?)null : Convert.ToInt32(reader["DurationMinutes"]);
+                            var tsRaw = reader["Timestamp"] is DBNull ? null : Convert.ToString(reader["Timestamp"]);
+                            DateTime ts;
+                            if (!DateTime.TryParse(tsRaw, out ts)) ts = DateTime.UtcNow;
+                            string? details = reader["Details"] is DBNull ? null : Convert.ToString(reader["Details"]);
+                            bool success = false;
+                            if (reader["Success"] is DBNull) success = true; else
+                            {
+                                var sv = reader["Success"];
+                                if (sv is long ll) success = ll != 0;
+                                else if (sv is int ii) success = ii != 0;
+                                else if (sv is string ss) success = ss != "0";
+                                else success = true;
+                            }
+                            var performedByUsername = reader["PerformedByUsername"] is DBNull ? null : Convert.ToString(reader["PerformedByUsername"]);
+                            var targetUsername = reader["TargetUsername"] is DBNull ? null : Convert.ToString(reader["TargetUsername"]);
+                            var item = new
+                            {
+                                Id = id,
+                                ActionType = actionType,
+                                Reason = reason,
+                                DurationMinutes = duration,
+                                Timestamp = ts,
+                                Success = success,
+                                Details = details,
+                                PerformedBy = new { Id = performedById, Username = performedByUsername },
+                                TargetUser = targetId.HasValue ? new { Id = targetId, Username = targetUsername } : null
+                            };
+                            result.Add(item);
+                        }
+                    }
+                }
+            }
+            catch
+            {
+                return StatusCode(500, "Nie udało się pobrać logów administracyjnych.");
+            }
+            finally
+            {
+                if (conn.State == ConnectionState.Open) await conn.CloseAsync();
+            }
+            return Ok(result);
         }
     }
     public class BanUserDto
