@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🦜 Parrotnest v8.6  
+# 🦜 Parrotnest   
 Modern Real‑Time Chat & Collaboration Platform
 
 ![.NET](https://img.shields.io/badge/.NET-8%2B-blueviolet?style=flat-square)
@@ -133,7 +133,7 @@ Key folders:
 ## 📂 Project Layout
 
 ```text
-Alfa v8/
+Parrotnest/
 ├─ Client/
 │  ├─ index.php             # Main chat UI
 │  ├─ login.php             # Login screen (default open in browser)
@@ -152,7 +152,8 @@ Alfa v8/
 │  ├─ database.sql          # SQL schema (reference)
 │  ├─ BAZA_DANYCH.md        # DB documentation (PL)
 │  └─ PRODUCTION_DEPLOY.md  # Production deployment notes (PL)
-└─ README.md                # You are here 🙂
+├─ README.md                # You are here 🙂
+└─ ParrotnestServer.exe     # exe
 ```
 
 ---
@@ -439,4 +440,9 @@ Ideas:
 - Uses open‑source technologies from the .NET and web ecosystem.
 
 If you find this project useful, feel free to star the repo, share it with your classmates, or fork it and build your own flavor of Parrotnest! 🦜✨
+
+## 👑 Creators
+Adam ("Hnato")
+Igor ("Flubi3604")
+Jakub ("John0G1thub")
 
