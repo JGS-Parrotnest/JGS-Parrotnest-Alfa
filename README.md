@@ -442,7 +442,7 @@ Ideas:
 If you find this project useful, feel free to star the repo, share it with your classmates, or fork it and build your own flavor of Parrotnest! 🦜✨
 
 ## 👑 Creators
-Adam ("Hnato")
-Igor ("Flubi3604")
-Jakub ("John0G1thub")
+- Adam ("Hnato").
+- Igor ("Flubi3604").
+- Jakub ("John0G1thub").
 
